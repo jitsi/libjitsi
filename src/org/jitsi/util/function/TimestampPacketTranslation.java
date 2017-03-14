@@ -60,7 +60,7 @@ extends AbstractFunction<T, T>
         }
         else if (RTCPPacketPredicate.INSTANCE.test(pktIn))
         {
-            // Rewrite timestamp.
+            // Rewrite the timestamp of an SR packet.
             long srcTs = RTCPSenderInfoUtils.getTimestamp(pktIn);
             long dstTs = tsTranslation.apply(srcTs);
 

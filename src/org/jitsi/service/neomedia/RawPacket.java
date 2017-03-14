@@ -1158,14 +1158,22 @@ public class RawPacket
     }
 
 
-    public static int getSequenceNumber(ByteArrayBuffer pktIn)
+    /**
+     * Gets the RTP sequence number from a RTP packet.
+     *
+     * @param baf the {@link ByteArrayBuffer} that contains the RTP packet.
+     *
+     * @return the RTP sequence number from a RTP packet.
+     */
+    public static int getSequenceNumber(ByteArrayBuffer baf)
     {
-        if (pktIn == null)
+        if (baf == null)
         {
             return -1;
         }
 
-        return getSequenceNumber(pktIn.getBuffer(), pktIn.getOffset(), pktIn.getLength());
+        return getSequenceNumber(
+            baf.getBuffer(), baf.getOffset(), baf.getLength());
     }
 
     /**
@@ -1182,14 +1190,20 @@ public class RawPacket
     }
 
 
-    public static void setSequenceNumber(ByteArrayBuffer pktIn, int dstSeqNum)
+    /**
+     * Sets the sequence number of an RTP packet.
+     *
+     * @param baf the {@link ByteArrayBuffer} that contains the RTP packet.
+     * @param dstSeqNum the sequence number to set in the RTP packet.
+     */
+    public static void setSequenceNumber(ByteArrayBuffer baf, int dstSeqNum)
     {
-        if (pktIn == null)
+        if (baf == null)
         {
             return;
         }
 
-        setSequenceNumber(pktIn.getBuffer(), pktIn.getOffset(), dstSeqNum);
+        setSequenceNumber(baf.getBuffer(), baf.getOffset(), dstSeqNum);
     }
 
     /**
@@ -1207,6 +1221,12 @@ public class RawPacket
         RTPUtils.writeInt(buf, off + 4, (int) ts);
     }
 
+    /**
+     * Sets the RTP timestamp of an RTP packet.
+     *
+     * param baaf the {@link ByteArrayBuffer} that contains the RTP packet.
+     * @param ts the timestamp to set in the RTP packet.
+     */
     public static void setTimestamp(ByteArrayBuffer baf, long ts)
     {
         if (baf == null)
@@ -1299,6 +1319,12 @@ public class RawPacket
         return RTPUtils.readUint32AsLong(buf, off + 4);
     }
 
+    /**
+     * Gets the RTP timestamp for an RTP buffer.
+     *
+     * @param baf the {@link ByteArrayBuffer} that contains the RTP packet.
+     * @return the timestamp in the RTP buffer.
+     */
     public static long getTimestamp(ByteArrayBuffer baf)
     {
         if (baf == null)

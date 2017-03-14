@@ -134,11 +134,16 @@ public class SimulcastController
     }
 
     /**
+     * Defines a packet filter that controls which packets to be written into
+     * some arbitrary target/receiver that owns this {@link SimulcastController}.
      *
-     * @param buf
-     * @param off
-     * @param len
-     * @return
+     * @param buf the <tt>byte</tt> array that holds the packet.
+     * @param off the offset in <tt>buffer</tt> at which the actual data begins.
+     * @param len the number of <tt>byte</tt>s in <tt>buffer</tt> which
+     * constitute the actual data.
+     * @return <tt>true</tt> to allow the specified packet/<tt>buffer</tt> to be
+     * written into the arbitrary target/receiver that owns this
+     * {@link SimulcastController} ; otherwise, <tt>false</tt>
      */
     public boolean accept(byte[] buf, int off, int len)
     {
@@ -181,7 +186,7 @@ public class SimulcastController
 
         if (currentTL0Idx == targetTL0Idx && currentTL0IsActive)
         {
-            // An intra-codec/simulcast switch pending is NOT pending.
+            // An intra-codec/simulcast switch is NOT pending.
             long sourceSSRC = sourceFrameDesc.getRTPEncoding().getPrimarySSRC();
             boolean accept = sourceSSRC == bitstreamController.getTL0SSRC();
 
