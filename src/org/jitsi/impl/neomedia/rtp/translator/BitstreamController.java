@@ -266,8 +266,8 @@ public class BitstreamController
                     SeqNumTranslation seqNumTranslation;
                     if (maxSeqNum > -1)
                     {
-                        int seqNumDelta = (maxSeqNum
-                            + 1 - sourceFrameDesc.getStart()) & 0xFFFF;
+                        int seqNumDelta = (maxSeqNum + 1
+                            - sourceFrameDesc.getStart()) & 0xFFFF;
 
                         seqNumTranslation = new SeqNumTranslation(seqNumDelta);
                     }
@@ -276,18 +276,27 @@ public class BitstreamController
                         seqNumTranslation = null;
                     }
 
-                    long maxTs = getMaxTs();
                     TimestampTranslation tsTranslation;
-                    if (maxTs > -1)
+                    if (maxSentFrame == null)
                     {
-                        long tsDelta = (maxTs
-                            + 3000 - sourceFrameDesc.getTimestamp()) & 0xFFFFFFFFL;
+                        if (tsOff > -1)
+                        {
+                            long tsDelta = (tsOff + 3000
+                                - sourceFrameDesc.getTimestamp()) & 0xFFFFFFFFL;
 
-                        tsTranslation = new TimestampTranslation(tsDelta);
+                            tsTranslation = new TimestampTranslation(tsDelta);
+                        }
+                        else
+                        {
+                            tsTranslation = null;
+                        }
                     }
                     else
                     {
-                        tsTranslation = null;
+                        // The timestamp delta doesn't change for a bitstream,
+                        // so, if we've sent out a frame already, reuse its
+                        // timestamp translation.
+                        tsTranslation = maxSentFrame.tsTranslation;
                     }
 
                     destFrame = new SeenFrame(
