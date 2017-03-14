@@ -56,7 +56,11 @@ public class RTPRecorder {
     }
 
     public static synchronized void persistRecorder(String recorderName) {
-        persistRecorder(RECORDER_MAP.get(recorderName));
+        RTPRecorder rtpRecorder = RECORDER_MAP.get(recorderName);
+        if (rtpRecorder == null) {
+            throw new ZeroRTPException();
+        }
+        persistRecorder(rtpRecorder);
         RECORDER_MAP.remove(recorderName);
     }
 
@@ -78,4 +82,6 @@ public class RTPRecorder {
             e.printStackTrace();
         }
     }
+
+    public static class ZeroRTPException extends NullPointerException {}
 }
