@@ -353,9 +353,6 @@ public class SimulcastController
 
         BitstreamController bitstreamController = this.bitstreamController;
 
-        // Rewrite timestamp and transmission.
-        pktIn = bitstreamController.rtcpTransform(pktIn);
-
         // Drop SRs from other streams.
         boolean removed = false;
         RTCPIterator it = new RTCPIterator(pktIn);
@@ -379,6 +376,9 @@ public class SimulcastController
                 }
                 else
                 {
+                    // Rewrite timestamp and transmission.
+                    bitstreamController.rtcpTransform(baf);
+
                     // Rewrite senderSSRC
                     RTCPHeaderUtils.setSenderSSRC(baf, (int) targetSSRC);
                 }

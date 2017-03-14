@@ -422,46 +422,27 @@ public class BitstreamController
      * Updates the timestamp, transmitted bytes and transmitted packets in the
      * RTCP SR packets.
      *
-     * @param pktIn the RTCP packet to transform.
-     *
-     * @return the transformed RTCP packet.
+     * @return true, if the packet is to be forwarded, false otherwise.
      */
-    RawPacket rtcpTransform(RawPacket pktIn)
+    void rtcpTransform(ByteArrayBuffer baf)
     {
-        RTCPIterator it = new RTCPIterator(pktIn);
-        while (it.hasNext())
+        SeenFrame maxSentFrame = this.maxSentFrame;
+
+        // Rewrite timestamp.
+        if (maxSentFrame != null && maxSentFrame.tsTranslation != null)
         {
-            ByteArrayBuffer baf = it.next();
-            switch (RTCPHeaderUtils.getPacketType(baf))
+            long srcTs = RTCPSenderInfoUtils.getTimestamp(baf);
+            long dstTs = maxSentFrame.tsTranslation.apply(srcTs);
+
+            if (srcTs != dstTs)
             {
-            case RTCPPacket.SR:
-                if (RawPacket.getRTCPSSRC(baf) != tl0SSRC)
-                {
-                    continue;
-                }
-                // Rewrite timestamp.
-                if (maxSentFrame != null
-                    && maxSentFrame.tsTranslation != null)
-                {
-                    long srcTs = RTCPSenderInfoUtils.getTimestamp(pktIn);
-                    // FIXME what if maxSentFrame == null?
-                    long dstTs
-                        = maxSentFrame.tsTranslation.apply(srcTs);
-
-                    if (srcTs != dstTs)
-                    {
-                        RTCPSenderInfoUtils.setTimestamp(pktIn, (int) dstTs);
-                    }
-                }
-
-                // Rewrite packet/octet count.
-                RTCPSenderInfoUtils.setOctetCount(pktIn, (int) transmittedBytes);
-                RTCPSenderInfoUtils.setPacketCount(pktIn, (int) transmittedPackets);
-                break;
+                RTCPSenderInfoUtils.setTimestamp(baf, (int) dstTs);
             }
         }
 
-        return pktIn;
+        // Rewrite packet/octet count.
+        RTCPSenderInfoUtils.setOctetCount(baf, (int) transmittedBytes);
+        RTCPSenderInfoUtils.setPacketCount(baf, (int) transmittedPackets);
     }
 
     /**
