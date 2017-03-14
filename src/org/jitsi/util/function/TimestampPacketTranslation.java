@@ -15,6 +15,7 @@
  */
 package org.jitsi.util.function;
 
+import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.service.neomedia.*;
@@ -60,7 +61,8 @@ extends AbstractFunction<T, T>
 
             return pktIn;
         }
-        else if (RTCPPacketPredicate.INSTANCE.test(pktIn))
+        else if (RTCPPacketPredicate.INSTANCE.test(pktIn)
+            && RTCPHeaderUtils.getPacketType(pktIn) == RTCPPacket.SR)
         {
             // Rewrite the timestamp of an SR packet.
             long srcTs = RTCPSenderInfoUtils.getTimestamp(pktIn);
