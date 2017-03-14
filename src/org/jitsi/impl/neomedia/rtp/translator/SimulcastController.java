@@ -234,6 +234,7 @@ public class SimulcastController
 
             synchronized (this)
             {
+                // The synchronized is to get the target idx and optimal idx.
                 int targetIdx = bitstreamController.getTargetIndex(),
                     optimalIdx = bitstreamController.getOptimalIndex();
 
@@ -319,7 +320,8 @@ public class SimulcastController
 
         RawPacket[] pktsOut = bitstreamController.rtpTransform(pktIn);
 
-        if (!ArrayUtils.isNullOrEmpty(pktsOut) && pktIn.getSSRC() != targetSSRC)
+        if (!ArrayUtils.isNullOrEmpty(pktsOut)
+            && pktIn.getSSRCAsLong() != targetSSRC)
         {
             // Rewrite the SSRC of the output RTP stream.
             for (RawPacket pktOut : pktsOut)
@@ -377,6 +379,9 @@ public class SimulcastController
                     RTCPHeaderUtils.setSenderSSRC(baf, (int) targetSSRC);
                 }
                 break;
+                case RTCPPacket.BYE:
+                    // TODO rewrite SSRC.
+                    break;
             }
         }
 

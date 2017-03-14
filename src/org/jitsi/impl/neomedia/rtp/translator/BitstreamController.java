@@ -52,6 +52,12 @@ public class BitstreamController
     private final long tl0SSRC;
 
     /**
+     * A weak reference to the {@link MediaStreamTrackDesc} that this controller
+     * is associated to.
+     */
+    private final WeakReference<MediaStreamTrackDesc> weakSource;
+
+    /**
      * The target subjective quality index for this instance. This instance
      * switches between the available RTP streams and sub-encodings until it
      * reaches this target. -1 effectively means that the stream is suspended.
@@ -78,11 +84,6 @@ public class BitstreamController
      * The number of transmitted packets.
      */
     private long transmittedPackets;
-
-    /**
-     * The independent frame that started this bitstream.
-     */
-    private FrameController kfFrame;
 
     /**
      * The max (biggest timestamp) frame that we've sent out.
@@ -119,8 +120,7 @@ public class BitstreamController
         this.transmittedBytes = transmittedBytes;
         this.transmittedPackets = transmittedPackets;
         this.optimalIdx = optimalIdx;
-        this.targetIdx = targetIdx;
-        this.currentIdx = -1;
+        this.weakSource = new WeakReference<>(source);
 
         RTPEncodingDesc[] rtpEncodings = source.getRTPEncodings();
         if (ArrayUtils.isNullOrEmpty(rtpEncodings))
@@ -130,10 +130,11 @@ public class BitstreamController
         }
         else
         {
-            int tl0Idx = initialIdx;
+            int initialTL0Idx = initialIdx;
             if (initialIdx > -1)
             {
-                tl0Idx = rtpEncodings[tl0Idx].getBaseLayer().getIndex();
+                initialTL0Idx
+                    = rtpEncodings[initialTL0Idx].getBaseLayer().getIndex();
             }
 
             // find the available qualities in this bitstream.
@@ -142,7 +143,7 @@ public class BitstreamController
             List<Integer> availableQualities = new ArrayList<>();
             for (int i = 0; i < rtpEncodings.length; i++)
             {
-                if (rtpEncodings[i].requires(tl0Idx))
+                if (rtpEncodings[i].requires(initialTL0Idx))
                 {
                     availableQualities.add(i);
                 }
@@ -155,15 +156,17 @@ public class BitstreamController
                 availableIdx[i] = iterator.next();
             }
 
-            if (tl0Idx > -1)
+            if (initialTL0Idx > -1)
             {
-                tl0SSRC = rtpEncodings[tl0Idx].getPrimarySSRC();
+                tl0SSRC = rtpEncodings[initialTL0Idx].getPrimarySSRC();
             }
             else
             {
                 tl0SSRC = -1;
             }
         }
+
+        setTargetIndex(targetIdx);
     }
 
     /**
@@ -177,8 +180,8 @@ public class BitstreamController
     public boolean accept(
         FrameDesc sourceFrameDesc, byte[] buf, int off, int len)
     {
-        FrameController destFrame
-            = seenFrames.get(sourceFrameDesc.getTimestamp());
+        long srcTs = sourceFrameDesc.getTimestamp();
+        FrameController destFrame = seenFrames.get(srcTs);
 
         if (destFrame == null)
         {
@@ -196,31 +199,10 @@ public class BitstreamController
             // boundaries. Then the stream will be broken an we should ask for a
             // key frame.
 
-            int currentIdx = this.currentIdx, targetIdx = this.targetIdx;
-
-            if (currentIdx < 0
-                && targetIdx > -1 && sourceFrameDesc.isIndependent())
-            {
-                // Resume a suspended stream (requires an independent frame).
-                currentIdx = availableIdx[0];
-                for (int i = 1; i < availableIdx.length; i++)
-                {
-                    if (availableIdx[i] <= targetIdx)
-                    {
-                        currentIdx = availableIdx[i];
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
-
-                this.currentIdx = currentIdx;
-            }
+            int currentIdx = this.currentIdx;
 
             if (currentIdx >= 0 && (maxSentFrame == null
-                || TimeUtils.rtpDiff(sourceFrameDesc.getTimestamp(),
-                    maxSentFrame.getSource().getTimestamp()) > 0))
+                || TimeUtils.rtpDiff(srcTs, maxSentFrame.srcTs) > 0))
             {
                 // the stream is not suspended and we're not dealing with a late
                 // frame.
@@ -265,30 +247,26 @@ public class BitstreamController
                     }
 
                     destFrame = new FrameController(
-                        sourceFrameDesc, seqnumTranslation, tsTranslation);
+                        srcTs, seqnumTranslation, tsTranslation);
                     seenFrames.put(sourceFrameDesc.getTimestamp(), destFrame);
                     maxSentFrame = destFrame;
-
-                    if (sourceFrameDesc.isIndependent())
-                    {
-                        kfFrame = destFrame;
-                    }
                 }
                 else
                 {
-                    destFrame = new FrameController(sourceFrameDesc, null, null);
+                    destFrame = new FrameController(srcTs, null, null);
                     seenFrames.put(sourceFrameDesc.getTimestamp(), destFrame);
                 }
             }
             else
             {
-                destFrame = new FrameController(sourceFrameDesc, null, null);
+                destFrame = new FrameController(srcTs, null, null);
                 seenFrames.put(sourceFrameDesc.getTimestamp(), destFrame);
             }
         }
 
-        boolean accept
-            = destFrame.accept(maxSentFrame == destFrame, buf, off, len);
+        boolean accept = destFrame.accept(
+            maxSentFrame == destFrame, sourceFrameDesc, buf, off, len);
+
 
         if (accept)
         {
@@ -347,13 +325,12 @@ public class BitstreamController
         this.targetIdx = newTargetIdx;
         if (newTargetIdx < 0)
         {
+            // suspend the stream
             currentIdx = newTargetIdx;
         }
-
-        if (currentIdx > -1)
+        else
         {
-            // Resume a suspended stream (requires an independent frame).
-            currentIdx = availableIdx[0];
+            int currentIdx = availableIdx[0];
             for (int i = 1; i < availableIdx.length; i++)
             {
                 if (availableIdx[i] <= targetIdx)
@@ -365,6 +342,8 @@ public class BitstreamController
                     break;
                 }
             }
+
+            this.currentIdx = currentIdx;
         }
     }
 
@@ -383,23 +362,12 @@ public class BitstreamController
      */
     RawPacket[] rtpTransform(RawPacket pktIn)
     {
-        FrameDesc source = kfFrame == null ? null : kfFrame.getSource();
-        if (source == null)
+        FrameController destFrame = seenFrames.get(pktIn.getTimestamp());
+        if (destFrame == null)
         {
             return null;
         }
 
-        long ts = pktIn.getTimestamp(),
-            kfTs = source.getTimestamp();
-
-        if (TimeUtils.rtpDiff(ts, kfTs) < 0)
-        {
-            // Don't forward anything older than the most recent independent
-            // frame.
-            return null;
-        }
-
-        FrameController destFrame = seenFrames.get(ts);
         return destFrame.rtpTransform(pktIn);
     }
 
@@ -440,6 +408,7 @@ public class BitstreamController
                 // Rewrite packet/octet count.
                 RTCPSenderInfoUtils.setOctetCount(pktIn, (int) transmittedBytes);
                 RTCPSenderInfoUtils.setPacketCount(pktIn, (int) transmittedPackets);
+                break;
             }
         }
 
@@ -470,11 +439,6 @@ public class BitstreamController
     class FrameController
     {
         /**
-         *
-         */
-        private final WeakReference<FrameDesc> weakSource;
-
-        /**
          * The sequence number translation to apply to accepted RTP packets.
          */
         private final SeqnumTranslation seqNumTranslation;
@@ -491,36 +455,54 @@ public class BitstreamController
         private boolean maybeFixInitialIndependentFrame = true;
 
         /**
-         * The maximum sequence number to accept. -1 means drop.
+         * The source timestamp of this frame.
+         */
+        private final long srcTs;
+
+        /**
+         * The maximum source sequence number to accept. -1 means drop.
          */
         private int srcSeqNumLimit = -1;
 
         /**
+         * The start source sequence number of this frame.
+         */
+        private int srcSeqNumStart = -1;
+
+        /**
          *
-         * @param sourceFrameDesc
+         * @param ts
          * @param seqnumTranslation
          * @param tsTranslation
          */
-        FrameController(FrameDesc sourceFrameDesc,
-                        SeqnumTranslation seqnumTranslation,
+        FrameController(long ts, SeqnumTranslation seqnumTranslation,
                         TimestampTranslation tsTranslation)
         {
-            this.weakSource = new WeakReference<>(sourceFrameDesc);
+            this.srcTs = ts;
             this.seqNumTranslation = seqnumTranslation;
             this.tsTranslation = tsTranslation;
         }
 
-        boolean accept(boolean expand, byte[] buf, int off, int len)
+        boolean accept(boolean expand, FrameDesc source, byte[] buf, int off, int len)
         {
             if (expand)
             {
-                FrameDesc source = weakSource.get();
-                assert source != null;
-                srcSeqNumLimit = source.getMaxSeen();
+                if (srcSeqNumLimit == -1
+                    || RTPUtils.sequenceNumberDiff(source.getMaxSeen(), srcSeqNumLimit) > 0)
+                {
+                    srcSeqNumLimit = source.getMaxSeen();
+                }
             }
+
             if (srcSeqNumLimit == -1)
             {
                 return false;
+            }
+
+            if (srcSeqNumStart == -1
+                || RTPUtils.sequenceNumberDiff(srcSeqNumStart, source.getMinSeen()) > 0)
+            {
+                srcSeqNumStart = source.getMinSeen();
             }
 
             int seqNum = RawPacket.getSequenceNumber(buf, off, len);
@@ -538,31 +520,25 @@ public class BitstreamController
 
             if (maybeFixInitialIndependentFrame)
             {
-                FrameDesc source = weakSource.get();
-                assert source != null;
-
                 maybeFixInitialIndependentFrame = false;
 
-                if (source.getStart() != pktIn.getSequenceNumber())
+                if (srcSeqNumStart != pktIn.getSequenceNumber())
                 {
                     // Piggy back till max seen.
-                    RawPacketCache inCache = source
-                        .getRTPEncoding()
-                        .getMediaStreamTrack()
+                    RawPacketCache inCache = weakSource.get()
                         .getMediaStreamTrackReceiver()
                         .getStream()
                         .getCachingTransformer()
                         .getIncomingRawPacketCache();
 
-                    int start = source.getStart();
                     int len = RTPUtils.sequenceNumberDiff(
-                        source.getMaxSeen(), start) + 1;
+                        srcSeqNumLimit, srcSeqNumStart) + 1;
                     pktsOut = new RawPacket[len];
                     for (int i = 0; i < pktsOut.length; i++)
                     {
                         // Note that the ingress cache might not have the desired
                         // packet.
-                        pktsOut[i] = inCache.get(srcSSRC, (start + i) & 0xFFFF);
+                        pktsOut[i] = inCache.get(srcSSRC, (srcSeqNumStart + i) & 0xFFFF);
                     }
                 }
                 else
@@ -613,11 +589,6 @@ public class BitstreamController
             return tsTranslation;
         }
 
-        FrameDesc getSource()
-        {
-            return weakSource.get();
-        }
-
         int getMaxSeqNum()
         {
             return seqNumTranslation == null
@@ -626,8 +597,7 @@ public class BitstreamController
 
         long getTs()
         {
-            long ts = weakSource.get().getTimestamp();
-            return tsTranslation == null ? ts : tsTranslation.apply(ts);
+            return tsTranslation == null ? srcTs : tsTranslation.apply(srcTs);
         }
     }
 }

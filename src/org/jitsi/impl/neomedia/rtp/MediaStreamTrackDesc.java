@@ -59,6 +59,13 @@ public class MediaStreamTrackDesc
     private final MediaStreamTrackReceiver mediaStreamTrackReceiver;
 
     /**
+     * We have a bunch of code that is dealing with simulcast. Specifically,
+     * we want to detect stream suspension so that we can switch to a lower
+     * stream. If we're not using simulcast, we want to disable this code.
+     */
+    private final boolean simulcast;
+
+    /**
      * Stats for this {@link MediaStreamTrackDesc} instance.
      */
     private final Statistics statistics = new Statistics();
@@ -73,10 +80,11 @@ public class MediaStreamTrackDesc
      */
     public MediaStreamTrackDesc(
         MediaStreamTrackReceiver mediaStreamTrackReceiver,
-        RTPEncodingDesc[] rtpEncodings)
+        RTPEncodingDesc[] rtpEncodings, boolean simulcast)
     {
         this.rtpEncodings = rtpEncodings;
         this.mediaStreamTrackReceiver = mediaStreamTrackReceiver;
+        this.simulcast = simulcast;
     }
 
     /**
@@ -120,6 +128,12 @@ public class MediaStreamTrackDesc
      */
     void update(RawPacket pkt, FrameDesc frameDesc, long nowMs)
     {
+        if (!simulcast)
+        {
+            frameDesc.getRTPEncoding().setActive(true);
+            return;
+        }
+
         if (nowMs - statistics.lastKeyframeMs < MIN_KEY_FRAME_WAIT_MS)
         {
             // The webrtc engine is sending keyframes from high to low and less
@@ -234,14 +248,10 @@ public class MediaStreamTrackDesc
      * @return the {@link RTPEncodingDesc} that corresponds to the packet that is
      * specified in the buffer passed in as an argument, or null.
      */
-    public RTPEncodingDesc findRTPEncodingDesc(byte[] buf, int off, int len)
+    RTPEncodingDesc findRTPEncodingDesc(byte[] buf, int off, int len)
     {
-        if (buf == null || buf.length < off + len)
-        {
-            return null;
-        }
-
-        if (ArrayUtils.isNullOrEmpty(rtpEncodings))
+        if (buf == null || buf.length < off + len
+            || ArrayUtils.isNullOrEmpty(rtpEncodings))
         {
             return null;
         }
@@ -266,7 +276,7 @@ public class MediaStreamTrackDesc
      * @return the {@link RTPEncodingDesc} that corresponds to the packet that
      * is specified in the buffer passed in as an argument, or null.
      */
-    public RTPEncodingDesc findRTPEncodingDesc(long ssrc)
+    RTPEncodingDesc findRTPEncodingDesc(long ssrc)
     {
         if (ArrayUtils.isNullOrEmpty(rtpEncodings))
         {

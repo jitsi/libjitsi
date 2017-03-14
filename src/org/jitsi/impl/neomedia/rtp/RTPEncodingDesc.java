@@ -26,6 +26,8 @@ import java.util.*;
  * Keeps track of how many channels receive it, its subjective quality index,
  * its last stable bitrate and other useful things for adaptivity/routing.
  *
+ * TODO rename to Flow.
+ *
  * @author George Politis
  */
 public class RTPEncodingDesc
@@ -60,9 +62,19 @@ public class RTPEncodingDesc
     private final int idx;
 
     /**
-     * The temporal ID of this instance.
+     * The temporal layer ID of this instance.
      */
-    private final int temporalId;
+    private final int tid;
+
+    /**
+     * The spatial layer ID of this instance.
+     */
+    private final int sid;
+
+    /**
+     * The very base layer for this encoding. Usefull for simulcast.
+     */
+    private final RTPEncodingDesc base;
 
     /**
      * The {@link MediaStreamTrackDesc} that this {@link RTPEncodingDesc}
@@ -149,7 +161,7 @@ public class RTPEncodingDesc
         MediaStreamTrackDesc track, long primarySSRC, long rtxSSRC)
     {
         this(track, 0, primarySSRC, rtxSSRC,
-            -1 /* temporalId */, null /* dependencies */);
+            -1 /* tid */, -1 /* sid */, null /* dependencies */);
     }
 
     /**
@@ -161,22 +173,32 @@ public class RTPEncodingDesc
      * layering/encoding.
      * @param primarySSRC The primary SSRC for this layering/encoding.
      * @param rtxSSRC The RTX SSRC for this layering/encoding.
-     * @param temporalId temporal layer ID for this layering/encoding.
+     * @param tid temporal layer ID for this layering/encoding.
+     * @param sid spatial layer ID for this layering/encoding.
      * @param dependencyEncodings  The {@link RTPEncodingDesc} on which this
      * layer depends.
      */
     public RTPEncodingDesc(
         MediaStreamTrackDesc track, int idx,
         long primarySSRC, long rtxSSRC,
-        int temporalId,
+        int tid, int sid,
         RTPEncodingDesc[] dependencyEncodings)
     {
         this.primarySSRC = primarySSRC;
         this.rtxSSRC = rtxSSRC;
         this.track = track;
         this.idx = idx;
-        this.temporalId = temporalId;
+        this.tid = tid;
+        this.sid = sid;
         this.dependencyEncodings = dependencyEncodings;
+        if (ArrayUtils.isNullOrEmpty(dependencyEncodings))
+        {
+            this.base = this;
+        }
+        else
+        {
+            this.base = dependencyEncodings[0].getBaseLayer();
+        }
     }
 
     /**
@@ -294,7 +316,8 @@ public class RTPEncodingDesc
         return "subjective_quality=" + idx +
             ",primary_ssrc=" + getPrimarySSRC() +
             ",rtx_ssrc=" + getRTXSSRC() +
-            ",temporal_id=" + temporalId +
+            ",temporal_id=" + tid +
+            ",spatial_id=" + sid +
             ",active=" + active +
             ",last_stable_bitrate_bps=" + lastStableBitrateBps;
     }
@@ -376,15 +399,18 @@ public class RTPEncodingDesc
             return false;
         }
 
-        if (temporalId == -1)
+        if (tid == -1 && sid == -1)
         {
             return true;
         }
 
-        int tid = track.getMediaStreamTrackReceiver()
-            .getStream().getTemporalID(buf, off, len);
+        int tid = this.tid != -1 ? track.getMediaStreamTrackReceiver()
+            .getStream().getTemporalID(buf, off, len) : -1,
+            sid = this.sid != -1 ? track.getMediaStreamTrackReceiver()
+            .getStream().getSpatialID(buf, off, len) : -1;
 
-        return tid == -1 && idx == 0 || tid == temporalId;
+        return (tid == -1 && sid == -1 && idx == 0)
+            || (tid == this.tid && sid == this.sid);
     }
 
     /**
@@ -534,7 +560,7 @@ public class RTPEncodingDesc
      * in the buffer passed in as a parameter, or null if there is no matching
      * {@link FrameDesc}.
      */
-    public FrameDesc findFrameDesc(byte[] buf, int off, int len)
+    FrameDesc findFrameDesc(byte[] buf, int off, int len)
     {
         long ts = RawPacket.getTimestamp(buf, off, len);
         synchronized (frames)
@@ -548,18 +574,17 @@ public class RTPEncodingDesc
      * @return last frame from this encoding that has been received, otherwise
      * null.
      */
-    public FrameDesc getLastReceivedFrame()
+    FrameDesc getLastReceivedFrame()
     {
         return lastReceivedFrame;
     }
 
     public RTPEncodingDesc getBaseLayer()
     {
-        return ArrayUtils.isNullOrEmpty(dependencyEncodings)
-            ? this : dependencyEncodings[0].getBaseLayer();
+        return base;
     }
 
-    public RTPEncodingDesc[] getDependencyEncodings()
+    RTPEncodingDesc[] getDependencyEncodings()
     {
         return dependencyEncodings;
     }
