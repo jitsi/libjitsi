@@ -72,7 +72,7 @@ public class RTCPTCCPacket
     public static boolean isTCCPacket(ByteArrayBuffer baf)
     {
         int rc = RTCPHeaderUtils.getReportCount(baf);
-        return isRTPFBPacket(baf) && rc == FMT;
+        return rc == FMT && isRTPFBPacket(baf);
     }
 
     public static TreeMap<Integer, Long> getPackets(ByteArrayBuffer baf)
