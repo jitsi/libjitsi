@@ -99,18 +99,32 @@ public class BitstreamController
 
     /**
      * Ctor.
+     *
+     * @param bc the previous {@link BitstreamController} (simulcast case).
+     * @param sourceTL0Idx the TL0 of the current bitstream.
      */
-    BitstreamController(
-        MediaStreamTrackDesc source, int tl0Idx, int targetIdx, int optimalIdx)
+    BitstreamController(BitstreamController bc, int sourceTL0Idx)
     {
-        this(source, -1, -1, 0, 0, tl0Idx, targetIdx, optimalIdx);
+        this(bc.weakSource, bc.getMaxSeqNum(), bc.getMaxTs(),
+            bc.transmittedBytes, bc.transmittedPackets,
+            sourceTL0Idx, bc.targetIdx, bc.optimalIdx);
     }
 
     /**
      * Ctor.
      */
     BitstreamController(
-        MediaStreamTrackDesc source,
+        MediaStreamTrackDesc source, int tl0Idx, int targetIdx, int optimalIdx)
+    {
+        this(new WeakReference<>(source),
+            -1, -1, 0, 0, tl0Idx, targetIdx, optimalIdx);
+    }
+
+    /**
+     * Ctor.
+     */
+    private BitstreamController(
+        WeakReference<MediaStreamTrackDesc> weakSource,
         int seqNumOff, long tsOff,
         long transmittedBytes, long transmittedPackets,
         int initialIdx, int targetIdx, int optimalIdx)
@@ -120,8 +134,10 @@ public class BitstreamController
         this.transmittedBytes = transmittedBytes;
         this.transmittedPackets = transmittedPackets;
         this.optimalIdx = optimalIdx;
-        this.weakSource = new WeakReference<>(source);
+        this.weakSource = weakSource;
 
+        MediaStreamTrackDesc source = weakSource.get();
+        assert source != null;
         RTPEncodingDesc[] rtpEncodings = source.getRTPEncodings();
         if (ArrayUtils.isNullOrEmpty(rtpEncodings))
         {
@@ -280,22 +296,6 @@ public class BitstreamController
     /**
      * {@inheritDoc}
      */
-    long getTransmittedBytes()
-    {
-        return transmittedBytes;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    long getTransmittedPackets()
-    {
-        return transmittedPackets;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     int getOptimalIndex()
     {
         return optimalIdx;
@@ -416,17 +416,17 @@ public class BitstreamController
     }
 
     /**
-     * {@inheritDoc}
+     * Gets the maximum sequence number that this instance has accepted.
      */
-    int getMaxSeqNum()
+    private int getMaxSeqNum()
     {
         return maxSentFrame == null ? seqNumOff : maxSentFrame.getMaxSeqNum();
     }
 
     /**
-     * {@inheritDoc}
+     * Gets the maximum timestamp that this instance has accepted.
      */
-    long getMaxTs()
+    private long getMaxTs()
     {
         return maxSentFrame == null ? tsOff : maxSentFrame.getTs();
     }

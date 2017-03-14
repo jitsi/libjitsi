@@ -233,23 +233,10 @@ public class SimulcastController
             || (currentTL0Idx < sourceTL0Idx && sourceTL0Idx <= targetTL0Idx)
             || (!currentTL0IsActive && sourceTL0Idx <= targetTL0Idx))
         {
-            long maxTs = bitstreamController.getMaxTs(),
-                transmittedBytes = bitstreamController.getTransmittedBytes(),
-                transmittedPackets = bitstreamController.getTransmittedPackets();
-
-            int maxSeqNum = bitstreamController.getMaxSeqNum();
-
             synchronized (this)
             {
-                // The synchronized is to get the target idx and optimal idx.
-                int targetIdx = bitstreamController.getTargetIndex(),
-                    optimalIdx = bitstreamController.getOptimalIndex();
-
                 bitstreamController = new BitstreamController(
-                    sourceFrameDesc.getRTPEncoding().getMediaStreamTrack(),
-                    maxSeqNum, maxTs,
-                    transmittedBytes, transmittedPackets,
-                    sourceTL0Idx, targetIdx, optimalIdx);
+                    bitstreamController, sourceTL0Idx);
             }
 
             // Give the bitstream filter a chance to drop the packet.
