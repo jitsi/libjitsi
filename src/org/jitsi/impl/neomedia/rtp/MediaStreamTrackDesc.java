@@ -127,7 +127,7 @@ public class MediaStreamTrackDesc
      * @param frameDesc
      * @param nowMs
      */
-    void update(RawPacket pkt, FrameDesc frameDesc, long nowMs)
+    void update(RawPacket pkt, FrameDesc frameDesc, boolean isNew, long nowMs)
     {
         if (!simulcast)
         {
@@ -150,6 +150,13 @@ public class MediaStreamTrackDesc
 
         if (!frameDesc.isIndependent())
         {
+            if (!isNew)
+            {
+                // We check for stream suspension whenever we receive a new
+                // frame.
+                return;
+            }
+
             RTPEncodingDesc encoding = frameDesc.getRTPEncoding();
 
             // When we suspect that a stream is suspended, we send an FIR to the

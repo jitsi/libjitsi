@@ -452,8 +452,10 @@ public class RTPEncodingDesc
         long ts = pkt.getTimestamp();
         FrameDesc frame = frames.get(ts);
 
+        boolean isNew;
         if (frame == null)
         {
+            isNew = true;
             synchronized (frames)
             {
                 frames.put(ts, frame = new FrameDesc(this, ts, nowMs));
@@ -467,6 +469,10 @@ public class RTPEncodingDesc
             {
                 lastReceivedFrame = frame;
             }
+        }
+        else
+        {
+            isNew = false;
         }
 
         // Update the frame description.
@@ -494,7 +500,7 @@ public class RTPEncodingDesc
             }
         }
 
-        track.update(pkt, frame, nowMs);
+        track.update(pkt, frame, isNew, nowMs);
     }
 
 

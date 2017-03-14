@@ -260,6 +260,13 @@ public class SimulcastController
      */
     public void setTargetIndex(int newTargetIdx)
     {
+        int oldTargetIdx = bitstreamController.getTargetIndex();
+        if (oldTargetIdx == newTargetIdx)
+        {
+            // Do not spam with FIRs.
+            return;
+        }
+
         synchronized (this)
         {
             bitstreamController.setTargetIndex(newTargetIdx);
@@ -274,17 +281,34 @@ public class SimulcastController
                 return;
             }
 
+            RTPEncodingDesc[] sourceEncodings = sourceTrack.getRTPEncodings();
+
             int currentTL0Idx = bitstreamController.getCurrentIndex();
             if (currentTL0Idx > -1)
             {
-                currentTL0Idx = sourceTrack.getRTPEncodings()
-                    [currentTL0Idx].getBaseLayer().getIndex();
+                currentTL0Idx
+                    = sourceEncodings[currentTL0Idx].getBaseLayer().getIndex();
             }
 
             int targetTL0Idx
-                = sourceTrack.getRTPEncodings()[newTargetIdx].getBaseLayer().getIndex();
+                = sourceEncodings[newTargetIdx].getBaseLayer().getIndex();
 
-            if (currentTL0Idx != targetTL0Idx)
+            // Something lower than the current must be streaming.
+            boolean sendFIR = targetTL0Idx < currentTL0Idx;
+            if (!sendFIR && targetTL0Idx > currentTL0Idx)
+            {
+                // otherwise, check if anything higher is streaming.
+                for (int i = currentTL0Idx + 1; i < targetTL0Idx + 1; i++)
+                {
+                    if (sourceEncodings[i].isActive())
+                    {
+                        sendFIR = true;
+                        break;
+                    }
+                }
+            }
+
+            if (sendFIR)
             {
                 ((RTPTranslatorImpl) sourceTrack.getMediaStreamTrackReceiver()
                     .getStream().getRTPTranslator())
