@@ -345,7 +345,7 @@ public class TransportCCEngine
         {
             while(mediaStreams.remove(mediaStream))
             {
-                // remove all
+                // we loop in order to remove all instances.
             }
         }
     }
