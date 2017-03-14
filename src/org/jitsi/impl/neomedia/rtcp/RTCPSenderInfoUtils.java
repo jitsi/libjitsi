@@ -46,7 +46,7 @@ public class RTCPSenderInfoUtils
             return -1;
         }
 
-        return RTPUtils.readUint32AsLong(buf, off + 8);
+        return RTPUtils.readUint32AsLong(buf, off + 16);
     }
 
     /**
