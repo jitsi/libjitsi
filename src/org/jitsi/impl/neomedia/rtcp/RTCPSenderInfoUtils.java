@@ -16,7 +16,6 @@
 package org.jitsi.impl.neomedia.rtcp;
 
 import net.sf.fmj.media.rtp.*;
-import org.jitsi.impl.neomedia.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
@@ -89,46 +88,6 @@ public class RTCPSenderInfoUtils
         }
 
         return true;
-    }
-
-    /**
-     * Gets the NTP timestamp MSW.
-     *
-     * @param buf the byte buffer that contains the RTCP sender info.
-     * @param off the offset in the byte buffer where the RTCP sender info
-     * starts.
-     * @param len the number of bytes in buffer which constitute the actual
-     * data.
-     * @return the RTP timestamp, or -1 in case of an error.
-     */
-    public static long getNtpTimestampMSW(byte[] buf, int off, int len)
-    {
-        if (!isValid(buf, off, len))
-        {
-            return -1;
-        }
-
-        return RTPUtils.readUint32AsLong(buf, off);
-    }
-
-    /**
-     * Gets the NTP timestamp LSW.
-     *
-     * @param buf the byte buffer that contains the RTCP sender info.
-     * @param off the offset in the byte buffer where the RTCP sender info
-     * starts.
-     * @param len the number of bytes in buffer which constitute the actual
-     * data.
-     * @return the RTP timestamp, or -1 in case of an error.
-     */
-    public static long getNtpTimestampLSW(byte[] buf, int off, int len)
-    {
-        if (!isValid(buf, off, len))
-        {
-            return -1;
-        }
-
-        return RTPUtils.readUint32AsLong(buf, off + 4);
     }
 
     /**
