@@ -201,14 +201,16 @@ public class SimulcastController
 
         // An intra-codec/simulcast switch pending.
 
+        boolean sourceTL0IsActive = false;
         int sourceTL0Idx = sourceFrameDesc.getRTPEncoding().getIndex();
         if (sourceTL0Idx > -1)
         {
             sourceTL0Idx
                 = sourceEncodings[sourceTL0Idx].getBaseLayer().getIndex();
+
+            sourceTL0IsActive = sourceEncodings[sourceTL0Idx].isActive();
         }
 
-        boolean sourceTL0IsActive = sourceEncodings[sourceTL0Idx].isActive();
         if (!sourceFrameDesc.isIndependent()
             || !sourceTL0IsActive
             || sourceTL0Idx == currentTL0Idx)
