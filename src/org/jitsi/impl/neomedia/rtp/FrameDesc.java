@@ -22,6 +22,8 @@ import org.jitsi.util.*;
 /**
  * Describes a frame of an RTP stream.
  *
+ * TODO rename to LayerFrame.
+ *
  * @author George Politis
  */
 public class FrameDesc
@@ -179,7 +181,7 @@ public class FrameDesc
      * @return the minimum sequence number that we've seen for this source
      * frame.
      */
-    int getMinSeen()
+    public int getMinSeen()
     {
         return minSeen;
     }
