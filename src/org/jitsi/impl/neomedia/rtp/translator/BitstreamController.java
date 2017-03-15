@@ -257,10 +257,13 @@ public class BitstreamController
                 // TODO ask for independent frame if we're skipping a TL0.
 
                 int sourceIdx = sourceFrameDesc.getRTPEncoding().getIndex();
-                if (sourceEncodings[currentIdx].requires(sourceIdx))
+                if (sourceEncodings[currentIdx].requires(sourceIdx)
+                    && (maxSentFrame == null
+                        || maxSentFrame.effectivelyComplete))
                 {
                     // the quality of the frame is a dependency of the
-                    // forwarded quality.
+                    // forwarded quality and the max frame is effectively
+                    // complete.
 
                     SeqNumTranslation seqNumTranslation;
                     if (maxSentFrame == null
@@ -326,14 +329,14 @@ public class BitstreamController
             }
             else
             {
+                // TODO ask for independent frame if we're filtering a TL0.
+
                 destFrame = new SeenFrame(srcTs, null, null);
                 seenFrames.put(sourceFrameDesc.getTimestamp(), destFrame);
             }
         }
 
-        boolean accept = destFrame.accept(
-            maxSentFrame == destFrame, sourceFrameDesc, buf, off, len);
-
+        boolean accept = destFrame.accept(sourceFrameDesc, buf, off, len);
 
         if (accept)
         {
@@ -382,7 +385,7 @@ public class BitstreamController
             // suspend the stream
             currentIdx = newTargetIdx;
         }
-        else
+        else if (availableIdx != null && availableIdx.length != 0)
         {
             int currentIdx = availableIdx[0];
             for (int i = 1; i < availableIdx.length; i++)
@@ -509,6 +512,15 @@ public class BitstreamController
         private boolean maybeFixInitialIndependentFrame = true;
 
         /**
+         * A boolean that determines whether or not this seen frame is
+         * "effectively" complete. Effectively complete means that we've either
+         * seen its end sequence number (so we know its size), or it's not a
+         * TL0. This is important to know with temporal scalability because
+         * we want to be able to corrupt an effectively complete frame.
+         */
+        private boolean effectivelyComplete = false;
+
+        /**
          * The source timestamp of this frame.
          */
         private final long srcTs;
@@ -545,8 +557,6 @@ public class BitstreamController
          * written into some arbitrary target/receiver that owns this
          * {@link SeenFrame}.
          *
-         * @param expand a boolean than indicates whether this frame is still
-         * expanding or not.
          * @param source the {@link FrameDesc} that the RTP packet belongs
          * to.
          * @param buf the <tt>byte</tt> array that holds the packet.
@@ -558,15 +568,26 @@ public class BitstreamController
          * to be written into the arbitrary target/receiver that owns this
          * {@link SeenFrame} ; otherwise, <tt>false</tt>
          */
-        boolean accept(
-            boolean expand, FrameDesc source, byte[] buf, int off, int len)
+        boolean accept(FrameDesc source, byte[] buf, int off, int len)
         {
-            if (expand)
+            // non TL0s (which are frames with dependencies) can be "corrupted",
+            // so they're effectively complete.
+            effectivelyComplete = !ArrayUtils.isNullOrEmpty(
+                source.getRTPEncoding().getDependencyEncodings());
+
+            if (this == maxSentFrame /* the max frame can expand */
+                || availableIdx == null || availableIdx.length < 2)
             {
-                if (srcSeqNumLimit == -1
-                    || RTPUtils.sequenceNumberDiff(source.getMaxSeen(), srcSeqNumLimit) > 0)
+                if (srcSeqNumLimit == -1 || RTPUtils.sequenceNumberDiff(
+                    source.getMaxSeen(), srcSeqNumLimit) > 0)
                 {
                     srcSeqNumLimit = source.getMaxSeen();
+                }
+
+                if (!effectivelyComplete
+                    && source.getMaxSeen() == source.getEnd())
+                {
+                    effectivelyComplete = true;
                 }
             }
 
@@ -575,8 +596,8 @@ public class BitstreamController
                 return false;
             }
 
-            if (srcSeqNumStart == -1
-                || RTPUtils.sequenceNumberDiff(srcSeqNumStart, source.getMinSeen()) > 0)
+            if (srcSeqNumStart == -1 || RTPUtils.sequenceNumberDiff(
+                srcSeqNumStart, source.getMinSeen()) > 0)
             {
                 srcSeqNumStart = source.getMinSeen();
             }

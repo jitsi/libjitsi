@@ -603,7 +603,7 @@ public class RTPEncodingDesc
      *
      * @return the {@link RTPEncodingDesc} on which this layer depends.
      */
-    RTPEncodingDesc[] getDependencyEncodings()
+    public RTPEncodingDesc[] getDependencyEncodings()
     {
         return dependencyEncodings;
     }
