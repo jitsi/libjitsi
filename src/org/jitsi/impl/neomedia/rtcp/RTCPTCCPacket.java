@@ -121,6 +121,23 @@ public class RTCPTCCPacket
     public static final int FMT = 15;
 
     /**
+     * The symbol which indicates that a packet was not received.
+     */
+    private static final int SYMBOL_NOT_RECEIVED = 0;
+
+    /**
+     * The symbol which indicates that a packet was received with a small delta
+     * (represented in a 1-byte field).
+     */
+    private static final int SYMBOL_SMALL_DELTA = 1;
+
+    /**
+     * The symbol which indicates that a packet was received with a large or
+     * negative delta (represented in a 2-byte field).
+     */
+    private static final int SYMBOL_LARGE_DELTA = 2;
+
+    /**
      * The map which contains the sequence numbers (mapped to the reception
      * timestamp) of the packets described by this RTCP packet.
      */
@@ -221,14 +238,14 @@ public class RTCPTCCPacket
             Long ts = packets.get(seq);
             if (ts == null)
             {
-                symbol = 0; // packet not received
+                symbol = SYMBOL_NOT_RECEIVED;
             }
             else
             {
                 long tsDelta = ts - nextReferenceTime;
                 if (tsDelta >= 0 && tsDelta < 63)
                 {
-                    symbol = 1; // Packet received, small delta
+                    symbol = SYMBOL_SMALL_DELTA;
 
                     // The small delta is an 8-bit unsigned with a resolution of
                     // 250µs. Our deltas are all in milliseconds (hence << 2).
@@ -236,7 +253,7 @@ public class RTCPTCCPacket
                 }
                 else if (tsDelta < 8191 && tsDelta > -8192)
                 {
-                    symbol = 2; // Packet received, large or negative delta
+                    symbol = SYMBOL_LARGE_DELTA;
 
                     // The large or negative delta is a 16-bit signed integer
                     // with a resolution of 250µs (hence << 2).
@@ -259,6 +276,10 @@ public class RTCPTCCPacket
                 nextReferenceTime = ts;
             }
 
+            // Depending on the index of our packet, we have to offset its
+            // symbol (we've already set 'off' to point to the correct byte).
+            //  0 1 2 3 4 5 6 7          8 9 0 1 2 3 4 5
+            //  S T <0> <1> <2>          <3> <4> <5> <6>
             int symbolOffset;
             switch (seqDelta % 7)
             {
