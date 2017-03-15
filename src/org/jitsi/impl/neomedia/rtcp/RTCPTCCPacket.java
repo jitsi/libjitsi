@@ -75,20 +75,24 @@ public class RTCPTCCPacket
         return rc == FMT && isRTPFBPacket(baf);
     }
 
-    public static TreeMap<Integer, Long> getPackets(ByteArrayBuffer baf)
+    /**
+     * @return the packets represented in an RTCP transport-cc feedback packet.
+     * @param baf the buffer which contains the RTCP packet.
+     */
+    public static PacketMap getPackets(ByteArrayBuffer baf)
     {
         return getPacketsFci(getFCI(baf));
     }
 
     /**
-     *
-     * @param next
-     * @return
+     * @return the packets represented in the FCI portion of an RTCP
+     * transport-cc feedback packet.
+     * @param baf the buffer which contains the FCI portion of the RTCP feedback
+     * packet.
      */
-    public static TreeMap<Integer, Long> getPacketsFci(ByteArrayBuffer fciBuffer)
+    public static PacketMap getPacketsFci(ByteArrayBuffer fciBuffer)
     {
-        TreeMap<Integer,Long> packets
-            = new TreeMap<>(RTPUtils.sequenceNumberComparator);
+        PacketMap packets = new PacketMap();
         if (fciBuffer == null)
         {
             return packets;
@@ -120,7 +124,7 @@ public class RTCPTCCPacket
      * The map which contains the sequence numbers (mapped to the reception
      * timestamp) of the packets described by this RTCP packet.
      */
-    private TreeMap<Integer, Long> packets = null;
+    private PacketMap packets = null;
 
     /**
      * Initializes a new <tt>NACKPacket</tt> instance.
@@ -148,7 +152,7 @@ public class RTCPTCCPacket
      * at 2^16 and fails to pack numbers close to 2^16 with those close to 0.
      */
     public RTCPTCCPacket(long senderSSRC, long sourceSSRC,
-                         TreeMap<Integer, Long> packets,
+                         PacketMap packets,
                          byte fbPacketCount)
     {
         super(FMT, RTPFB, senderSSRC, sourceSSRC);
@@ -289,7 +293,7 @@ public class RTCPTCCPacket
 
 
     /**
-     * @return
+     * @return the map of packets represented by this {@link RTCPTCCPacket}.
      */
     synchronized public Map<Integer, Long> getPackets()
     {
@@ -317,6 +321,18 @@ public class RTCPTCCPacket
     public String toString()
     {
         return "RTCP transport-cc feedback";
+    }
+
+    /**
+     * An ordered collection which maps sequence numbers to timestamps, the
+     * order is my the sequence number.
+     */
+    public static class PacketMap extends TreeMap<Integer, Long>
+    {
+        public PacketMap()
+        {
+            super(RTPUtils.sequenceNumberComparator);
+        }
     }
 }
 

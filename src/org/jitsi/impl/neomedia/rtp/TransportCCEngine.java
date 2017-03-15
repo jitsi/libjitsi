@@ -85,16 +85,16 @@ public class TransportCCEngine
      * Incoming transport-wide sequence numbers mapped to the timestamp of their
      * reception (in milliseconds since the epoch).
      */
-    private TreeMap<Integer, Long> incomingSeqs;
+    private RTCPTCCPacket.PacketMap incomingPackets;
 
     /**
-     * Used to synchronize access to {@link #incomingSeqs}.
+     * Used to synchronize access to {@link #incomingPackets}.
      */
     private final Object incomingSeqsSyncRoot = new Object();
 
     /**
      * The time (in milliseconds since the epoch) at which the first received
-     * packet in {@link #incomingSeqs} was received (or -1 if the map is empty).
+     * packet in {@link #incomingPackets} was received (or -1 if the map is empty).
      * Kept here for quicker access, because the map is ordered by sequence
      * number.
      */
@@ -111,14 +111,14 @@ public class TransportCCEngine
         long now = System.currentTimeMillis();
         synchronized (incomingSeqsSyncRoot)
         {
-            if (incomingSeqs == null)
+            if (incomingPackets == null)
             {
-                incomingSeqs = new TreeMap<>(RTPUtils.sequenceNumberComparator);
+                incomingPackets = new RTCPTCCPacket.PacketMap();
             }
-            if (incomingSeqs.size() >= MAX_INCOMING_PACKETS_HISTORY)
+            if (incomingPackets.size() >= MAX_INCOMING_PACKETS_HISTORY)
             {
                 Iterator<Map.Entry<Integer, Long>> iter
-                    = incomingSeqs.entrySet().iterator();
+                    = incomingPackets.entrySet().iterator();
                 if (iter.hasNext())
                 {
                     iter.next();
@@ -129,11 +129,11 @@ public class TransportCCEngine
                 logger.info("Reached max size, removing an entry.");
             }
 
-            if (incomingSeqs.isEmpty())
+            if (incomingPackets.isEmpty())
             {
                 firstIncomingTs = now;
             }
-            incomingSeqs.put(seq, now);
+            incomingPackets.put(seq, now);
         }
 
         maybeSendRtcp(marked, now);
@@ -149,12 +149,12 @@ public class TransportCCEngine
      */
     private void maybeSendRtcp(boolean marked, long now)
     {
-        TreeMap<Integer, Long> seqs = null;
+        RTCPTCCPacket.PacketMap packets = null;
         long delta;
 
         synchronized (incomingSeqsSyncRoot)
         {
-            if (incomingSeqs == null || incomingSeqs.isEmpty())
+            if (incomingPackets == null || incomingPackets.isEmpty())
             {
                 // No packets with unsent feedback.
                 return;
@@ -168,15 +168,15 @@ public class TransportCCEngine
             // The exact values and logic here are to be improved.
             if ( delta > 100
                 || (delta > 20 && marked)
-                || incomingSeqs.size() > 100)
+                || incomingPackets.size() > 100)
             {
-                seqs = incomingSeqs;
-                incomingSeqs = null;
+                packets = incomingPackets;
+                incomingPackets = null;
                 firstIncomingTs = -1;
             }
         }
 
-        if (seqs != null)
+        if (packets != null)
         {
             MediaStream stream = getMediaStream();
             if (stream == null)
@@ -191,7 +191,7 @@ public class TransportCCEngine
                 RTCPTCCPacket rtcpPacket
                     = new RTCPTCCPacket(
                         -1, -1,
-                        seqs,
+                        packets,
                         (byte) (outgoingFbPacketCount.getAndIncrement() & 0xff));
                 stream.injectPacket(rtcpPacket.toRawPacket(), false /* rtcp */,
                                     null);
