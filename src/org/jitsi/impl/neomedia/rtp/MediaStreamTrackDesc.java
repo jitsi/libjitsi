@@ -124,10 +124,15 @@ public class MediaStreamTrackDesc
      * Updates rate statistics for the encodings of the tracks that this
      * receiver is managing. Detects simulcast stream suspension/resuming.
      *
-     * @param frameDesc
-     * @param nowMs
+     * @param pkt the received RTP packet that caused the update method call.
+     * @param frameDesc the {@link FrameDesc} to which the RTP packet belongs.
+     * @param isPacketOfNewFrame true if the packet is from a frame that we
+     * have not seen before, false otherwise.
+     * @param nowMs now in millis.
      */
-    void update(RawPacket pkt, FrameDesc frameDesc, long nowMs)
+    void update(
+        RawPacket pkt, FrameDesc frameDesc,
+        boolean isPacketOfNewFrame, long nowMs)
     {
         if (!simulcast)
         {
@@ -150,6 +155,13 @@ public class MediaStreamTrackDesc
 
         if (!frameDesc.isIndependent())
         {
+            if (!isPacketOfNewFrame)
+            {
+                // We only check for stream suspension if this is the first
+                // packet of a new frame
+                return;
+            }
+
             RTPEncodingDesc encoding = frameDesc.getRTPEncoding();
 
             // When we suspect that a stream is suspended, we send an FIR to the
