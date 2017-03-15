@@ -254,26 +254,40 @@ public class BitstreamController
                 RTPEncodingDesc sourceEncodings[] = sourceFrameDesc
                     .getRTPEncoding().getMediaStreamTrack().getRTPEncodings();
 
+                // TODO ask for independent frame if we're skipping a TL0.
+
                 int sourceIdx = sourceFrameDesc.getRTPEncoding().getIndex();
                 if (sourceEncodings[currentIdx].requires(sourceIdx))
                 {
                     // the quality of the frame is a dependency of the
                     // forwarded quality.
 
-                    // TODO ask for independent frame if we're corrupting a TL0.
-
-                    int maxSeqNum = getMaxSeqNum();
                     SeqNumTranslation seqNumTranslation;
-                    if (maxSeqNum > -1)
+                    if (maxSentFrame == null
+                        || (availableIdx != null && availableIdx.length > 1))
                     {
-                        int seqNumDelta = (maxSeqNum + 1
-                            - sourceFrameDesc.getStart()) & 0xFFFF;
+                        int maxSeqNum = getMaxSeqNum();
+                        if (maxSeqNum > -1)
+                        {
+                            int seqNumDelta = (maxSeqNum + 1
+                                - sourceFrameDesc.getStart()) & 0xFFFF;
 
-                        seqNumTranslation = new SeqNumTranslation(seqNumDelta);
+                            seqNumTranslation
+                                = new SeqNumTranslation(seqNumDelta);
+                        }
+                        else
+                        {
+                            seqNumTranslation = null;
+                        }
                     }
                     else
                     {
-                        seqNumTranslation = null;
+                        // If the current bitstream only offers a single
+                        // quality, then we're not filtering anything thus
+                        // the sequence number distances between the frames
+                        // are fixed so we can reuse the sequence number
+                        // translation from the maxSentFrame.
+                        seqNumTranslation = maxSentFrame.seqNumTranslation;
                     }
 
                     TimestampTranslation tsTranslation;
