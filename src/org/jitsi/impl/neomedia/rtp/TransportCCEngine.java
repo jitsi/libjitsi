@@ -37,12 +37,12 @@ public class TransportCCEngine
     implements TransformEngine
 {
     /**
-     * The maximum number of received packets and their timeastamps to save.
+     * The maximum number of received packets and their timestamps to save.
      */
     private static final int MAX_INCOMING_PACKETS_HISTORY = 200;
 
     /**
-     * The <tt>Logger</tt> used by the <tt>MediaStreamImpl</tt> class and its
+     * The {@link Logger} used by the {@link TransportCCEngine} class and its
      * instances for logging output.
      */
     private static final Logger logger
@@ -90,7 +90,7 @@ public class TransportCCEngine
     /**
      * Used to synchronize access to {@link #incomingPackets}.
      */
-    private final Object incomingSeqsSyncRoot = new Object();
+    private final Object incomingPacketsSyncRoot = new Object();
 
     /**
      * The time (in milliseconds since the epoch) at which the first received
@@ -109,7 +109,7 @@ public class TransportCCEngine
     private void packetReceived(int seq, boolean marked)
     {
         long now = System.currentTimeMillis();
-        synchronized (incomingSeqsSyncRoot)
+        synchronized (incomingPacketsSyncRoot)
         {
             if (incomingPackets == null)
             {
@@ -152,7 +152,7 @@ public class TransportCCEngine
         RTCPTCCPacket.PacketMap packets = null;
         long delta;
 
-        synchronized (incomingSeqsSyncRoot)
+        synchronized (incomingPacketsSyncRoot)
         {
             if (incomingPackets == null || incomingPackets.isEmpty())
             {

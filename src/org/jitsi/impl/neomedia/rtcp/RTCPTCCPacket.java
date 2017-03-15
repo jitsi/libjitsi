@@ -184,7 +184,7 @@ public class RTCPTCCPacket
             = 1 + RTPUtils.sequenceNumberDiff(last.getKey(), firstSeq);
 
         // Temporary buffer to store the fixed fields (8 bytes) and the list of
-        // packet status chunks (see the format above). The buffer be longer
+        // packet status chunks (see the format above). The buffer may be longer
         // than needed. We pack 7 packets in a chunk, and a chunk is 2 bytes.
         byte[] buf = new byte[(packetCount / 7 + 1) * 2 + 8];
         // Temporary buffer to store the list of deltas (see the format above).
@@ -352,7 +352,7 @@ public class RTCPTCCPacket
 
     /**
      * An ordered collection which maps sequence numbers to timestamps, the
-     * order is my the sequence number.
+     * order is by the sequence number.
      */
     public static class PacketMap extends TreeMap<Integer, Long>
     {
