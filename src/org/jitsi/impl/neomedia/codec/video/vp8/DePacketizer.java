@@ -48,6 +48,7 @@ public class DePacketizer
     /**
      * Stores the RTP payloads (VP8 payload descriptor stripped) from RTP packets
      * belonging to a single VP8 compressed frame.
+     * Maps an RTP sequence number to a buffer which contains the payload.
      */
     private SortedMap<Integer, Container> data
             = new TreeMap<>(RTPUtils.sequenceNumberComparator);

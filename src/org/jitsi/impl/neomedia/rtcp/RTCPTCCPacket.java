@@ -87,8 +87,8 @@ public class RTCPTCCPacket
     /**
      * @return the packets represented in the FCI portion of an RTCP
      * transport-cc feedback packet.
-     * @param baf the buffer which contains the FCI portion of the RTCP feedback
-     * packet.
+     * @param fciBuffer the buffer which contains the FCI portion of the RTCP
+     * feedback packet.
      */
     public static PacketMap getPacketsFci(ByteArrayBuffer fciBuffer)
     {
@@ -166,7 +166,13 @@ public class RTCPTCCPacket
         int packetCount
             = 1 + RTPUtils.sequenceNumberDiff(last.getKey(), firstSeq);
 
+        // Temporary buffer to store the fixed fields (8 bytes) and the list of
+        // packet status chunks (see the format above). The buffer be longer
+        // than needed. We pack 7 packets in a chunk, and a chunk is 2 bytes.
         byte[] buf = new byte[(packetCount / 7 + 1) * 2 + 8];
+        // Temporary buffer to store the list of deltas (see the format above).
+        // We allocated for the worst case (2 bytes per packet), which may
+        // be longer than needed.
         byte[] deltas = new byte[packetCount * 2];
         int deltaOff = 0;
         int off = 0;

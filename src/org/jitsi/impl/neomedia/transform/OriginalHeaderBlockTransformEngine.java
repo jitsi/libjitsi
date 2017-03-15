@@ -230,6 +230,7 @@ public class OriginalHeaderBlockTransformEngine
         byte[] buf = he.getBuffer();
         int off = he.getOffset();
 
+        // skip the first ID/len byte, which has been already set.
         buf[off + 1] = pkt.getPayloadType();
         RTPUtils.writeShort(buf, off + 2, (short) pkt.getSequenceNumber());
         RTPUtils.writeInt(buf, off + 4, (int) pkt.getTimestamp());
