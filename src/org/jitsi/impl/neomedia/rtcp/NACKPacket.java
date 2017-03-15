@@ -68,7 +68,7 @@ public class NACKPacket
     public static boolean isNACKPacket(ByteArrayBuffer baf)
     {
         int rc = RTCPHeaderUtils.getReportCount(baf);
-        return isRTPFBPacket(baf) && rc == FMT;
+        return rc == FMT && isRTPFBPacket(baf);
     }
 
     /**
