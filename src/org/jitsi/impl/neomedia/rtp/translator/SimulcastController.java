@@ -263,7 +263,7 @@ public class SimulcastController
         int oldTargetIdx = bitstreamController.getTargetIndex();
         if (oldTargetIdx == newTargetIdx)
         {
-            // Do not spam with FIRs.
+            // No work necessary.
             return;
         }
 
