@@ -64,15 +64,14 @@ public class AbsSendTimeEngine
     {
         if (extensionID != -1)
         {
-            // If the packet already has as extension with this ID, replace its
-            // value.
-            // TODO: PERC-related logic (don't modify header extensions unless
-            // they come after an OHB extension.
-            if (!replaceExtension(pkt))
+            RawPacket.HeaderExtension ext
+                = pkt.getHeaderExtension((byte) extensionID);
+            if (ext == null)
             {
-                // If it doesn't, add a new extension.
-                addExtension(pkt);
+                ext = pkt.addExtension((byte) extensionID, 2);
             }
+
+            setTimestamp(ext.getBuffer(), ext.getOffset() + 1);
         }
         return pkt;
     }
@@ -96,98 +95,6 @@ public class AbsSendTimeEngine
     public PacketTransformer getRTCPTransformer()
     {
         return null;
-    }
-
-    /**
-     * Tries to find an RTP header extensions with an ID of {@link #extensionID}
-     * in <tt>pkt</tt> and tries to replace its timestamp with one
-     * generated locally (based on {@link System#nanoTime()}).
-     * @param pkt the packet to work on.
-     * @return true if and only if an RTP extension with an ID of {@link
-     * #extensionID} was found in the packet, and its value was replaced.
-     */
-    private boolean replaceExtension(RawPacket pkt)
-    {
-        if (!pkt.getExtensionBit())
-            return false;
-
-        byte[] buf = pkt.getBuffer();
-        int extensionOffset = pkt.getOffset();
-
-        // Skip the fixed header.
-        extensionOffset += RawPacket.FIXED_HEADER_SIZE;
-        // Skip the list of CSRCs.
-        extensionOffset += pkt.getCsrcCount() * 4;
-
-        // We need at least 4 bytes for the "defined by profile" and "length"
-        // fields.
-        if (buf.length < extensionOffset + 4)
-        {
-            return false;
-        }
-
-        // We only understand the RFC5285 one-byte header format recognized
-        // by the 0xBEDE value in the 'defined by profile' field.
-        if (buf[extensionOffset++] != (byte) 0xBE)
-        {
-            return false;
-        }
-        if (buf[extensionOffset++] != (byte) 0xDE)
-        {
-            return false;
-        }
-
-        int lengthInWords = (buf[extensionOffset++] & 0xFF) << 8
-            | (buf[extensionOffset++] & 0xFF);
-
-        // Length in bytes of the header extensions (excluding the 4 bytes for
-        // the "defined by profile" (0xBEDE) and length field itself, which
-        // we have already incremented past).
-        int lengthInBytes = 4 * lengthInWords;
-
-        int innerOffset = 0;
-        while (extensionOffset < buf.length && innerOffset < lengthInBytes)
-        {
-            int id = (buf[extensionOffset] & 0xf0) >> 4;
-            int len = buf[extensionOffset] & 0x0f;
-            if (id == extensionID)
-            {
-                if (len == 2 && extensionOffset + 3 < buf.length)
-                {
-                    setTimestamp(buf, extensionOffset + 1);
-                    return true;
-                }
-                else
-                {
-                    logger.warn("An existing extension with ID " + id
-                                + " was found, but it doesn't look like "
-                                + "abs-send-time: len=" + len);
-                    // Suppress the addition of another header extension.
-                    return true;
-                }
-            }
-            else
-            {
-                // 1 byte for id/len, one more byte by the definition of
-                // len, see RFC5285
-                innerOffset += 1 + len + 1;
-                extensionOffset += 1 + len + 1;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Adds an abs-send-time RTP header extension with an ID of {@link
-     * #extensionID} and value derived from the current system time to the
-     * packet {@code pkt}.
-     * @param pkt the packet to add an extension to.
-     */
-    private void addExtension(RawPacket pkt)
-    {
-        RawPacket.HeaderExtension he = pkt.addExtension((byte) extensionID, 3);
-        setTimestamp(he.getBuffer(), he.getOffset() + 1);
     }
 
     /**
