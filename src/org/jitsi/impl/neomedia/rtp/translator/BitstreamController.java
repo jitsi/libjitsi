@@ -152,6 +152,7 @@ public class BitstreamController
         this.transmittedPackets = transmittedPacketsOff;
         this.optimalIdx = optimalIdx;
         this.targetIdx = targetIdx;
+        // a stream always starts suspended (and resumes with a key frame).
         this.currentIdx = -1;
         this.weakSource = weakSource;
 
