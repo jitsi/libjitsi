@@ -131,9 +131,9 @@ public class RTPUtils
     }
 
     /**
-     * Read an unsigned short at specified offset as a int
+     * Read an unsigned short at a specified offset as an int.
      *
-     * @param buffer
+     * @param buffer the buffer from which to read.
      * @param offset start offset of the unsigned short
      * @return the int value of the unsigned short at offset
      */
@@ -143,6 +143,25 @@ public class RTPUtils
         int b2 = (0xFF & (buffer[offset + 1]));
         int val = b1 << 8 | b2;
         return val;
+    }
+
+    /**
+     * Read a signed short at a specified offset as an int.
+     *
+     * @param buffer the buffer from which to read.
+     * @param offset start offset of the unsigned short
+     * @return the int value of the unsigned short at offset
+     */
+    public static int readInt16AsInt(byte[] buffer, int offset)
+    {
+        int ret = ((0xFF & (buffer[offset])) << 8)
+            | (0xFF & (buffer[offset + 1]));
+        if ((ret & 0x8000) != 0)
+        {
+            ret = (ret & 0x7fff) | 0x8000_0000;
+        }
+
+        return ret;
     }
 
     /**
