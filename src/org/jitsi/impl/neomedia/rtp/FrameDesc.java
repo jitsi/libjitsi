@@ -269,6 +269,7 @@ public class FrameDesc
                 {
                     logger.info("keyframe,stream=" + stream.hashCode()
                         + " ssrc=" + rtpEncoding.getPrimarySSRC()
+                        + ",idx=" + rtpEncoding.getIndex()
                         + "," + toString());
                 }
             }
