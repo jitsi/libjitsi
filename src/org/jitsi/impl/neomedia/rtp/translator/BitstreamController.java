@@ -15,7 +15,6 @@
  */
 package org.jitsi.impl.neomedia.rtp.translator;
 
-import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.service.neomedia.*;
@@ -99,36 +98,32 @@ public class BitstreamController
 
     /**
      * Ctor. Used when switching between independent bitstreams
-     * (simulcast case).
+     * (simulcast case). This ctor maintains the old targets and optimal
+     * indices.
      *
      * @param bc the previous {@link BitstreamController}.
-     * @param currentTL0Idx the TL0 of the current bitstream.
+     * @param tl0Idx the TL0 of the RTP stream that this controller filters
+     * traffic from.
      */
-    BitstreamController(BitstreamController bc, int currentTL0Idx)
+    BitstreamController(BitstreamController bc, int tl0Idx)
     {
         this(bc.weakSource, bc.getMaxSeqNum(), bc.getMaxTs(),
             bc.transmittedBytes, bc.transmittedPackets,
-            currentTL0Idx, bc.targetIdx, bc.optimalIdx);
+            tl0Idx, bc.targetIdx, bc.optimalIdx);
     }
 
     /**
-     * Ctor.
+     * Ctor. The ctor sets all of the indices to -1.
      *
      * @param source the source {@link MediaStreamTrackDesc} for this instance.
-     * @param currentIdx the current subjective quality index for this instance.
-     * @param targetIdx the target subjective quality index for this instance.
-     * @param optimalIdx the optimal subjective quality index for this instance.
      */
-    BitstreamController(
-        MediaStreamTrackDesc source,
-        int currentIdx, int targetIdx, int optimalIdx)
+    BitstreamController(MediaStreamTrackDesc source)
     {
-        this(new WeakReference<>(source),
-            -1, -1, 0, 0, currentIdx, targetIdx, optimalIdx);
+        this(new WeakReference<>(source), -1, -1, 0, 0, -1, -1, -1);
     }
 
     /**
-     * Ctor.
+     * A private ctor that initializes all the fields of this instance.
      *
      * @param weakSource a weak reference to the source
      * {@link MediaStreamTrackDesc} for this instance.
@@ -140,7 +135,8 @@ public class BitstreamController
      * this instance sends will be added to this value).
      * @param transmittedPacketsOff the transmitted packets offset (the packets
      * that this instance sends will be added to this value).
-     * @param currentIdx the current subjective quality index for this instance.
+     * @param tl0Idx the TL0 of the RTP stream that this controller filters
+     * traffic from.
      * @param targetIdx the target subjective quality index for this instance.
      * @param optimalIdx the optimal subjective quality index for this instance.
      */
@@ -148,13 +144,16 @@ public class BitstreamController
         WeakReference<MediaStreamTrackDesc> weakSource,
         int seqNumOff, long tsOff,
         long transmittedBytesOff, long transmittedPacketsOff,
-        int currentIdx, int targetIdx, int optimalIdx)
+        int tl0Idx, int targetIdx, int optimalIdx)
     {
         this.seqNumOff = seqNumOff;
         this.tsOff = tsOff;
         this.transmittedBytes = transmittedBytesOff;
         this.transmittedPackets = transmittedPacketsOff;
         this.optimalIdx = optimalIdx;
+        this.targetIdx = targetIdx;
+        // a stream always starts suspended (and resumes with a key frame).
+        this.currentIdx = -1;
         this.weakSource = weakSource;
 
         MediaStreamTrackDesc source = weakSource.get();
@@ -167,11 +166,9 @@ public class BitstreamController
         }
         else
         {
-            int currentTL0Idx = currentIdx;
-            if (currentIdx > -1)
+            if (tl0Idx > -1)
             {
-                currentTL0Idx
-                    = rtpEncodings[currentTL0Idx].getBaseLayer().getIndex();
+                tl0Idx = rtpEncodings[tl0Idx].getBaseLayer().getIndex();
             }
 
             // find the available qualities in this bitstream.
@@ -180,7 +177,7 @@ public class BitstreamController
             List<Integer> availableQualities = new ArrayList<>();
             for (int i = 0; i < rtpEncodings.length; i++)
             {
-                if (rtpEncodings[i].requires(currentTL0Idx))
+                if (rtpEncodings[i].requires(tl0Idx))
                 {
                     availableQualities.add(i);
                 }
@@ -193,17 +190,15 @@ public class BitstreamController
                 availableIdx[i] = iterator.next();
             }
 
-            if (currentTL0Idx > -1)
+            if (tl0Idx > -1)
             {
-                tl0SSRC = rtpEncodings[currentTL0Idx].getPrimarySSRC();
+                tl0SSRC = rtpEncodings[tl0Idx].getPrimarySSRC();
             }
             else
             {
                 tl0SSRC = -1;
             }
         }
-
-        setTargetIndex(targetIdx);
     }
 
     /**
@@ -245,6 +240,24 @@ public class BitstreamController
 
             int currentIdx = this.currentIdx;
 
+            if (availableIdx != null && availableIdx.length != 0)
+            {
+                currentIdx = availableIdx[0];
+                for (int i = 1; i < availableIdx.length; i++)
+                {
+                    if (availableIdx[i] <= targetIdx)
+                    {
+                        currentIdx = availableIdx[i];
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+
+                this.currentIdx = currentIdx;
+            }
+
             if (currentIdx >= 0 && (maxSentFrame == null
                 || TimeUtils.rtpDiff(srcTs, maxSentFrame.srcTs) > 0))
             {
@@ -254,26 +267,43 @@ public class BitstreamController
                 RTPEncodingDesc sourceEncodings[] = sourceFrameDesc
                     .getRTPEncoding().getMediaStreamTrack().getRTPEncodings();
 
+                // TODO ask for independent frame if we're skipping a TL0.
+
                 int sourceIdx = sourceFrameDesc.getRTPEncoding().getIndex();
-                if (sourceEncodings[currentIdx].requires(sourceIdx))
+                if (sourceEncodings[currentIdx].requires(sourceIdx)
+                    && (maxSentFrame == null
+                        || maxSentFrame.effectivelyComplete))
                 {
                     // the quality of the frame is a dependency of the
-                    // forwarded quality.
+                    // forwarded quality and the max frame is effectively
+                    // complete.
 
-                    // TODO ask for independent frame if we're corrupting a TL0.
-
-                    int maxSeqNum = getMaxSeqNum();
                     SeqNumTranslation seqNumTranslation;
-                    if (maxSeqNum > -1)
+                    if (maxSentFrame == null
+                        || (availableIdx != null && availableIdx.length > 1))
                     {
-                        int seqNumDelta = (maxSeqNum + 1
-                            - sourceFrameDesc.getStart()) & 0xFFFF;
+                        int maxSeqNum = getMaxSeqNum();
+                        if (maxSeqNum > -1)
+                        {
+                            int seqNumDelta = (maxSeqNum + 1
+                                - sourceFrameDesc.getStart()) & 0xFFFF;
 
-                        seqNumTranslation = new SeqNumTranslation(seqNumDelta);
+                            seqNumTranslation
+                                = new SeqNumTranslation(seqNumDelta);
+                        }
+                        else
+                        {
+                            seqNumTranslation = null;
+                        }
                     }
                     else
                     {
-                        seqNumTranslation = null;
+                        // If the current bitstream only offers a single
+                        // quality, then we're not filtering anything thus
+                        // the sequence number distances between the frames
+                        // are fixed so we can reuse the sequence number
+                        // translation from the maxSentFrame.
+                        seqNumTranslation = maxSentFrame.seqNumTranslation;
                     }
 
                     TimestampTranslation tsTranslation;
@@ -312,14 +342,14 @@ public class BitstreamController
             }
             else
             {
+                // TODO ask for independent frame if we're filtering a TL0.
+
                 destFrame = new SeenFrame(srcTs, null, null);
                 seenFrames.put(sourceFrameDesc.getTimestamp(), destFrame);
             }
         }
 
-        boolean accept = destFrame.accept(
-            maxSentFrame == destFrame, sourceFrameDesc, buf, off, len);
-
+        boolean accept = destFrame.accept(sourceFrameDesc, buf, off, len);
 
         if (accept)
         {
@@ -363,28 +393,6 @@ public class BitstreamController
     void setTargetIndex(int newTargetIdx)
     {
         this.targetIdx = newTargetIdx;
-        if (newTargetIdx < 0)
-        {
-            // suspend the stream
-            currentIdx = newTargetIdx;
-        }
-        else
-        {
-            int currentIdx = availableIdx[0];
-            for (int i = 1; i < availableIdx.length; i++)
-            {
-                if (availableIdx[i] <= targetIdx)
-                {
-                    currentIdx = availableIdx[i];
-                }
-                else
-                {
-                    break;
-                }
-            }
-
-            this.currentIdx = currentIdx;
-        }
     }
 
     /**
@@ -409,6 +417,11 @@ public class BitstreamController
      */
     RawPacket[] rtpTransform(RawPacket pktIn)
     {
+        if (pktIn.getSSRCAsLong() != tl0SSRC)
+        {
+            return null;
+        }
+
         SeenFrame destFrame = seenFrames.get(pktIn.getTimestamp());
         if (destFrame == null)
         {
@@ -495,6 +508,15 @@ public class BitstreamController
         private boolean maybeFixInitialIndependentFrame = true;
 
         /**
+         * A boolean that determines whether or not this seen frame is
+         * "effectively" complete. Effectively complete means that we've either
+         * seen its end sequence number (so we know its size), or it's not a
+         * TL0. This is important to know with temporal scalability because
+         * we want to be able to corrupt an effectively complete frame.
+         */
+        private boolean effectivelyComplete = false;
+
+        /**
          * The source timestamp of this frame.
          */
         private final long srcTs;
@@ -531,8 +553,6 @@ public class BitstreamController
          * written into some arbitrary target/receiver that owns this
          * {@link SeenFrame}.
          *
-         * @param expand a boolean than indicates whether this frame is still
-         * expanding or not.
          * @param source the {@link FrameDesc} that the RTP packet belongs
          * to.
          * @param buf the <tt>byte</tt> array that holds the packet.
@@ -544,15 +564,26 @@ public class BitstreamController
          * to be written into the arbitrary target/receiver that owns this
          * {@link SeenFrame} ; otherwise, <tt>false</tt>
          */
-        boolean accept(
-            boolean expand, FrameDesc source, byte[] buf, int off, int len)
+        boolean accept(FrameDesc source, byte[] buf, int off, int len)
         {
-            if (expand)
+            // non TL0s (which are frames with dependencies) can be "corrupted",
+            // so they're effectively complete.
+            effectivelyComplete = !ArrayUtils.isNullOrEmpty(
+                source.getRTPEncoding().getDependencyEncodings());
+
+            if (this == maxSentFrame /* the max frame can expand */
+                || availableIdx == null || availableIdx.length < 2)
             {
-                if (srcSeqNumLimit == -1
-                    || RTPUtils.sequenceNumberDiff(source.getMaxSeen(), srcSeqNumLimit) > 0)
+                if (srcSeqNumLimit == -1 || RTPUtils.sequenceNumberDiff(
+                    source.getMaxSeen(), srcSeqNumLimit) > 0)
                 {
                     srcSeqNumLimit = source.getMaxSeen();
+                }
+
+                if (!effectivelyComplete
+                    && source.getMaxSeen() == source.getEnd())
+                {
+                    effectivelyComplete = true;
                 }
             }
 
@@ -561,8 +592,8 @@ public class BitstreamController
                 return false;
             }
 
-            if (srcSeqNumStart == -1
-                || RTPUtils.sequenceNumberDiff(srcSeqNumStart, source.getMinSeen()) > 0)
+            if (srcSeqNumStart == -1 || RTPUtils.sequenceNumberDiff(
+                srcSeqNumStart, source.getMinSeen()) > 0)
             {
                 srcSeqNumStart = source.getMinSeen();
             }

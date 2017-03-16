@@ -130,7 +130,7 @@ public class FrameDesc
      *
      * @return the end sequence number for this source frame.
      */
-    int getEnd()
+    public int getEnd()
     {
         return end;
     }
@@ -269,6 +269,7 @@ public class FrameDesc
                 {
                     logger.info("keyframe,stream=" + stream.hashCode()
                         + " ssrc=" + rtpEncoding.getPrimarySSRC()
+                        + ",idx=" + rtpEncoding.getIndex()
                         + "," + toString());
                 }
             }

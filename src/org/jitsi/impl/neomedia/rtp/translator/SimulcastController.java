@@ -58,12 +58,8 @@ public class SimulcastController
      * Ctor.
      *
      * @param source the source {@link MediaStreamTrackDesc}
-     * @param currentIdx the current subjective quality index.
-     * @param targetIdx the target subjective quality index.
-     * @param optimalIdx the optimal subjective quality index.
      */
-    public SimulcastController(MediaStreamTrackDesc source,
-                               int currentIdx, int targetIdx, int optimalIdx)
+    public SimulcastController(MediaStreamTrackDesc source)
     {
         weakSource = new WeakReference<>(source);
 
@@ -77,8 +73,7 @@ public class SimulcastController
             targetSSRC = rtpEncodings[0].getPrimarySSRC();
         }
 
-        bitstreamController = new BitstreamController(
-            source, currentIdx, targetIdx, optimalIdx);
+        bitstreamController = new BitstreamController(source);
     }
 
     /**
@@ -189,7 +184,8 @@ public class SimulcastController
                 = sourceEncodings[targetTL0Idx].getBaseLayer().getIndex();
         }
 
-        if (currentTL0Idx == targetTL0Idx && currentTL0IsActive)
+        if (currentTL0Idx == targetTL0Idx
+            && (currentTL0IsActive || targetTL0Idx < 0 /* => currentIdx < 0 */))
         {
             // An intra-codec/simulcast switch is NOT pending.
             long sourceSSRC = sourceFrameDesc.getRTPEncoding().getPrimarySSRC();
@@ -217,7 +213,7 @@ public class SimulcastController
         }
 
         if (!sourceFrameDesc.isIndependent()
-            || !sourceTL0IsActive
+            || !sourceTL0IsActive // TODO this condition needs review
             || sourceTL0Idx == currentTL0Idx)
         {
             // An intra-codec switch requires a key frame.
@@ -260,10 +256,15 @@ public class SimulcastController
      */
     public void setTargetIndex(int newTargetIdx)
     {
-        int oldTargetIdx = bitstreamController.getTargetIndex();
-        if (oldTargetIdx == newTargetIdx)
+        if (newTargetIdx < 0)
         {
-            // No work necessary.
+            synchronized (this)
+            {
+                // suspend the stream.
+                bitstreamController
+                    = new BitstreamController(bitstreamController, -1);
+            }
+
             return;
         }
 
@@ -274,7 +275,7 @@ public class SimulcastController
 
         if (newTargetIdx > -1)
         {
-            // maybe send FIR.
+            // check whether it makes sense to send an FIR or not.
             MediaStreamTrackDesc sourceTrack = weakSource.get();
             if (sourceTrack == null)
             {
@@ -293,7 +294,9 @@ public class SimulcastController
             int targetTL0Idx
                 = sourceEncodings[newTargetIdx].getBaseLayer().getIndex();
 
-            // Something lower than the current must be streaming.
+            // Something lower than the current must be streaming, so we're able
+            // to make a switch, so ask for a key frame.
+
             boolean sendFIR = targetTL0Idx < currentTL0Idx;
             if (!sendFIR && targetTL0Idx > currentTL0Idx)
             {
