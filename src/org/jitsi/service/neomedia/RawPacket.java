@@ -391,8 +391,9 @@ public class RawPacket
         extensionBytes++;
 
         // This is where the data of the extension that we add begins. We just
-        // skip 'len' bytes, and let the caller fill them in.
-        int extensionDataOffset = newHeaderLength;
+        // skip 'len' bytes, and let the caller fill them in. We have to go
+        // back one byte, because newHeaderLength already moved.
+        int extensionDataOffset = newHeaderLength - 1;
         newHeaderLength += len;
         extensionBytes += len;
 
