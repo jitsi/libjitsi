@@ -77,6 +77,10 @@ public class RTCPTCCPacket
 
     /**
      * @return the packets represented in an RTCP transport-cc feedback packet.
+     *
+     * Note that the timestamps are represented in the 250µs format used by the
+     * on-the-wire format, and don't represent local time.
+     *
      * @param baf the buffer which contains the RTCP packet.
      */
     public static PacketMap getPackets(ByteArrayBuffer baf)
@@ -87,36 +91,296 @@ public class RTCPTCCPacket
     /**
      * @return the packets represented in the FCI portion of an RTCP
      * transport-cc feedback packet.
+     *
+     * Note that the timestamps are represented in the 250µs format used by the
+     * on-the-wire format, and don't represent local time.
+     *
      * @param fciBuffer the buffer which contains the FCI portion of the RTCP
      * feedback packet.
      */
     public static PacketMap getPacketsFci(ByteArrayBuffer fciBuffer)
     {
-        PacketMap packets = new PacketMap();
         if (fciBuffer == null)
         {
-            return packets;
+            return null;
         }
 
         byte[] buf = fciBuffer.getBuffer();
         int off = fciBuffer.getOffset();
         int len = fciBuffer.getLength();
 
+        // The FCI starts right after the "SSRC of media source" field.
+        // We need at least 8 bytes for the fixed fields + 2 bytes for one
+        // packet status chunk.
+        if (len < 10)
+        {
+            logger.warn(PARSE_ERROR + "length too small: " + len);
+            return null;
+        }
+
+        // The fixed fields
         int baseSeq = RTPUtils.readUint16AsInt(buf, off);
         int packetStatusCount = RTPUtils.readUint16AsInt(buf, off + 2);
 
-        // reference time with resolution 250µs
+        // reference time. The 24 bit field uses increments of 2^6ms, and we
+        // shift by 8 to change the resolution to 250µs.
         long referenceTime = RTPUtils.readUint24AsInt(buf, off + 4) << 8;
 
-        off += 8;
+        // The offset at which the packet status chunk list starts.
+        int pscOff = off + 8;
 
-        int deltaOff = 3;
+        // First find where the delta list begins.
+        int packetsRemaining = packetStatusCount;
+        while (packetsRemaining > 0)
+        {
+            if (pscOff + 2 > off + len)
+            {
+                logger.warn(PARSE_ERROR + "reached the end while reading chunks");
+                return null;
+            }
+
+            int packetsInChunk = getPacketCount(buf, pscOff);
+            packetsRemaining -= packetsInChunk;
+
+            pscOff += 2; // all chunks are 16bit
+        }
+
+        // At this point we have the the beginning of the delta list. Start
+        // reading from the chunk and delta lists together.
+        int deltaStart = pscOff;
+        int deltaOff = pscOff;
+
+        // Reset to the start of the chunks list.
+        pscOff = off + 8;
+        packetsRemaining = packetStatusCount;
+        PacketMap packets = new PacketMap();
+        while (packetsRemaining > 0 && pscOff < deltaStart)
+        {
+            // packetsRemaining is based on the "packet status count" field,
+            // which helps us find the correct number of packets described in
+            // the last chunk. E.g. if the last chunk is a vector chunk, we
+            // don't really know by the chunk alone how many packets are
+            // described.
+            int packetsInChunk
+                = Math.min(getPacketCount(buf, pscOff), packetsRemaining);
+
+            // Read deltas for all packets in the chunk.
+            for (int i = 0; i < packetsInChunk; i++)
+            {
+                int symbol = readSymbol(buf, pscOff, i);
+                // -1 or delta in 250µs increments
+                int delta = -1;
+                switch (symbol)
+                {
+                case SYMBOL_SMALL_DELTA:
+                    // The delta is an 8-bit unsigned integer.
+                    deltaOff++;
+                    if (deltaOff > off + len)
+                    {
+                        logger.warn(PARSE_ERROR
+                                + "reached the end while reading delta.");
+                        return null;
+                    }
+                    delta = buf[deltaOff] & 0xff;
+                    break;
+                case SYMBOL_LARGE_DELTA:
+                    // The delta is a 6-bit signed integer.
+                    deltaOff += 2;
+                    if (deltaOff > off + len)
+                    {
+                        logger.warn(PARSE_ERROR
+                                + "reached the end while reading long delta.");
+                        return null;
+                    }
+                    delta = RTPUtils.readInt16AsInt(buf, deltaOff);
+                    break;
+                case SYMBOL_NOT_RECEIVED:
+                default:
+                    delta = -1;
+                    break;
+                }
+
+                if (delta == -1)
+                {
+                    // Packet not received. We don't update the reference time,
+                    // but we push the packet in the map to indicate that it was
+                    // marked as not received.
+                    packets.put(baseSeq, NEGATIVE_ONE);
+                }
+                else
+                {
+                    // The spec is not clear about what the reference time for
+                    // each packet is. We assume that every packet for which
+                    // there is a delta updates the reference (even if the
+                    // delta is negative).
+                    // TODO: check what webrtc.org does
+                    referenceTime += delta;
+                    packets.put(baseSeq, referenceTime);
+                }
+
+                baseSeq = (baseSeq + 1) & 0xffff;
+            }
+
+            // next packet status chunk
+            pscOff += 2;
+            packetsRemaining -= packetsInChunk;
+        }
 
         return packets;
     }
 
     /**
-     * The value of the "fmt" field for a transport-cc packet.
+     * Reads the {@code i}-th (zero-based) symbol from the Packet Status Chunk
+     * contained in {@code buf} at offset {@code off}. Returns -1 if the index
+     * is found to be invalid (although the validity check is not performed
+     * for RLE chunks).
+     *
+     * @param buf the buffer which contains the Packet Status Chunk.
+     * @param off the offset in {@code buf} at which the Packet Status Chunk
+     * begins.
+     * @param i the zero-based index of the symbol to return.
+     * @return the {@code i}-th symbol from the given Packet Status Chunk.
+     */
+    private static int readSymbol(byte[] buf, int off, int i)
+    {
+        int chunkType = buf[off] & 0x80 >> 7;
+        if (chunkType == CHUNK_TYPE_VECTOR)
+        {
+            int symbolType = buf[off] & 0x40 >> 6;
+            switch (symbolType)
+            {
+            case SYMBOL_TYPE_LONG:
+                //  0                   1
+                //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5
+                // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                // |T|S| s0| s1| s2| s3| s4| s5| s6|
+                // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                if (0 <= i && i <= 2)
+                {
+                    return (buf[off] >> (4-2*i)) & 0x03;
+                }
+                else if (3 <= i && i <= 6)
+                {
+                    return (buf[off + 1] >> (6-2*(i-3))) & 0x03;
+                }
+
+                return -1;
+
+            case SYMBOL_TYPE_SHORT:
+                // The format is similar to above, except with 14 one-bit
+                // symbols.
+                int shortSymbol;
+                if (0 <= i && i <= 5)
+                {
+                    shortSymbol = (buf[off] >> (5-i)) & 0x01;
+                }
+                else if (6 <= i && i <= 13)
+                {
+                    shortSymbol = (buf[off + 1] >> (13-i)) & 0x01;
+                }
+                else
+                {
+                    return -1;
+                }
+
+                return shortToLong(shortSymbol);
+            default:
+                    return -1;
+            }
+        }
+        else if (chunkType == CHUNK_TYPE_RLE)
+        {
+
+            // A RLE chunk looks like this:
+            //  0                   1
+            //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5
+            // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+            // |T| S |       Run Length        |
+            // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+            // We assume the caller knows what they are doing and they have
+            // given us a valid i, so we just return the symbol (S). Otherwise
+            // we'd have to read the Run Length field every time.
+            return buf[off] >> 5 & 0x03;
+        }
+
+        return -1;
+    }
+
+    /**
+     * Converts a short symbol to a long symbol.
+     * @param shortSymbol the short symbol.
+     * @return the long (two-bit) symbol corresponding to {@code shortSymbol}.
+     */
+    private static int shortToLong(int shortSymbol)
+    {
+        switch (shortSymbol)
+        {
+        case SHORT_SYMBOL_NOT_RECEIVED:
+            return SYMBOL_NOT_RECEIVED;
+        case SHORT_SYMBOL_RECEIVED:
+            return SYMBOL_SMALL_DELTA;
+        default:
+            return -1;
+        }
+    }
+
+    /**
+     * Returns the number of packets described in the Packet Status Chunk
+     * contained in the buffer {@code buf} at offset {@code off}.
+     * Note that this may not necessarily match with the number of packets
+     * that we want to read from the chunk. E.g. if a feedback packet describes
+     * 3 packets (indicated by the value "3" in the "packet status count" field),
+     * and it contains a Vector Status Chunk which can describe 7 packets (long
+     * symbols), then we want to read only 3 packets (but this method will
+     * return 7).
+     *
+     * @param buf the buffer which contains the Packet Status Chunk
+     * @param off the offset at which the Packet Status Chunk starts.
+     *
+     * @return the number of packets described by the Packet Status Chunk.
+     */
+    private static int getPacketCount(byte[] buf, int off)
+    {
+        int chunkType = buf[off] & 0x80 >> 7;
+        if (chunkType == CHUNK_TYPE_VECTOR)
+        {
+            // A vector chunk looks like this:
+            //  0                   1
+            //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5
+            // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+            // |1|S|       symbol list         |
+            // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+            // The 14-bit long symbol list consists of either 14 single-bit
+            // symbols, or 7 two-bit symbols, according to the S bit.
+            int symbolType = buf[off] & 0x40 >> 6;
+            return symbolType == SYMBOL_TYPE_SHORT ? 14 : 7;
+        }
+        else if (chunkType == CHUNK_TYPE_RLE)
+        {
+            // A RLE chunk looks like this:
+            //  0                   1
+            //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5
+            // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+            // |T| S |       Run Length        |
+            // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+            return
+                ((buf[off] & 0x1f) << 8)
+                | (buf[off + 1] & 0xff);
+        }
+
+        return -1;
+    }
+
+    /**
+     * The {@link Logger} used by the {@link RTCPTCCPacket} class and its
+     * instances for logging output.
+     */
+    private static final Logger logger
+        = Logger.getLogger(RTCPTCCPacket.class);
+
+    /**
+     * The value of the "fmt" field for a transport-cc RTCP feedback packet.
      */
     public static final int FMT = 15;
 
@@ -136,6 +400,52 @@ public class RTCPTCCPacket
      * negative delta (represented in a 2-byte field).
      */
     private static final int SYMBOL_LARGE_DELTA = 2;
+
+    /**
+     * The short (1-bit) symbol which indicates that a packet was received
+     * (with a small delta).
+     */
+    private static final int SHORT_SYMBOL_RECEIVED = 0;
+
+    /**
+     * The short (1-bit) symbol which indicates that a packet was not received.
+     */
+    private static final int SHORT_SYMBOL_NOT_RECEIVED = 1;
+
+    /**
+     * The value of the {@code T} bit of a Packet Status Chunk, which
+     * identifies it as a Vector chunk.
+     */
+    private static final int CHUNK_TYPE_VECTOR = 0;
+
+    /**
+     * The value of the {@code T} bit of a Packet Status Chunk, which
+     * identifies it as a Run Length Encoding chunk.
+     */
+    private static final int CHUNK_TYPE_RLE = 1;
+
+    /**
+     * The value of the {@code S} bit og a Status Vector Chunk, which
+     * indicates 1-bit (short) symbols.
+     */
+    private static final int SYMBOL_TYPE_SHORT = 0;
+
+    /**
+     * The value of the {@code S} bit of a Status Vector Chunk, which
+     * indicates 2-bit (long) symbols.
+     */
+    private static final int SYMBOL_TYPE_LONG = 1;
+
+    /**
+     * A static object defined here in the hope that it will reduce boxing.
+     */
+    private static final Long NEGATIVE_ONE = -1L;
+
+    /**
+     * An error message to use when parsing failed.
+     */
+    private static final String PARSE_ERROR
+        = "Failed to parse an RTCP transport-cc feedback packet: ";
 
     /**
      * The map which contains the sequence numbers (mapped to the reception
