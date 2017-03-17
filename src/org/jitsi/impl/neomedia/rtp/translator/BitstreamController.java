@@ -258,7 +258,7 @@ public class BitstreamController
                 this.currentIdx = currentIdx;
             }
 
-            if (currentIdx >= 0 && (maxSentFrame == null
+            if (currentIdx > -1 && (maxSentFrame == null
                 || TimeUtils.rtpDiff(srcTs, maxSentFrame.srcTs) > 0))
             {
                 // the stream is not suspended and we're not dealing with a late
