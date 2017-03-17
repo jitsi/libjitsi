@@ -488,12 +488,9 @@ public class RTCPTCCPacket
     {
         super(FMT, RTPFB, senderSSRC, sourceSSRC);
 
-        TreeSet<Map.Entry<Integer, Long>> sequenceNumbers
-            = (TreeSet) packets.entrySet();
-
-        Map.Entry<Integer, Long> first = sequenceNumbers.first();
+        Map.Entry<Integer, Long> first = packets.firstEntry();
         int firstSeq = first.getKey();
-        Map.Entry<Integer, Long> last = sequenceNumbers.last();
+        Map.Entry<Integer, Long> last = packets.lastEntry();
         int packetCount
             = 1 + RTPUtils.sequenceNumberDiff(last.getKey(), firstSeq);
 
