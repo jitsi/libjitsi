@@ -109,10 +109,7 @@ public class RTCPTCCPacket
         int off = fciBuffer.getOffset();
         int len = fciBuffer.getLength();
 
-        // The FCI starts right after the "SSRC of media source" field.
-        // We need at least 8 bytes for the fixed fields + 2 bytes for one
-        // packet status chunk.
-        if (len < 10)
+        if (len < MIN_FCI_LENGTH)
         {
             logger.warn(PARSE_ERROR + "length too small: " + len);
             return null;
@@ -440,6 +437,13 @@ public class RTCPTCCPacket
      * A static object defined here in the hope that it will reduce boxing.
      */
     private static final Long NEGATIVE_ONE = -1L;
+
+    /**
+     * The minimum length of the FCI field of a valid transport-cc RTCP
+     * feedback message. 8 bytes for the fixed fields + 2 bytes for one
+     * packet status chunk.
+     */
+    private static final int MIN_FCI_LENGTH = 10;
 
     /**
      * An error message to use when parsing failed.
