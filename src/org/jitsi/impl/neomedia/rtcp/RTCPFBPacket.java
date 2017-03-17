@@ -245,4 +245,22 @@ public class RTCPFBPacket
     {
         return RTCPPacketParserEx.toRawPacket(this);
     }
+
+    /**
+     * @return  the {@code Sender SSRC} field of this {@code RTCP} feedback
+     * packet.
+     */
+    public long getSenderSSRC()
+    {
+        return senderSSRC;
+    }
+
+    /**
+     * @return  the {@code Source SSRC} field of this {@code RTCP} feedback
+     * packet.
+     */
+    public long getSourceSSRC()
+    {
+        return sourceSSRC;
+    }
 }

@@ -227,9 +227,17 @@ public class RTCPPacketParserEx
 
         int fmt = firstbyte & 0x1f;
         if (type == RTCPFBPacket.RTPFB && fmt == NACKPacket.FMT)
+        {
             fb = new NACKPacket(base);
+        }
+        else if (type == RTCPFBPacket.RTPFB && fmt == RTCPTCCPacket.FMT)
+        {
+            fb = new RTCPTCCPacket(base);
+        }
         else
+        {
             fb = new RTCPFBPacket(base);
+        }
 
         fb.fmt = fmt;
         fb.type = type;
