@@ -26,10 +26,11 @@ import org.jitsi.util.*;
 import java.lang.ref.*;
 
 /**
- * Filters the packets of {@link MediaStreamTrackDesc} based on the currently
- * forwarded subjective quality index. It's also taking care of upscaling and
- * downscaling. As a {@link PacketTransformer}, it rewrites the forwarded
- * packets so that the gaps as a result of the drops are hidden.
+ * Filters the packets comming from a specific {@link MediaStreamTrackDesc}
+ * based on the currently forwarded subjective quality index. It's also taking
+ * care of upscaling and downscaling. As a {@link PacketTransformer}, it
+ * rewrites the forwarded packets so that the gaps as a result of the drops are
+ * hidden.
  *
  * @author George Politis
  */
@@ -49,8 +50,7 @@ public class SimulcastController
     private final long targetSSRC;
 
     /**
-     * The {@link BitstreamController} for the currently forwarded RTP
-     * stream.
+     * The {@link BitstreamController} for the currently forwarded RTP stream.
      */
     private BitstreamController bitstreamController;
 
@@ -147,6 +147,20 @@ public class SimulcastController
      */
     public boolean accept(byte[] buf, int off, int len)
     {
+        int targetIndex = bitstreamController.getTargetIndex()
+            , currentIndex = bitstreamController.getCurrentIndex();
+
+        if (targetIndex < 0 && currentIndex > -1)
+        {
+            synchronized (this)
+            {
+                bitstreamController
+                    = new BitstreamController(bitstreamController, -1);
+
+                return false;
+            }
+        }
+
         MediaStreamTrackDesc sourceTrack = weakSource.get();
         assert sourceTrack != null;
         FrameDesc sourceFrameDesc = sourceTrack.findFrameDesc(buf, off, len);
@@ -168,7 +182,7 @@ public class SimulcastController
 
         // if the TL0 of the forwarded stream is suspended, we MUST downscale.
         boolean currentTL0IsActive = false;
-        int currentTL0Idx = bitstreamController.getCurrentIndex();
+        int currentTL0Idx = currentIndex;
         if (currentTL0Idx > -1)
         {
             currentTL0Idx
@@ -177,7 +191,7 @@ public class SimulcastController
             currentTL0IsActive = sourceEncodings[currentTL0Idx].isActive();
         }
 
-        int targetTL0Idx = bitstreamController.getTargetIndex();
+        int targetTL0Idx = targetIndex;
         if (targetTL0Idx > -1)
         {
             targetTL0Idx
@@ -256,68 +270,58 @@ public class SimulcastController
      */
     public void setTargetIndex(int newTargetIdx)
     {
-        if (newTargetIdx < 0)
-        {
-            synchronized (this)
-            {
-                // suspend the stream.
-                bitstreamController
-                    = new BitstreamController(bitstreamController, -1);
-            }
-
-            return;
-        }
-
         synchronized (this)
         {
             bitstreamController.setTargetIndex(newTargetIdx);
         }
 
-        if (newTargetIdx > -1)
+        if (newTargetIdx < 0)
         {
-            // check whether it makes sense to send an FIR or not.
-            MediaStreamTrackDesc sourceTrack = weakSource.get();
-            if (sourceTrack == null)
+            return;
+        }
+
+        // check whether it makes sense to send an FIR or not.
+        MediaStreamTrackDesc sourceTrack = weakSource.get();
+        if (sourceTrack == null)
+        {
+            return;
+        }
+
+        RTPEncodingDesc[] sourceEncodings = sourceTrack.getRTPEncodings();
+
+        int currentTL0Idx = bitstreamController.getCurrentIndex();
+        if (currentTL0Idx > -1)
+        {
+            currentTL0Idx
+                = sourceEncodings[currentTL0Idx].getBaseLayer().getIndex();
+        }
+
+        int targetTL0Idx
+            = sourceEncodings[newTargetIdx].getBaseLayer().getIndex();
+
+        // Something lower than the current must be streaming, so we're able
+        // to make a switch, so ask for a key frame.
+
+        boolean sendFIR = targetTL0Idx < currentTL0Idx;
+        if (!sendFIR && targetTL0Idx > currentTL0Idx)
+        {
+            // otherwise, check if anything higher is streaming.
+            for (int i = currentTL0Idx + 1; i < targetTL0Idx + 1; i++)
             {
-                return;
-            }
-
-            RTPEncodingDesc[] sourceEncodings = sourceTrack.getRTPEncodings();
-
-            int currentTL0Idx = bitstreamController.getCurrentIndex();
-            if (currentTL0Idx > -1)
-            {
-                currentTL0Idx
-                    = sourceEncodings[currentTL0Idx].getBaseLayer().getIndex();
-            }
-
-            int targetTL0Idx
-                = sourceEncodings[newTargetIdx].getBaseLayer().getIndex();
-
-            // Something lower than the current must be streaming, so we're able
-            // to make a switch, so ask for a key frame.
-
-            boolean sendFIR = targetTL0Idx < currentTL0Idx;
-            if (!sendFIR && targetTL0Idx > currentTL0Idx)
-            {
-                // otherwise, check if anything higher is streaming.
-                for (int i = currentTL0Idx + 1; i < targetTL0Idx + 1; i++)
+                if (sourceEncodings[i].isActive())
                 {
-                    if (sourceEncodings[i].isActive())
-                    {
-                        sendFIR = true;
-                        break;
-                    }
+                    sendFIR = true;
+                    break;
                 }
             }
+        }
 
-            if (sendFIR)
-            {
-                ((RTPTranslatorImpl) sourceTrack.getMediaStreamTrackReceiver()
-                    .getStream().getRTPTranslator())
-                    .getRtcpFeedbackMessageSender().sendFIR(
-                    (int) targetSSRC);
-            }
+        if (sendFIR)
+        {
+            ((RTPTranslatorImpl) sourceTrack.getMediaStreamTrackReceiver()
+                .getStream().getRTPTranslator())
+                .getRtcpFeedbackMessageSender().sendFIR(
+                (int) targetSSRC);
         }
     }
 
