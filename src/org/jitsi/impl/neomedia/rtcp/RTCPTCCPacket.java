@@ -413,13 +413,13 @@ public class RTCPTCCPacket
      * The value of the {@code T} bit of a Packet Status Chunk, which
      * identifies it as a Vector chunk.
      */
-    private static final int CHUNK_TYPE_VECTOR = 0;
+    private static final int CHUNK_TYPE_VECTOR = 1;
 
     /**
      * The value of the {@code T} bit of a Packet Status Chunk, which
      * identifies it as a Run Length Encoding chunk.
      */
-    private static final int CHUNK_TYPE_RLE = 1;
+    private static final int CHUNK_TYPE_RLE = 0;
 
     /**
      * The value of the {@code S} bit og a Status Vector Chunk, which
