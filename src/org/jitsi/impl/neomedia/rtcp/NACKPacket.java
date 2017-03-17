@@ -237,10 +237,20 @@ public class NACKPacket
     {
         dataoutputstream.writeByte((byte) (0x80 /* version */ | FMT));
         dataoutputstream.writeByte((byte) RTPFB);
-        dataoutputstream.writeShort(2 + (fci.length / 4));
+        int len = 2 /* sender + source SSRCs */ + (fci.length / 4);
+        if (fci.length % 4 != 0)
+        {
+            len++;
+        }
+        dataoutputstream.writeShort(len);
         writeSsrc(dataoutputstream, senderSSRC);
         writeSsrc(dataoutputstream, sourceSSRC);
         dataoutputstream.write(fci);
+        for (int i = fci.length; i % 4 != 0; i++)
+        {
+            // pad to a word.
+            dataoutputstream.writeByte(0);
+        }
     }
 
     @Override

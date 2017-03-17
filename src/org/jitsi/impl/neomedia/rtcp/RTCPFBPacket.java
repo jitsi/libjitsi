@@ -195,6 +195,7 @@ public class RTCPFBPacket
         // one, including the header and any padding. This is in
         // line with the definition of the length field used in RTCP
         // sender and receiver reports
+        //TODO handle padding
         int rtcpPacketLength = len / 4 - 1;
         off += RTPUtils.writeShort(buf, off, (short) rtcpPacketLength);
 
@@ -213,6 +214,7 @@ public class RTCPFBPacket
         }
 
         dataoutputstream.write(buf, 0, len);
+        //TODO handle padding
     }
 
     @Override
