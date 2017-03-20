@@ -239,10 +239,10 @@ public class RTCPTCCPacket
      */
     private static int readSymbol(byte[] buf, int off, int i)
     {
-        int chunkType = buf[off] & 0x80 >> 7;
+        int chunkType = (buf[off] & 0x80) >> 7;
         if (chunkType == CHUNK_TYPE_VECTOR)
         {
-            int symbolType = buf[off] & 0x40 >> 6;
+            int symbolType = (buf[off] & 0x40) >> 6;
             switch (symbolType)
             {
             case SYMBOL_TYPE_LONG:
@@ -297,7 +297,7 @@ public class RTCPTCCPacket
             // We assume the caller knows what they are doing and they have
             // given us a valid i, so we just return the symbol (S). Otherwise
             // we'd have to read the Run Length field every time.
-            return buf[off] >> 5 & 0x03;
+            return (buf[off] >> 5) & 0x03;
         }
 
         return -1;
@@ -338,7 +338,7 @@ public class RTCPTCCPacket
      */
     private static int getPacketCount(byte[] buf, int off)
     {
-        int chunkType = buf[off] & 0x80 >> 7;
+        int chunkType = (buf[off] & 0x80) >> 7;
         if (chunkType == CHUNK_TYPE_VECTOR)
         {
             // A vector chunk looks like this:
@@ -349,7 +349,7 @@ public class RTCPTCCPacket
             // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
             // The 14-bit long symbol list consists of either 14 single-bit
             // symbols, or 7 two-bit symbols, according to the S bit.
-            int symbolType = buf[off] & 0x40 >> 6;
+            int symbolType = (buf[off] & 0x40) >> 6;
             return symbolType == SYMBOL_TYPE_SHORT ? 14 : 7;
         }
         else if (chunkType == CHUNK_TYPE_RLE)
