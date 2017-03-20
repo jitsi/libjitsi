@@ -244,7 +244,7 @@ public class RTCPPacketParserEx
         fb.senderSSRC = senderSSRC;
         fb.sourceSSRC = sourceSSRC;
 
-        int fcilen = length - 12; // header + ssrc + ssrc = 14
+        int fcilen = length - 12; // header + sender ssrc + source ssrc = 12
 
         if (fcilen != 0)
         {

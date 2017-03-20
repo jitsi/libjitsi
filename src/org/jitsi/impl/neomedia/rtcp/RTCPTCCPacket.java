@@ -171,25 +171,24 @@ public class RTCPTCCPacket
                 {
                 case SYMBOL_SMALL_DELTA:
                     // The delta is an 8-bit unsigned integer.
-                    deltaOff++;
-                    if (deltaOff > off + len)
+                    if (deltaOff >= off + len)
                     {
                         logger.warn(PARSE_ERROR
                                 + "reached the end while reading delta.");
                         return null;
                     }
-                    delta = buf[deltaOff] & 0xff;
+                    delta = buf[deltaOff++] & 0xff;
                     break;
                 case SYMBOL_LARGE_DELTA:
                     // The delta is a 6-bit signed integer.
-                    deltaOff += 2;
-                    if (deltaOff > off + len)
+                    if (deltaOff + 1 >= off + len) // we're about to read 2 bytes
                     {
                         logger.warn(PARSE_ERROR
                                 + "reached the end while reading long delta.");
                         return null;
                     }
                     delta = RTPUtils.readInt16AsInt(buf, deltaOff);
+                    deltaOff += 2;
                     break;
                 case SYMBOL_NOT_RECEIVED:
                 default:
