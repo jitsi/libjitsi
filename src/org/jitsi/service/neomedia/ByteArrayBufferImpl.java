@@ -73,6 +73,14 @@ public class ByteArrayBufferImpl
     }
 
     /**
+     * Initializes a new {@link ByteArrayBufferImpl} instance.
+     */
+    public ByteArrayBufferImpl(byte[] buf)
+    {
+        this(buf, 0, buf.length);
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override
