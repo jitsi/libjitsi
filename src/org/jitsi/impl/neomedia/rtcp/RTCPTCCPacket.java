@@ -263,24 +263,23 @@ public class RTCPTCCPacket
 
                 return -1;
 
+            // Note that draft defines the short symbols as 0 for received and
+            // 1 for not received, but but the webrtc.org code uses the opposite.
+            // We do what webrtc.org does for interop (also, it is easier,
+            // because the short and long symbols match, so we don't have to
+            // convert.
             case SYMBOL_TYPE_SHORT:
                 // The format is similar to above, except with 14 one-bit
                 // symbols.
-                int shortSymbol;
                 if (0 <= i && i <= 5)
                 {
-                    shortSymbol = (buf[off] >> (5-i)) & 0x01;
+                    return (buf[off] >> (5-i)) & 0x01;
                 }
                 else if (6 <= i && i <= 13)
                 {
-                    shortSymbol = (buf[off + 1] >> (13-i)) & 0x01;
+                    return (buf[off + 1] >> (13-i)) & 0x01;
                 }
-                else
-                {
-                    return -1;
-                }
-
-                return shortToLong(shortSymbol);
+                return -1;
             default:
                     return -1;
             }
@@ -302,24 +301,6 @@ public class RTCPTCCPacket
         }
 
         return -1;
-    }
-
-    /**
-     * Converts a short symbol to a long symbol.
-     * @param shortSymbol the short symbol.
-     * @return the long (two-bit) symbol corresponding to {@code shortSymbol}.
-     */
-    private static int shortToLong(int shortSymbol)
-    {
-        switch (shortSymbol)
-        {
-        case SHORT_SYMBOL_NOT_RECEIVED:
-            return SYMBOL_NOT_RECEIVED;
-        case SHORT_SYMBOL_RECEIVED:
-            return SYMBOL_SMALL_DELTA;
-        default:
-            return -1;
-        }
     }
 
     /**
@@ -397,17 +378,6 @@ public class RTCPTCCPacket
      * negative delta (represented in a 2-byte field).
      */
     private static final int SYMBOL_LARGE_DELTA = 2;
-
-    /**
-     * The short (1-bit) symbol which indicates that a packet was received
-     * (with a small delta).
-     */
-    private static final int SHORT_SYMBOL_RECEIVED = 0;
-
-    /**
-     * The short (1-bit) symbol which indicates that a packet was not received.
-     */
-    private static final int SHORT_SYMBOL_NOT_RECEIVED = 1;
 
     /**
      * The value of the {@code T} bit of a Packet Status Chunk, which
