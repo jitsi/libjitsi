@@ -161,6 +161,7 @@ public class RTCPTCCPacket
             int packetsInChunk
                 = Math.min(getPacketCount(buf, pscOff), packetsRemaining);
 
+            // TODO: do not loop for RLE NR chunks.
             // Read deltas for all packets in the chunk.
             for (int i = 0; i < packetsInChunk; i++)
             {
@@ -539,6 +540,7 @@ public class RTCPTCCPacket
             else if (seqDelta % 7 == 3)
             {
                 off++;
+                // Clear previous contents.
                 buf[off] = 0;
             }
 
@@ -553,7 +555,7 @@ public class RTCPTCCPacket
             else
             {
                 long tsDelta = ts - nextReferenceTime;
-                if (tsDelta >= 0 && tsDelta < 63)
+                if (tsDelta >= 0 && tsDelta <= 63)
                 {
                     symbol = SYMBOL_SMALL_DELTA;
 
