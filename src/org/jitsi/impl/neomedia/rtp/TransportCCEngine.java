@@ -67,8 +67,7 @@ public class TransportCCEngine
     /**
      * The next sequence number to use for outgoing data packets.
      */
-    private AtomicInteger outgoingSeq
-        = new AtomicInteger(new Random().nextInt() & 0xffff);
+    private AtomicInteger outgoingSeq = new AtomicInteger(1);
 
     /**
      * The running index of sent RTCP transport-cc feedback packets.
