@@ -72,6 +72,11 @@ public class RTPEncodingDesc
     private final int sid;
 
     /**
+     * Gets the resolution of the bitstream that this instance represents.
+     */
+    private final int resolution;
+
+    /**
      * The root {@link RTPEncodingDesc} of the dependencies DAG. Useful for
      * simulcast handling.
      */
@@ -161,7 +166,7 @@ public class RTPEncodingDesc
     public RTPEncodingDesc(
         MediaStreamTrackDesc track, long primarySSRC, long rtxSSRC)
     {
-        this(track, 0, primarySSRC, rtxSSRC,
+        this(track, 0, primarySSRC, rtxSSRC, -1 /* resolution */,
             -1 /* tid */, -1 /* sid */, null /* dependencies */);
     }
 
@@ -176,6 +181,7 @@ public class RTPEncodingDesc
      * @param rtxSSRC The RTX SSRC for this layering/encoding.
      * @param tid temporal layer ID for this layering/encoding.
      * @param sid spatial layer ID for this layering/encoding.
+     * @param resolution the resolution of this encoding
      * @param dependencyEncodings  The {@link RTPEncodingDesc} on which this
      * layer depends.
      */
@@ -183,8 +189,12 @@ public class RTPEncodingDesc
         MediaStreamTrackDesc track, int idx,
         long primarySSRC, long rtxSSRC,
         int tid, int sid,
+        int resolution,
         RTPEncodingDesc[] dependencyEncodings)
     {
+        // XXX we should be able to snif the actual resolution from the RTP
+        // packets.
+        this.resolution = resolution;
         this.primarySSRC = primarySSRC;
         this.rtxSSRC = rtxSSRC;
         this.track = track;
@@ -606,5 +616,15 @@ public class RTPEncodingDesc
     public RTPEncodingDesc[] getDependencyEncodings()
     {
         return dependencyEncodings;
+    }
+
+    /**
+     * Gets the resolution of the bitstream that this instance represents.
+     *
+     * @return the resolution of the bitstream that this instance represents.
+     */
+    public int getResolution()
+    {
+        return resolution;
     }
 }
