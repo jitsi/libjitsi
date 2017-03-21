@@ -114,6 +114,9 @@ public class RTPEncodingDesc
 
         /**
          * {@inheritDoc}
+         *
+         * It also removes the eldest entry each time a new one is added and the
+         * total number of entries exceeds 300.
          */
         @Override
         public FrameDesc put(Long key, FrameDesc value)
@@ -143,6 +146,9 @@ public class RTPEncodingDesc
 
         /**
          * {@inheritDoc}
+         *
+         * It also removes the eldest entry each time a new one is added and the
+         * total number of entries exceeds 300.
          */
         @Override
         public FrameDesc put(Long key, FrameDesc value)
@@ -327,7 +333,9 @@ public class RTPEncodingDesc
     }
 
     /**
-     * {@inheritDoc}
+     * Gets the last stable bitrate (in bps) for this instance.
+     *
+     * @return The last stable bitrate (in bps) for this instance.
      */
     public long getLastStableBitrateBps()
     {
