@@ -616,7 +616,7 @@ public class RTCPTCCPacket
      * than the timestamps expected as input when constructing a packet with
      * {@link RTCPTCCPacket#RTCPTCCPacket(long, long, PacketMap, byte)}.
      */
-    synchronized public Map<Integer, Long> getPackets()
+    synchronized public PacketMap getPackets()
     {
         if (packets == null)
         {
