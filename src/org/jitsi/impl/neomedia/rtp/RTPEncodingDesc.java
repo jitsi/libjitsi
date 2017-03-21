@@ -40,6 +40,11 @@ public class RTPEncodingDesc
         = Logger.getLogger(RTPEncodingDesc.class);
 
     /**
+     * A value used to designate the absence of resolution information.
+     */
+    private final static int NO_RESOLUTION = -1;
+
+    /**
      * The default window size in ms for the bitrate estimation.
      *
      * TODO maybe make this configurable.
@@ -195,7 +200,7 @@ public class RTPEncodingDesc
     public RTPEncodingDesc(
         MediaStreamTrackDesc track, long primarySSRC, long rtxSSRC)
     {
-        this(track, 0, primarySSRC, rtxSSRC, -1 /* resolution */,
+        this(track, 0, primarySSRC, rtxSSRC, NO_RESOLUTION /* resolution */,
             -1 /* tid */, -1 /* sid */, null /* dependencies */);
     }
 
