@@ -40,9 +40,9 @@ public class RTPEncodingDesc
         = Logger.getLogger(RTPEncodingDesc.class);
 
     /**
-     * A value used to designate the absence of resolution information.
+     * A value used to designate the absence of height information.
      */
-    private final static int NO_RESOLUTION = -1;
+    private final static int NO_HEIGHT = -1;
 
     /**
      * The default window size in ms for the bitrate estimation.
@@ -77,9 +77,9 @@ public class RTPEncodingDesc
     private final int sid;
 
     /**
-     * Gets the resolution of the bitstream that this instance represents.
+     * Gets the height of the bitstream that this instance represents.
      */
-    private final int resolution;
+    private final int height;
 
     /**
      * The root {@link RTPEncodingDesc} of the dependencies DAG. Useful for
@@ -206,7 +206,7 @@ public class RTPEncodingDesc
     public RTPEncodingDesc(
         MediaStreamTrackDesc track, long primarySSRC, long rtxSSRC)
     {
-        this(track, 0, primarySSRC, rtxSSRC, NO_RESOLUTION /* resolution */,
+        this(track, 0, primarySSRC, rtxSSRC, NO_HEIGHT /* height */,
             -1 /* tid */, -1 /* sid */, null /* dependencies */);
     }
 
@@ -221,7 +221,7 @@ public class RTPEncodingDesc
      * @param rtxSSRC The RTX SSRC for this layering/encoding.
      * @param tid temporal layer ID for this layering/encoding.
      * @param sid spatial layer ID for this layering/encoding.
-     * @param resolution the resolution of this encoding
+     * @param height the height of this encoding
      * @param dependencyEncodings  The {@link RTPEncodingDesc} on which this
      * layer depends.
      */
@@ -229,12 +229,12 @@ public class RTPEncodingDesc
         MediaStreamTrackDesc track, int idx,
         long primarySSRC, long rtxSSRC,
         int tid, int sid,
-        int resolution,
+        int height,
         RTPEncodingDesc[] dependencyEncodings)
     {
-        // XXX we should be able to snif the actual resolution from the RTP
+        // XXX we should be able to snif the actual height from the RTP
         // packets.
-        this.resolution = resolution;
+        this.height = height;
         this.primarySSRC = primarySSRC;
         this.rtxSSRC = rtxSSRC;
         this.track = track;
@@ -678,12 +678,12 @@ public class RTPEncodingDesc
     }
 
     /**
-     * Gets the resolution of the bitstream that this instance represents.
+     * Gets the height of the bitstream that this instance represents.
      *
-     * @return the resolution of the bitstream that this instance represents.
+     * @return the height of the bitstream that this instance represents.
      */
-    public int getResolution()
+    public int getHeight()
     {
-        return resolution;
+        return height;
     }
 }
