@@ -32,23 +32,28 @@ public class BitstreamController
     /**
      * The available subjective quality indexes that this RTP stream offers.
      */
-    private final int[] availableIdx;
+    private int[] availableIdx;
 
     /**
      * The sequence number offset that this bitstream started.
      */
-    private final int seqNumOff;
+    private int seqNumOff;
 
     /**
      * The timestamp offset that this bitstream started.
      */
-    private final long tsOff;
+    private long tsOff;
 
     /**
      * The SSRC of the TL0 of the RTP stream that is currently being
      * forwarded. This is useful for simulcast and RTCP SR rewriting.
      */
-    private final long tl0SSRC;
+    private long tl0SSRC;
+
+    /**
+     * The subjective quality index for of the TL0 of this instance.
+     */
+    private int tl0Idx = -2;
 
     /**
      * A weak reference to the {@link MediaStreamTrackDesc} that this controller
@@ -93,24 +98,8 @@ public class BitstreamController
      * At 60fps, this holds 5 seconds worth of frames.
      * At 30fps, this holds 10 seconds worth of frames.
      */
-    private Map<Long, SeenFrame> seenFrames
+    private final Map<Long, SeenFrame> seenFrames
         = Collections.synchronizedMap(new LRUCache<Long, SeenFrame>(300));
-
-    /**
-     * Ctor. Used when switching between independent bitstreams
-     * (simulcast case). This ctor maintains the old targets and optimal
-     * indices.
-     *
-     * @param bc the previous {@link BitstreamController}.
-     * @param tl0Idx the TL0 of the RTP stream that this controller filters
-     * traffic from.
-     */
-    BitstreamController(BitstreamController bc, int tl0Idx)
-    {
-        this(bc.weakSource, bc.getMaxSeqNum(), bc.getMaxTs(),
-            bc.transmittedBytes, bc.transmittedPackets,
-            tl0Idx, bc.targetIdx, bc.optimalIdx);
-    }
 
     /**
      * Ctor. The ctor sets all of the indices to -1.
@@ -155,6 +144,30 @@ public class BitstreamController
         // a stream always starts suspended (and resumes with a key frame).
         this.currentIdx = -1;
         this.weakSource = weakSource;
+        setTL0Idx(tl0Idx);
+    }
+
+    /**
+     *
+     * @param newTL0Idx
+     */
+    void setTL0Idx(int newTL0Idx)
+    {
+        if (this.tl0Idx == newTL0Idx)
+        {
+            return;
+        }
+
+        this.seenFrames.clear();
+
+        if (maxSentFrame != null)
+        {
+            this.tsOff = getMaxTs();
+            this.seqNumOff = getMaxSeqNum();
+            this.maxSentFrame = null;
+        }
+
+        this.tl0Idx = newTL0Idx;
 
         MediaStreamTrackDesc source = weakSource.get();
         assert source != null;
@@ -286,6 +299,7 @@ public class BitstreamController
                         if (maxSeqNum > -1)
                         {
                             int seqNumDelta = (maxSeqNum + 1
+                                    // FIXME what if start == -1?
                                 - sourceFrameDesc.getStart()) & 0xFFFF;
 
                             seqNumTranslation
@@ -331,13 +345,13 @@ public class BitstreamController
 
                     destFrame = new SeenFrame(
                         srcTs, seqNumTranslation, tsTranslation);
-                    seenFrames.put(sourceFrameDesc.getTimestamp(), destFrame);
+                    seenFrames.put(srcTs, destFrame);
                     maxSentFrame = destFrame;
                 }
                 else
                 {
                     destFrame = new SeenFrame(srcTs, null, null);
-                    seenFrames.put(sourceFrameDesc.getTimestamp(), destFrame);
+                    seenFrames.put(srcTs, destFrame);
                 }
             }
             else
@@ -345,7 +359,7 @@ public class BitstreamController
                 // TODO ask for independent frame if we're filtering a TL0.
 
                 destFrame = new SeenFrame(srcTs, null, null);
-                seenFrames.put(sourceFrameDesc.getTimestamp(), destFrame);
+                seenFrames.put(srcTs, destFrame);
             }
         }
 
@@ -434,8 +448,6 @@ public class BitstreamController
     /**
      * Updates the timestamp, transmitted bytes and transmitted packets in the
      * RTCP SR packets.
-     *
-     * @return true, if the packet is to be forwarded, false otherwise.
      */
     void rtcpTransform(ByteArrayBuffer baf)
     {

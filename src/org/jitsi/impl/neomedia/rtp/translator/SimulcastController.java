@@ -52,7 +52,7 @@ public class SimulcastController
     /**
      * The {@link BitstreamController} for the currently forwarded RTP stream.
      */
-    private BitstreamController bitstreamController;
+    private final BitstreamController bitstreamController;
 
     /**
      * Ctor.
@@ -73,7 +73,7 @@ public class SimulcastController
             targetSSRC = rtpEncodings[0].getPrimarySSRC();
         }
 
-        bitstreamController = new BitstreamController(source);
+        bitstreamController = new BitstreamController(weakSource.get());
     }
 
     /**
@@ -152,13 +152,8 @@ public class SimulcastController
 
         if (targetIndex < 0 && currentIndex > -1)
         {
-            synchronized (this)
-            {
-                bitstreamController
-                    = new BitstreamController(bitstreamController, -1);
-
-                return false;
-            }
+            bitstreamController.setTL0Idx(-1);
+            return false;
         }
 
         MediaStreamTrackDesc sourceTrack = weakSource.get();
@@ -171,8 +166,7 @@ public class SimulcastController
             return false;
         }
 
-        RTPEncodingDesc sourceEncodings[] = sourceFrameDesc.getRTPEncoding()
-            .getMediaStreamTrack().getRTPEncodings();
+        RTPEncodingDesc sourceEncodings[] = sourceTrack.getRTPEncodings();
 
         // If we're getting packets here => there must be at least 1 encoding.
         if (ArrayUtils.isNullOrEmpty(sourceEncodings))
@@ -248,11 +242,7 @@ public class SimulcastController
             || (currentTL0Idx < sourceTL0Idx && sourceTL0Idx <= targetTL0Idx)
             || (!currentTL0IsActive && sourceTL0Idx <= targetTL0Idx))
         {
-            synchronized (this)
-            {
-                bitstreamController = new BitstreamController(
-                    bitstreamController, sourceTL0Idx);
-            }
+            bitstreamController.setTL0Idx(sourceTL0Idx);
 
             // Give the bitstream filter a chance to drop the packet.
             return bitstreamController.accept(sourceFrameDesc, buf, off, len);
@@ -270,10 +260,7 @@ public class SimulcastController
      */
     public void setTargetIndex(int newTargetIdx)
     {
-        synchronized (this)
-        {
-            bitstreamController.setTargetIndex(newTargetIdx);
-        }
+        bitstreamController.setTargetIndex(newTargetIdx);
 
         if (newTargetIdx < 0)
         {
@@ -332,10 +319,7 @@ public class SimulcastController
      */
     public void setOptimalIndex(int optimalIndex)
     {
-        synchronized (this)
-        {
-            bitstreamController.setOptimalIndex(optimalIndex);
-        }
+        bitstreamController.setOptimalIndex(optimalIndex);
     }
 
     /**
