@@ -125,6 +125,35 @@ public class RTPEncodingDesc
     };
 
     /**
+     * The {@link TreeMap} that holds the seen {@link FrameDesc}, keyed
+     * by their RTP timestamps.
+     */
+    private final TreeMap<Long, FrameDesc> streamFrames
+        = new TreeMap<Long, FrameDesc>()
+    {
+        /**
+         * A helper {@link LinkedList} that is used to cleanup the map.
+         */
+        private LinkedList<Long> tsl = new LinkedList<>();
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public FrameDesc put(Long key, FrameDesc value)
+        {
+            FrameDesc previous = super.put(key, value);
+            if (tsl.add(key) && tsl.size() > 300)
+            {
+                Long first = tsl.removeFirst();
+                this.remove(first);
+            }
+
+            return previous;
+        }
+    };
+
+    /**
      * The {@link RTPEncodingDesc} on which this layer depends.
      */
     private final RTPEncodingDesc[] dependencyEncodings;
@@ -250,10 +279,18 @@ public class RTPEncodingDesc
                 {
                     if (end == -1)
                     {
+                        if (logger.isDebugEnabled())
+                        {
+                            logger.debug("Guessed frame end.");
+                        }
                         a.setEnd((max + 1) & 0xFFFF);
                     }
                     else
                     {
+                        if (logger.isDebugEnabled())
+                        {
+                            logger.debug("Guessed frame start.");
+                        }
                         b.setStart((min - 1) & 0xFFFF);
                     }
                 }
@@ -267,6 +304,11 @@ public class RTPEncodingDesc
             {
                 if (snDiff == 3)
                 {
+                    if (logger.isDebugEnabled())
+                    {
+                        logger.debug("Guessed frame start/end.");
+                    }
+
                     a.setEnd((max + 1) & 0xFFFF);
                     b.setStart((min - 1) & 0xFFFF);
                 }
@@ -471,6 +513,10 @@ public class RTPEncodingDesc
                 frames.put(ts, frame = new FrameDesc(this, ts, nowMs));
             }
 
+            // this field is accessed by a single thread, so there's no need for
+            // sync
+            base.streamFrames.put(ts, frame);
+
             // We measure the stable bitrate on every new frame.
             lastStableBitrateBps = getBitrateBps(nowMs);
 
@@ -493,7 +539,7 @@ public class RTPEncodingDesc
 
             // Find the closest next frame.
             Map.Entry<Long, FrameDesc> ceilingEntry
-                = frames.ceilingEntry((ts + 1) & 0xFFFFFFFFL);
+                = base.streamFrames.ceilingEntry((ts + 1) & 0xFFFFFFFFL);
 
             if (ceilingEntry != null)
             {
@@ -502,7 +548,7 @@ public class RTPEncodingDesc
 
             // Find the closest previous frame.
             Map.Entry<Long, FrameDesc> floorEntry
-                = frames.floorEntry((ts - 1) & 0xFFFFFFFFL);
+                = base.streamFrames.floorEntry((ts - 1) & 0xFFFFFFFFL);
 
             if (floorEntry != null)
             {
