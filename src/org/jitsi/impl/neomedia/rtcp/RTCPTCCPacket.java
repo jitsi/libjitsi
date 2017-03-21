@@ -78,8 +78,10 @@ public class RTCPTCCPacket
     /**
      * @return the packets represented in an RTCP transport-cc feedback packet.
      *
-     * Note that the timestamps are represented in the 250µs format used by the
-     * on-the-wire format, and don't represent local time.
+     * Warning: the timestamps are represented in the 250µs format used by the
+     * on-the-wire format, and don't represent local time. This is different
+     * than the timestamps expected as input when constructing a packet with
+     * {@link RTCPTCCPacket#RTCPTCCPacket(long, long, PacketMap, byte)}.
      *
      * @param baf the buffer which contains the RTCP packet.
      */
@@ -92,8 +94,10 @@ public class RTCPTCCPacket
      * @return the packets represented in the FCI portion of an RTCP
      * transport-cc feedback packet.
      *
-     * Note that the timestamps are represented in the 250µs format used by the
-     * on-the-wire format, and don't represent local time.
+     * Warning: the timestamps are represented in the 250µs format used by the
+     * on-the-wire format, and don't represent local time. This is different
+     * than the timestamps expected as input when constructing a packet with
+     * {@link RTCPTCCPacket#RTCPTCCPacket(long, long, PacketMap, byte)}.
      *
      * @param fciBuffer the buffer which contains the FCI portion of the RTCP
      * feedback packet.
@@ -443,14 +447,18 @@ public class RTCPTCCPacket
      * @param senderSSRC the value to use for the "packet sender SSRC" field.
      * @param sourceSSRC the value to use for the "media source SSRC" field.
      * @param packets the set of RTP sequence numbers and their reception
-     * timestamps which this packet is to describe.
+     * timestamps which this packet is to describe. Note that missing sequence
+     * numbers, as well as those mapped to a negative will be interpreted as
+     * missing (not received) packets.
      * @param fbPacketCount the index of this feedback packet, to be used in the
      * "fb pkt count" field.
      *
-     * Note that this implementation is not optimized and might not always use
+     * Warning: The timestamps for the packets are expected to be in
+     * millisecond increments, which is different than the output map produced
+     * after parsing a packet!
+     *
+     * Note: this implementation is not optimized and might not always use
      * the minimal possible number of bytes to describe a given set of packets.
-     * Specifically, it does take into account that sequence numbers wrap
-     * at 2^16 and fails to pack numbers close to 2^16 with those close to 0.
      */
     public RTCPTCCPacket(long senderSSRC, long sourceSSRC,
                          PacketMap packets,
@@ -518,7 +526,7 @@ public class RTCPTCCPacket
 
             int seq = (firstSeq + seqDelta) & 0xffff;
             Long ts = packets.get(seq);
-            if (ts == null)
+            if (ts == null || ts < 0)
             {
                 symbol = SYMBOL_NOT_RECEIVED;
             }
@@ -597,12 +605,16 @@ public class RTCPTCCPacket
         fci = new byte[off + deltaOff];
         System.arraycopy(buf, 0, fci, 0, off);
         System.arraycopy(deltas, 0, fci, off, deltaOff);
-        this.packets = packets;
     }
 
 
     /**
      * @return the map of packets represented by this {@link RTCPTCCPacket}.
+     *
+     * Warning: the timestamps are represented in the 250µs format used by the
+     * on-the-wire format, and don't represent local time. This is different
+     * than the timestamps expected as input when constructing a packet with
+     * {@link RTCPTCCPacket#RTCPTCCPacket(long, long, PacketMap, byte)}.
      */
     synchronized public Map<Integer, Long> getPackets()
     {
