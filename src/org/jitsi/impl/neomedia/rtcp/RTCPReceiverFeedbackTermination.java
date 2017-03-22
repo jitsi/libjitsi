@@ -375,7 +375,7 @@ public class RTCPReceiverFeedbackTermination
         public RawPacket transform(RawPacket pkt)
         {
             // Kill RRs.
-            return reverseTransform(pkt);
+            return doTransform(pkt);
         }
 
         /**
@@ -383,6 +383,11 @@ public class RTCPReceiverFeedbackTermination
          */
         @Override
         public RawPacket reverseTransform(RawPacket pkt)
+        {
+            return doTransform(pkt);
+        }
+
+        private RawPacket doTransform(RawPacket pkt)
         {
             RTCPIterator it = new RTCPIterator(pkt);
             while (it.hasNext())

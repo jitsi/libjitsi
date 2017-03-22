@@ -493,7 +493,7 @@ public class RtxTransformer
             }
         }
 
-        if (!lostPackets.isEmpty())
+        if (!lostPackets.isEmpty() && logger.isDebugEnabled())
         {
             // If retransmission requests are enabled, videobridge assumes
             // the responsibility of requesting missing packets.
@@ -705,6 +705,7 @@ public class RtxTransformer
                         = NACKPacket.getLostPackets(next);
                     long mediaSSRC = NACKPacket.getSourceSSRC(next);
                     nackReceived(mediaSSRC, lostPackets);
+                    it.remove();
                 }
             }
 
