@@ -1014,6 +1014,8 @@ public class StatisticsEngine
             case RTCPFBPacket.RTPFB:
                 if (rtcp instanceof NACKPacket)
                 {
+                    // NACKs are currently handled in RtxTransformer and do not
+                    // reach the StatisticsEngine.
                     NACKPacket nack = (NACKPacket) rtcp;
 
                     streamStats.nackReceived(nack);
