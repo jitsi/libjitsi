@@ -40,6 +40,11 @@ public class RTPEncodingDesc
         = Logger.getLogger(RTPEncodingDesc.class);
 
     /**
+     * A value used to designate the absence of height information.
+     */
+    private final static int NO_HEIGHT = -1;
+
+    /**
      * The default window size in ms for the bitrate estimation.
      *
      * TODO maybe make this configurable.
@@ -70,6 +75,11 @@ public class RTPEncodingDesc
      * The spatial layer ID of this instance.
      */
     private final int sid;
+
+    /**
+     * Gets the height of the bitstream that this instance represents.
+     */
+    private final int height;
 
     /**
      * The root {@link RTPEncodingDesc} of the dependencies DAG. Useful for
@@ -104,6 +114,41 @@ public class RTPEncodingDesc
 
         /**
          * {@inheritDoc}
+         *
+         * It also removes the eldest entry each time a new one is added and the
+         * total number of entries exceeds 300.
+         */
+        @Override
+        public FrameDesc put(Long key, FrameDesc value)
+        {
+            FrameDesc previous = super.put(key, value);
+            if (tsl.add(key) && tsl.size() > 300)
+            {
+                Long first = tsl.removeFirst();
+                this.remove(first);
+            }
+
+            return previous;
+        }
+    };
+
+    /**
+     * The {@link TreeMap} that holds the seen {@link FrameDesc}, keyed
+     * by their RTP timestamps.
+     */
+    private final TreeMap<Long, FrameDesc> streamFrames
+        = new TreeMap<Long, FrameDesc>()
+    {
+        /**
+         * A helper {@link LinkedList} that is used to cleanup the map.
+         */
+        private LinkedList<Long> tsl = new LinkedList<>();
+
+        /**
+         * {@inheritDoc}
+         *
+         * It also removes the eldest entry each time a new one is added and the
+         * total number of entries exceeds 300.
          */
         @Override
         public FrameDesc put(Long key, FrameDesc value)
@@ -161,7 +206,7 @@ public class RTPEncodingDesc
     public RTPEncodingDesc(
         MediaStreamTrackDesc track, long primarySSRC, long rtxSSRC)
     {
-        this(track, 0, primarySSRC, rtxSSRC,
+        this(track, 0, primarySSRC, rtxSSRC, NO_HEIGHT /* height */,
             -1 /* tid */, -1 /* sid */, null /* dependencies */);
     }
 
@@ -176,6 +221,7 @@ public class RTPEncodingDesc
      * @param rtxSSRC The RTX SSRC for this layering/encoding.
      * @param tid temporal layer ID for this layering/encoding.
      * @param sid spatial layer ID for this layering/encoding.
+     * @param height the height of this encoding
      * @param dependencyEncodings  The {@link RTPEncodingDesc} on which this
      * layer depends.
      */
@@ -183,8 +229,12 @@ public class RTPEncodingDesc
         MediaStreamTrackDesc track, int idx,
         long primarySSRC, long rtxSSRC,
         int tid, int sid,
+        int height,
         RTPEncodingDesc[] dependencyEncodings)
     {
+        // XXX we should be able to snif the actual height from the RTP
+        // packets.
+        this.height = height;
         this.primarySSRC = primarySSRC;
         this.rtxSSRC = rtxSSRC;
         this.track = track;
@@ -240,10 +290,18 @@ public class RTPEncodingDesc
                 {
                     if (end == -1)
                     {
+                        if (logger.isDebugEnabled())
+                        {
+                            logger.debug("Guessed frame end.");
+                        }
                         a.setEnd((max + 1) & 0xFFFF);
                     }
                     else
                     {
+                        if (logger.isDebugEnabled())
+                        {
+                            logger.debug("Guessed frame start.");
+                        }
                         b.setStart((min - 1) & 0xFFFF);
                     }
                 }
@@ -257,6 +315,11 @@ public class RTPEncodingDesc
             {
                 if (snDiff == 3)
                 {
+                    if (logger.isDebugEnabled())
+                    {
+                        logger.debug("Guessed frame start/end.");
+                    }
+
                     a.setEnd((max + 1) & 0xFFFF);
                     b.setStart((min - 1) & 0xFFFF);
                 }
@@ -270,7 +333,9 @@ public class RTPEncodingDesc
     }
 
     /**
-     * {@inheritDoc}
+     * Gets the last stable bitrate (in bps) for this instance.
+     *
+     * @return The last stable bitrate (in bps) for this instance.
      */
     public long getLastStableBitrateBps()
     {
@@ -461,6 +526,10 @@ public class RTPEncodingDesc
                 frames.put(ts, frame = new FrameDesc(this, ts, nowMs));
             }
 
+            // this field is accessed by a single thread, so there's no need for
+            // sync
+            base.streamFrames.put(ts, frame);
+
             // We measure the stable bitrate on every new frame.
             lastStableBitrateBps = getBitrateBps(nowMs);
 
@@ -483,7 +552,7 @@ public class RTPEncodingDesc
 
             // Find the closest next frame.
             Map.Entry<Long, FrameDesc> ceilingEntry
-                = frames.ceilingEntry((ts + 1) & 0xFFFFFFFFL);
+                = base.streamFrames.ceilingEntry((ts + 1) & 0xFFFFFFFFL);
 
             if (ceilingEntry != null)
             {
@@ -492,7 +561,7 @@ public class RTPEncodingDesc
 
             // Find the closest previous frame.
             Map.Entry<Long, FrameDesc> floorEntry
-                = frames.floorEntry((ts - 1) & 0xFFFFFFFFL);
+                = base.streamFrames.floorEntry((ts - 1) & 0xFFFFFFFFL);
 
             if (floorEntry != null)
             {
@@ -606,5 +675,15 @@ public class RTPEncodingDesc
     public RTPEncodingDesc[] getDependencyEncodings()
     {
         return dependencyEncodings;
+    }
+
+    /**
+     * Gets the height of the bitstream that this instance represents.
+     *
+     * @return the height of the bitstream that this instance represents.
+     */
+    public int getHeight()
+    {
+        return height;
     }
 }
