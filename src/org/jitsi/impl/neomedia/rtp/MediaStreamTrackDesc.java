@@ -121,6 +121,39 @@ public class MediaStreamTrackDesc
     }
 
     /**
+     * Gets the optimal bitrate (bps). Together with the current bitrate, it
+     * allows to calculate the probing bitrate.
+     *
+     * @return the optimal bitrate (bps).
+     */
+    public long getBps(int idx)
+    {
+        if (ArrayUtils.isNullOrEmpty(rtpEncodings))
+        {
+            return 0;
+        }
+
+        if (idx > -1)
+        {
+            for (int i = idx; i > -1; i--)
+            {
+                if (!rtpEncodings[i].isActive())
+                {
+                    continue;
+                }
+
+                long bps = rtpEncodings[i].getLastStableBitrateBps();
+                if (bps > 0)
+                {
+                    return bps;
+                }
+            }
+        }
+
+        return 0;
+    }
+
+    /**
      * Updates rate statistics for the encodings of the tracks that this
      * receiver is managing. Detects simulcast stream suspension/resuming.
      *

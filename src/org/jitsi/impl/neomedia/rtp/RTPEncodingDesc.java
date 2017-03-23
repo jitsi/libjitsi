@@ -176,7 +176,7 @@ public class RTPEncodingDesc
     private boolean active = false;
 
     /**
-     * The last stable bitrate (in bps) for this instance.
+     * The last "stable" bitrate (in bps) for this instance.
      */
     private long lastStableBitrateBps;
 
