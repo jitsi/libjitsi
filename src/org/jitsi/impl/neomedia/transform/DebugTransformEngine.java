@@ -109,7 +109,7 @@ public class DebugTransformEngine implements TransformEngine
      * @param pktLogging the {@code PacketLoggingService} to be used by the new
      * instance
      */
-    DebugTransformEngine(
+    private DebugTransformEngine(
             MediaStreamImpl mediaStream,
             PacketLoggingService pktLogging)
     {
@@ -273,7 +273,7 @@ public class DebugTransformEngine implements TransformEngine
             {
                 len = pkt.getHeaderLength();
             }
-            else // if (RTCPPacketPredicate.INSTANCE.test(pkt))
+            // else if (RTCPPacketPredicate.INSTANCE.test(pkt))
             {
                 // RTCP packets are usually pretty small, no need to trim them.
             }
@@ -281,14 +281,8 @@ public class DebugTransformEngine implements TransformEngine
 
         pktLogging.logPacket(
                 PacketLoggingService.ProtocolName.ARBITRARY,
-                (src != null)
-                ? src.getAddress().getAddress()
-                : new byte[] { 0, 0, 0, 0 },
-                (src != null) ? src.getPort() : 1,
-                (dst != null)
-                ? dst.getAddress().getAddress()
-                : new byte[] { 0, 0, 0, 0 },
-                (dst != null) ? dst.getPort() : 1,
+                src.getAddress().getAddress(), src.getPort(),
+                dst.getAddress().getAddress(), dst.getPort(),
                 PacketLoggingService.TransportName.UDP,
                 sender,
                 pkt.getBuffer().clone(),
