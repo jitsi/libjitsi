@@ -273,10 +273,6 @@ public class DebugTransformEngine implements TransformEngine
             {
                 len = pkt.getHeaderLength();
             }
-            // else if (RTCPPacketPredicate.INSTANCE.test(pkt))
-            {
-                // RTCP packets are usually pretty small, no need to trim them.
-            }
         }
 
         pktLogging.logPacket(
