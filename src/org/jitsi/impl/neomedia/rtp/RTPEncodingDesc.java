@@ -52,6 +52,11 @@ public class RTPEncodingDesc
     private static final int AVERAGE_BITRATE_WINDOW_MS = 5000;
 
     /**
+     * The number of incoming frames to keep track of.
+     */
+    private static final int FRAMES_HISTORY_SZ = 60;
+
+    /**
      * The primary SSRC for this layering/encoding.
      */
     private final long primarySSRC;
@@ -116,13 +121,13 @@ public class RTPEncodingDesc
          * {@inheritDoc}
          *
          * It also removes the eldest entry each time a new one is added and the
-         * total number of entries exceeds 300.
+         * total number of entries exceeds FRAMES_HISTORY_SZ.
          */
         @Override
         public FrameDesc put(Long key, FrameDesc value)
         {
             FrameDesc previous = super.put(key, value);
-            if (tsl.add(key) && tsl.size() > 300)
+            if (tsl.add(key) && tsl.size() > FRAMES_HISTORY_SZ)
             {
                 Long first = tsl.removeFirst();
                 this.remove(first);
