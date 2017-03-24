@@ -121,10 +121,12 @@ public class MediaStreamTrackDesc
     }
 
     /**
-     * Gets the optimal bitrate (bps). Together with the current bitrate, it
-     * allows to calculate the probing bitrate.
+     * Gets the last "stable" bitrate (in bps) of the encoding of the specified
+     * index. The "stable" bitrate is measured on every new frame and with a
+     * 5000ms window.
      *
-     * @return the optimal bitrate (bps).
+     * @return the last "stable" bitrate (bps) of the encoding at the specified
+     * index.
      */
     public long getBps(int idx)
     {
