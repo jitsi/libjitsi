@@ -1605,10 +1605,13 @@ public class MediaServiceImpl
             }
         }
 
-        ConfigurationService cfg = LibJitsi.getConfigurationService();
+        boolean enableFfmpeg = false;
 
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
         if (cfg != null)
         {
+            enableFfmpeg
+                = cfg.getBoolean(ENABLE_FFMPEG_CODECS_PNAME, enableFfmpeg);
             for (String prop
                     : cfg.getPropertyNamesByPrefix(
                             "net.java.sip.communicator.impl.neomedia"
@@ -1624,7 +1627,7 @@ public class MediaServiceImpl
         }
 
         FMJPlugInConfiguration.registerCustomPackages();
-        FMJPlugInConfiguration.registerCustomCodecs();
+        FMJPlugInConfiguration.registerCustomCodecs(enableFfmpeg);
         FMJPlugInConfiguration.registerCustomMultiplexers();
     }
 

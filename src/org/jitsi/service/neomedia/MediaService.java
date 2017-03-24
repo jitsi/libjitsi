@@ -45,6 +45,13 @@ public interface MediaService
     public static final String DEFAULT_DEVICE = "defaultDevice";
 
     /**
+     * The name of the property which controls whether the libjitsi codecs
+     * which depend on ffmpeg (currently mp3, h264 and amrwb) will be enabled.
+     */
+    public static final String ENABLE_FFMPEG_CODECS_PNAME
+        = MediaService.class.getName() + ".ENABLE_FFMPEG_CODECS";
+
+    /**
      * Adds a <tt>PropertyChangeListener</tt> to be notified about changes in
      * the values of the properties of this instance.
      *
