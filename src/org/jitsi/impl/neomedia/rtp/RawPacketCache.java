@@ -619,7 +619,7 @@ public class RawPacketCache
                     size--;
                 }
                 else if (container.timeAdded >= 0 &&
-                         container.timeAdded < cleanBefore)
+                         container.timeAdded > cleanBefore)
                 {
                     // We reached a packet with a timestamp after 'cleanBefore'.
                     // The rest of the packets are even more recent.
