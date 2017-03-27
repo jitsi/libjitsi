@@ -335,7 +335,7 @@ public class SRTCPCryptoContext
             authenticatePacketHMAC(pkt, indexEflag);
 
             // compare authentication tags using constant time comparison
-            int nonEqual = 0;
+            byte nonEqual = 0;
             for (int i = 0; i < tagLength; i++)
             {
                 nonEqual |= (tempStore[i] ^ tagStore[i]);
