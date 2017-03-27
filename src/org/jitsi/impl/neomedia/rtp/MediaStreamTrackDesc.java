@@ -121,6 +121,41 @@ public class MediaStreamTrackDesc
     }
 
     /**
+     * Gets the last "stable" bitrate (in bps) of the encoding of the specified
+     * index. The "stable" bitrate is measured on every new frame and with a
+     * 5000ms window.
+     *
+     * @return the last "stable" bitrate (bps) of the encoding at the specified
+     * index.
+     */
+    public long getBps(int idx)
+    {
+        if (ArrayUtils.isNullOrEmpty(rtpEncodings))
+        {
+            return 0;
+        }
+
+        if (idx > -1)
+        {
+            for (int i = idx; i > -1; i--)
+            {
+                if (!rtpEncodings[i].isActive())
+                {
+                    continue;
+                }
+
+                long bps = rtpEncodings[i].getLastStableBitrateBps();
+                if (bps > 0)
+                {
+                    return bps;
+                }
+            }
+        }
+
+        return 0;
+    }
+
+    /**
      * Updates rate statistics for the encodings of the tracks that this
      * receiver is managing. Detects simulcast stream suspension/resuming.
      *

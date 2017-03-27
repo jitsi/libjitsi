@@ -52,6 +52,11 @@ public class RTPEncodingDesc
     private static final int AVERAGE_BITRATE_WINDOW_MS = 5000;
 
     /**
+     * The number of incoming frames to keep track of.
+     */
+    private static final int FRAMES_HISTORY_SZ = 60;
+
+    /**
      * The primary SSRC for this layering/encoding.
      */
     private final long primarySSRC;
@@ -104,38 +109,6 @@ public class RTPEncodingDesc
      * The {@link TreeMap} that holds the seen {@link FrameDesc}, keyed
      * by their RTP timestamps.
      */
-    private final TreeMap<Long, FrameDesc> frames
-        = new TreeMap<Long, FrameDesc>()
-    {
-        /**
-         * A helper {@link LinkedList} that is used to cleanup the map.
-         */
-        private LinkedList<Long> tsl = new LinkedList<>();
-
-        /**
-         * {@inheritDoc}
-         *
-         * It also removes the eldest entry each time a new one is added and the
-         * total number of entries exceeds 300.
-         */
-        @Override
-        public FrameDesc put(Long key, FrameDesc value)
-        {
-            FrameDesc previous = super.put(key, value);
-            if (tsl.add(key) && tsl.size() > 300)
-            {
-                Long first = tsl.removeFirst();
-                this.remove(first);
-            }
-
-            return previous;
-        }
-    };
-
-    /**
-     * The {@link TreeMap} that holds the seen {@link FrameDesc}, keyed
-     * by their RTP timestamps.
-     */
     private final TreeMap<Long, FrameDesc> streamFrames
         = new TreeMap<Long, FrameDesc>()
     {
@@ -148,13 +121,13 @@ public class RTPEncodingDesc
          * {@inheritDoc}
          *
          * It also removes the eldest entry each time a new one is added and the
-         * total number of entries exceeds 300.
+         * total number of entries exceeds FRAMES_HISTORY_SZ.
          */
         @Override
         public FrameDesc put(Long key, FrameDesc value)
         {
             FrameDesc previous = super.put(key, value);
-            if (tsl.add(key) && tsl.size() > 300)
+            if (tsl.add(key) && tsl.size() > FRAMES_HISTORY_SZ)
             {
                 Long first = tsl.removeFirst();
                 this.remove(first);
@@ -176,7 +149,7 @@ public class RTPEncodingDesc
     private boolean active = false;
 
     /**
-     * The last stable bitrate (in bps) for this instance.
+     * The last "stable" bitrate (in bps) for this instance.
      */
     private long lastStableBitrateBps;
 
@@ -515,20 +488,16 @@ public class RTPEncodingDesc
         rateStatistics.update(pkt.getLength(), nowMs);
 
         long ts = pkt.getTimestamp();
-        FrameDesc frame = frames.get(ts);
+        FrameDesc frame = base.streamFrames.get(ts);
 
         boolean isPacketOfNewFrame;
         if (frame == null)
         {
             isPacketOfNewFrame = true;
-            synchronized (frames)
+            synchronized (base.streamFrames)
             {
-                frames.put(ts, frame = new FrameDesc(this, ts, nowMs));
+                base.streamFrames.put(ts, frame = new FrameDesc(this, ts, nowMs));
             }
-
-            // this field is accessed by a single thread, so there's no need for
-            // sync
-            base.streamFrames.put(ts, frame);
 
             // We measure the stable bitrate on every new frame.
             lastStableBitrateBps = getBitrateBps(nowMs);
@@ -639,9 +608,9 @@ public class RTPEncodingDesc
     FrameDesc findFrameDesc(byte[] buf, int off, int len)
     {
         long ts = RawPacket.getTimestamp(buf, off, len);
-        synchronized (frames)
+        synchronized (base.streamFrames)
         {
-            return frames.get(ts);
+            return base.streamFrames.get(ts);
         }
     }
 

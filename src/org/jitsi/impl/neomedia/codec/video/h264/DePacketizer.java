@@ -510,32 +510,32 @@ public class DePacketizer
      * Returns true if the buffer contains a H264 key frame at offset
      * <tt>offset</tt>.
      *
-     * @param buff the byte buffer to check
+     * @param buf the byte buffer to check
      * @param off the offset in the byte buffer where the actuall data starts
      * @param len the length of the data in the byte buffer
      * @return true if the buffer contains a H264 key frame at offset
      * <tt>offset</tt>.
      */
-    public static boolean isKeyFrame(byte[] buff, int off, int len)
+    public static boolean isKeyFrame(byte[] buf, int off, int len)
     {
-      if (buff == null || buff.length < off + Math.max(len, 1))
+      if (buf == null || buf.length < off + Math.max(len, 1))
       {
           return false;
       }
 
-      int nalType =  buff[off] & kTypeMask;
+      int nalType =  buf[off] & kTypeMask;
       // Single NAL Unit Packet
       if (nalType == kFuA)
       {
           // Fragmented NAL units (FU-A).
-          if (parseFuaNaluForKeyFrame(buff, off, len))
+          if (parseFuaNaluForKeyFrame(buf, off, len))
           {
               return true;
           }
       }
       else
       {
-          if (parseSingleNaluForKeyFrame(buff, off, len))
+          if (parseSingleNaluForKeyFrame(buf, off, len))
           {
               return true;
           }
@@ -545,26 +545,26 @@ public class DePacketizer
     }
 
     /**
-     * Checks if a a fragment of a NAL unit from a specific FU-A RTP packet
-     * payload is keyframe or not
+     * Checks if a fragment of a NAL unit from a specific FU-A RTP packet
+     * payload is keyframe or not.
      */
-    private static boolean parseFuaNaluForKeyFrame(byte[] buff, int off, int len) {
+    private static boolean parseFuaNaluForKeyFrame(byte[] buf, int off, int len) {
       if (len < kFuAHeaderSize)
       {
           return false;
       }
-      return ((buff[off + 1] & kTypeMask) == kIdr);
+      return ((buf[off + 1] & kTypeMask) == kIdr);
     }
 
     /**
-     * Checks if a a fragment of a NAL unit from a specific FU-A RTP packet
-     * payload is keyframe or not
+     * Checks if a fragment of a NAL unit from a specific FU-A RTP packet
+     * payload is keyframe or not.
      */
-    private static boolean parseSingleNaluForKeyFrame(byte[] buff, int off, int len)
+    private static boolean parseSingleNaluForKeyFrame(byte[] buf, int off, int len)
     {
         int naluStart = off + kNalHeaderSize;
         int naluLength = len - naluStart;
-        int nalType = buff[off] & kTypeMask;
+        int nalType = buf[off] & kTypeMask;
         if (nalType == kStapA)
         {
             // Skip the StapA header (StapA nal type + length).
@@ -573,11 +573,11 @@ public class DePacketizer
                 logger.error("StapA header truncated.");
                 return false;
             }
-            if (!verifyStapANaluLengths(buff, naluStart, naluLength)) {
+            if (!verifyStapANaluLengths(buf, naluStart, naluLength)) {
                 logger.error("StapA packet with incorrect NALU packet lengths.");
                 return false;
             }
-            nalType = buff[off + kStapAHeaderSize] & kTypeMask;
+            nalType = buf[off + kStapAHeaderSize] & kTypeMask;
         }
         return (nalType == kIdr || nalType == kSps ||
                 nalType == kPps || nalType == kSei);
