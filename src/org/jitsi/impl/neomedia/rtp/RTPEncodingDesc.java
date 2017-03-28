@@ -234,8 +234,8 @@ public class RTPEncodingDesc
      */
     private static void applyFrameBoundsHeuristics(FrameDesc a, FrameDesc b)
     {
-        int end = a.getEnd(), start = b.getStart();
-        if (end != -1 && start != -1)
+        int aEnd = a.getEnd(), bStart = b.getStart();
+        if (aEnd != -1 && bStart != -1)
         {
             // No need for heuristics.
             return;
@@ -254,28 +254,30 @@ public class RTPEncodingDesc
         }
         else
         {
-            int min = b.getMinSeen(), max = a.getMaxSeen();
-            int snDiff = (min - max) & 0xFFFF;
+            int bMin = b.getMinSeen(), aMax = a.getMaxSeen();
+            int snDiff = (bMin - aMax) & 0xFFFF;
 
-            if (start != -1 || end != -1)
+            if (bStart != -1 || aEnd != -1)
             {
                 if (snDiff == 2)
                 {
-                    if (end == -1)
+                    if (aEnd == -1)
                     {
+                        aEnd = (aMax + 1) & 0xFFFF;
                         if (logger.isDebugEnabled())
                         {
-                            logger.debug("Guessed frame end.");
+                            logger.debug("Guessed frame end=" + aEnd);
                         }
-                        a.setEnd((max + 1) & 0xFFFF);
+                        a.setEnd(aEnd);
                     }
                     else
                     {
+                        bStart = (bMin - 1) & 0xFFFF;
                         if (logger.isDebugEnabled())
                         {
-                            logger.debug("Guessed frame start.");
+                            logger.debug("Guessed frame start=" + bStart);
                         }
-                        b.setStart((min - 1) & 0xFFFF);
+                        b.setStart(bStart);
                     }
                 }
                 else if (snDiff < 2 || snDiff > (-3 & 0xFFFF))
@@ -288,13 +290,16 @@ public class RTPEncodingDesc
             {
                 if (snDiff == 3)
                 {
+                    bStart = (bMin - 1) & 0xFFFF;
+                    aEnd = (aMax + 1) & 0xFFFF;
                     if (logger.isDebugEnabled())
                     {
-                        logger.debug("Guessed frame start/end.");
+                        logger.debug(
+                            "Guessed frame start=" + bStart + ",end=" + aEnd);
                     }
 
-                    a.setEnd((max + 1) & 0xFFFF);
-                    b.setStart((min - 1) & 0xFFFF);
+                    a.setEnd(aEnd);
+                    b.setStart(bStart);
                 }
                 else if (snDiff < 3 || snDiff > (-4 & 0xFFFF))
                 {
