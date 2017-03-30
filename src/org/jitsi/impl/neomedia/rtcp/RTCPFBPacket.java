@@ -162,70 +162,47 @@ public class RTCPFBPacket
             baf.getOffset() + 12, length - 12);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void assemble(DataOutputStream dataoutputstream) throws IOException
     {
+        dataoutputstream.writeByte((byte) (0x80 /* version */ | fmt));
+        dataoutputstream.writeByte((byte) type); // packet type, 205 or 206
+
+        // Full length in bytes, including padding.
         int len = this.calcLength();
-        byte[] buf = new byte[len];
-        int off = 0;
+        dataoutputstream.writeShort(len / 4 - 1);
+        dataoutputstream.writeInt((int) senderSSRC);
+        dataoutputstream.writeInt((int) sourceSSRC);
+        dataoutputstream.write(fci);
 
-        /*
-         * version (V): (2 bits):   This field identifies the RTP version.  The
-         *     current version is 2.
-         * padding (P) (1 bit):   If set, the padding bit indicates that the
-         *     packet contains additional padding octets at the end that
-         *     are not part of the control information but are included
-         *     in the length field.  Always 0.
-         * Feedback message type (FMT) (5 bits):  This field identifies the type
-         *     of the FB message and is interpreted relative to the type
-         *     (transport layer, payload- specific, or application layer
-         *     feedback).  Always 15, application layer feedback
-         *     message.
-         */
-        buf[off++] = (byte) (0x80 | fmt);
-
-        /*
-         * Payload type (PT) (8 bits):   This is the RTCP packet type that
-         *     identifies the packet as being an RTCP FB message.
-         *     Always PSFB (206), Payload-specific FB message.
-         */
-        buf[off++] = (byte) (0xCE);
-
-        // Length (16 bits):  The length of this packet in 32-bit words minus
-        // one, including the header and any padding. This is in
-        // line with the definition of the length field used in RTCP
-        // sender and receiver reports
-        //TODO handle padding
-        int rtcpPacketLength = len / 4 - 1;
-        off += RTPUtils.writeShort(buf, off, (short) rtcpPacketLength);
-
-        // SSRC of packet sender: 32 bits
-        RTCPFeedbackMessagePacket.writeSSRC(senderSSRC, buf, off);
-        off += 4;
-
-        //  SSRC of media source: 32 bits
-        RTCPFeedbackMessagePacket.writeSSRC(sourceSSRC, buf, off);
-        off += 4;
-
-        if (fci != null && fci.length != 0)
+        // Pad with zeros. Since the above fields fill in exactly 3 words,
+        // the number of padding bytes will only depend on the length of the
+        // fci field.
+        for (int i = fci.length; i % 4 != 0; i++)
         {
-            // Feedback Control Information (FCI): variable length
-            System.arraycopy(fci, 0, buf, off, fci.length);
+            // pad to a word.
+            dataoutputstream.writeByte(0);
         }
-
-        dataoutputstream.write(buf, 0, len);
-        //TODO handle padding
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public int calcLength()
     {
-        // Length (16 bits):  The length of this packet in 32-bit words minus
-        // one, including the header and any padding.
-
         int len = 12; // header+ssrc+ssrc
         if (fci != null && fci.length != 0)
             len += fci.length;
+
+        // Pad to a word.
+        if (len % 4 != 0)
+        {
+            len += 4 - (len % 4);
+        }
 
         return len;
     }

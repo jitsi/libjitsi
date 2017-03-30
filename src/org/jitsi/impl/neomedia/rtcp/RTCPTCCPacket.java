@@ -636,28 +636,6 @@ public class RTCPTCCPacket
     }
 
     @Override
-    public void assemble(DataOutputStream dataoutputstream)
-        throws IOException
-    {
-        dataoutputstream.writeByte((byte) (0x80 /* version */ | FMT));
-        dataoutputstream.writeByte((byte) RTPFB);
-        int len = 2 /* sender + source SSRCs */ + (fci.length / 4);
-        if (fci.length % 4 != 0)
-        {
-            len++;
-        }
-        dataoutputstream.writeShort(len);
-        dataoutputstream.writeInt((int) senderSSRC);
-        dataoutputstream.writeInt((int) sourceSSRC);
-        dataoutputstream.write(fci);
-        for (int i = fci.length; i % 4 != 0; i++)
-        {
-            // pad to a word.
-            dataoutputstream.writeByte(0);
-        }
-    }
-
-    @Override
     public String toString()
     {
         return "RTCP transport-cc feedback";

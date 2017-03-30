@@ -15,7 +15,6 @@
  */
 package org.jitsi.impl.neomedia.rtcp;
 
-import java.io.*;
 import java.util.*;
 import net.sf.fmj.media.rtp.*;
 import org.jitsi.service.neomedia.*;
@@ -220,37 +219,6 @@ public class NACKPacket
         }
 
         return lostPackets;
-    }
-
-    private void writeSsrc(DataOutputStream dataOutputStream, long ssrc)
-        throws IOException
-    {
-        dataOutputStream.writeByte((byte) (ssrc >> 24));
-        dataOutputStream.writeByte((byte) ((ssrc >> 16) & 0xFF));
-        dataOutputStream.writeByte((byte) ((ssrc >> 8) & 0xFF));
-        dataOutputStream.writeByte((byte) (ssrc & 0xFF));
-    }
-
-    @Override
-    public void assemble(DataOutputStream dataoutputstream)
-        throws IOException
-    {
-        dataoutputstream.writeByte((byte) (0x80 /* version */ | FMT));
-        dataoutputstream.writeByte((byte) RTPFB);
-        int len = 2 /* sender + source SSRCs */ + (fci.length / 4);
-        if (fci.length % 4 != 0)
-        {
-            len++;
-        }
-        dataoutputstream.writeShort(len);
-        writeSsrc(dataoutputstream, senderSSRC);
-        writeSsrc(dataoutputstream, sourceSSRC);
-        dataoutputstream.write(fci);
-        for (int i = fci.length; i % 4 != 0; i++)
-        {
-            // pad to a word.
-            dataoutputstream.writeByte(0);
-        }
     }
 
     @Override
