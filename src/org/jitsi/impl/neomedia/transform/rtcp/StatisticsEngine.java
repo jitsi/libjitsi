@@ -1020,6 +1020,10 @@ public class StatisticsEngine
 
                     streamStats.nackReceived(nack);
                 }
+                else if (rtcp instanceof RTCPTCCPacket)
+                {
+                    // TODO: handle for the purpose of BWE.
+                }
                 break;
 
             case RTCPExtendedReport.XR:

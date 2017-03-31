@@ -15,7 +15,6 @@
  */
 package org.jitsi.impl.neomedia.rtcp;
 
-import java.io.*;
 import java.util.*;
 import net.sf.fmj.media.rtp.*;
 import org.jitsi.service.neomedia.*;
@@ -26,6 +25,7 @@ import org.jitsi.service.neomedia.*;
  *
  * The RTCP packet structure is:
  *
+ * <pre>{@code
  * 0                   1                   2                   3
  * 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
  * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -47,12 +47,83 @@ import org.jitsi.service.neomedia.*;
  * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  * |             PID               |             BLP               |
  * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * }</pre>
  *
  * @author Boris Grozev
+ * @author George Politis
  */
 public class NACKPacket
     extends RTCPFBPacket
 {
+    /**
+     * Gets a boolean indicating whether or not the RTCP packet specified in the
+     * {@link ByteArrayBuffer} that is passed as an argument is a NACK packet or
+     * not.
+     *
+     * @param baf the {@link ByteArrayBuffer}
+     * @return true if the byte array buffer holds a NACK packet, otherwise
+     * false.
+     */
+    public static boolean isNACKPacket(ByteArrayBuffer baf)
+    {
+        int rc = RTCPHeaderUtils.getReportCount(baf);
+        return rc == FMT && isRTPFBPacket(baf);
+    }
+
+    /**
+     * @return the set of sequence numbers reported lost in a NACK packet
+     * represented by a {@link ByteArrayBuffer}.
+     * @param baf the NACK packet.
+     */
+    public static Collection<Integer> getLostPackets(ByteArrayBuffer baf)
+    {
+        return getLostPacketsFci(getFCI(baf));
+    }
+
+    /**
+     * @return the set of sequence numbers reported lost in the FCI field of a
+     * NACK packet represented by a {@link ByteArrayBuffer}.
+     * @param fciBuffer the {@link ByteArrayBuffer} which represents the FCI
+     * field of a NACK packet.
+     */
+    public static Collection<Integer> getLostPacketsFci(ByteArrayBuffer fciBuffer)
+    {
+        Collection<Integer> lostPackets = new LinkedList<>();
+        if (fciBuffer == null)
+        {
+            return lostPackets;
+        }
+
+        byte[] fci = fciBuffer.getBuffer();
+        int off = fciBuffer.getOffset(), len = fciBuffer.getLength();
+
+        for (int i = 0; i < (len / 4); i++)
+        {
+            int pid = (0xFF & fci[off + i * 4 + 0]) << 8 | (0xFF & fci[off + i * 4 + 1]);
+            lostPackets.add(pid);
+
+            // First byte of the BLP
+            for (int j = 0; j < 8; j++)
+            {
+                if (0 != (fci[off + i * 4 + 2] & (1 << j)))
+                {
+                    lostPackets.add((pid + 1 + 8 + j) % (1 << 16));
+                }
+            }
+
+            // Second byte of the BLP
+            for (int j = 0; j < 8; j++)
+            {
+                if (0 != (fci[off + i * 4 + 3] & (1 << j)))
+                {
+                    lostPackets.add((pid + 1 + j) % (1 << 16));
+                }
+            }
+        }
+
+        return lostPackets;
+    }
+
     /**
      * The value of the "fmt" field for a NACK packet.
      */
@@ -83,7 +154,7 @@ public class NACKPacket
      *
      * Note that this implementation is not optimized and might not always use
      * the minimal possible number of bytes to describe a given set of packets.
-     * Specifically, it does take into account that sequence numbers wrap
+     * Specifically, it does not take into account that sequence numbers wrap
      * at 2^16 and fails to pack numbers close to 2^16 with those close to 0.
      */
     public NACKPacket(long senderSSRC, long sourceSSRC,
@@ -91,9 +162,9 @@ public class NACKPacket
     {
         super(FMT, RTPFB, senderSSRC, sourceSSRC);
 
-        List<Integer> sorted = new LinkedList<Integer>(lostPackets);
+        List<Integer> sorted = new LinkedList<>(lostPackets);
         Collections.sort(sorted);
-        List<byte[]> nackList = new LinkedList<byte[]>();
+        List<byte[]> nackList = new LinkedList<>();
 
         int currentPid = -1;
         byte[] currentNack = null;
@@ -116,73 +187,27 @@ public class NACKPacket
             // Add seq to the current fci
             int diff = seq - currentPid;
             if (diff <= 8)
-                currentNack[3] |= (byte) (1<<(diff-1));
+            {
+                currentNack[3] |= (byte) (1 << (diff - 1));
+            }
             else
-                currentNack[2] |= (byte) (1<<(diff-8-1));
+            {
+                currentNack[2] |= (byte) (1 << (diff - 8 - 1));
+            }
         }
 
         // Set the fci field, which is used when assembling
         fci = new byte[nackList.size() * 4];
         for (int i = 0; i < nackList.size(); i++)
-            System.arraycopy(nackList.get(i), 0, fci, i*4, 4);
+        {
+            System.arraycopy(nackList.get(i), 0, fci, i * 4, 4);
+        }
 
         this.lostPackets = sorted;
     }
 
     /**
-     * Gets a boolean indicating whether or not the RTCP packet specified in the
-     * {@link ByteArrayBuffer} that is passed as an argument is a NACK packet or
-     * not.
-     *
-     * @param baf the {@link ByteArrayBuffer}
-     * @return true if the byte array buffer holds a NACK packet, otherwise
-     * false.
-     */
-    public static boolean isNACKPacket(ByteArrayBuffer baf)
-    {
-        int rc = RTCPHeaderUtils.getReportCount(baf);
-        return isRTPFBPacket(baf) && rc == FMT;
-    }
-
-    /**
-     *
-     * @param next
-     * @return
-     */
-    public static Collection<Integer> getLostPackets(ByteArrayBuffer next)
-    {
-        Collection<Integer> lostPackets = new LinkedList<>();
-        ByteArrayBuffer fciBuffer = getFCI(next);
-        if (fciBuffer == null)
-        {
-            return lostPackets;
-        }
-
-        byte[] fci = fciBuffer.getBuffer();
-        int off = fciBuffer.getOffset(), len = fciBuffer.getLength();
-
-        for (int i = 0; i < (len / 4); i++)
-        {
-            int pid = (0xFF & fci[off + i * 4 + 0]) << 8 | (0xFF & fci[off + i * 4 + 1]);
-            lostPackets.add(pid);
-
-            // First byte of the BLP
-            for (int j = 0; j < 8; j++)
-                if (0 != (fci[off + i * 4 + 2] & (1 << j)))
-                    lostPackets.add((pid + 1 + 8 + j) % (1 << 16));
-
-            // Second byte of the BLP
-            for (int j = 0; j < 8; j++)
-                if (0 != (fci[off + i * 4 + 3] & (1 << j)))
-                    lostPackets.add((pid + 1 + j) % (1 << 16));
-        }
-
-        return lostPackets;
-    }
-
-    /**
-     * Gets the set of sequence numbers reported lost in this NACK packet.
-     * @return
+     * @return the set of sequence numbers reported lost in this NACK packet.
      */
     synchronized public Collection<Integer> getLostPackets()
     {
@@ -190,31 +215,10 @@ public class NACKPacket
         {
             // parse this.fci as containing NACK entries and initialize
             // this.lostPackets
-            lostPackets = getLostPackets(new RawPacket(fci, 0, fci.length));
+            lostPackets = getLostPacketsFci(new RawPacket(fci, 0, fci.length));
         }
 
         return lostPackets;
-    }
-
-    private void writeSsrc(DataOutputStream dataOutputStream, long ssrc)
-        throws IOException
-    {
-        dataOutputStream.writeByte((byte) (ssrc >> 24));
-        dataOutputStream.writeByte((byte) ((ssrc >> 16) & 0xFF));
-        dataOutputStream.writeByte((byte) ((ssrc >> 8) & 0xFF));
-        dataOutputStream.writeByte((byte) (ssrc & 0xFF));
-    }
-
-    @Override
-    public void assemble(DataOutputStream dataoutputstream)
-        throws IOException
-    {
-        dataoutputstream.writeByte((byte) (0x80 /* version */ | FMT));
-        dataoutputstream.writeByte((byte) RTPFB);
-        dataoutputstream.writeShort(2 + (fci.length / 4));
-        writeSsrc(dataoutputstream, senderSSRC);
-        writeSsrc(dataoutputstream, sourceSSRC);
-        dataoutputstream.write(fci);
     }
 
     @Override
@@ -228,15 +232,5 @@ public class NACKPacket
                         Arrays.toString(lostPackets.toArray()));
     }
 
-    /**
-     * Returns a <tt>RawPacket</tt> representation of this <tt>NACKPacket</tt>.
-     * @return
-     * @throws IOException
-     */
-    public RawPacket toRawPacket()
-        throws IOException
-    {
-        return RTCPPacketParserEx.toRawPacket(this);
-    }
 }
 
