@@ -16,6 +16,8 @@
 package org.jitsi.impl.neomedia.rtp;
 
 import org.jitsi.impl.neomedia.rtp.translator.*;
+import org.jitsi.service.configuration.*;
+import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
@@ -29,6 +31,22 @@ import org.jitsi.util.*;
 public class MediaStreamTrackDesc
 {
     /**
+     * The system property name that holds the minimum time (in millis) that is
+     * required for the media engine to generate a new key frame.
+     */
+    public static final String MIN_KEY_FRAME_WAIT_MS_PNAME
+        = "org.jitsi.impl.neomedia.rtp.MediaStreamTrackDesc" +
+            ".MIN_KEY_FRAME_WAIT_MS";
+
+    /**
+     * The system property name that holds the maximum time interval (in millis)
+     * an encoding can be considered active without new frames.
+     */
+    public static final String SUSPENSION_THRESHOLD_MS_PNAME
+        = "org.jitsi.impl.neomedia.rtp.MediaStreamTrackDesc" +
+            ".SUSPENSION_THRESHOLD_MS";
+
+    /**
      * The {@link Logger} used by the {@link MediaStreamTrackDesc} class and its
      * instances for logging output.
      */
@@ -36,16 +54,24 @@ public class MediaStreamTrackDesc
         = Logger.getLogger(MediaStreamTrackDesc.class);
 
     /**
+     * The ConfigurationService to get config values from.
+     */
+    private static final ConfigurationService
+        cfg = LibJitsi.getConfigurationService();
+
+    /**
      * The minimum time (in millis) that is required for the media engine to
      * generate a new key frame.
      */
-    private static final int MIN_KEY_FRAME_WAIT_MS = 300;
+    private static final int MIN_KEY_FRAME_WAIT_MS
+        = cfg != null ? cfg.getInt(MIN_KEY_FRAME_WAIT_MS_PNAME, 300) : 300;
 
     /**
      * The maximum time interval (in millis) an encoding can be considered
      * active without new frames.
      */
-    private static final int SUSPENSION_THRESHOLD_MS = 600;
+    public static final int SUSPENSION_THRESHOLD_MS
+        = cfg != null ? cfg.getInt(SUSPENSION_THRESHOLD_MS_PNAME, 600) : 600;
 
     /**
      * The {@link RTPEncodingDesc}s that this {@link MediaStreamTrackDesc}
