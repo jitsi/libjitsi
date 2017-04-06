@@ -21,6 +21,7 @@ import org.jitsi.util.*;
 import org.jitsi.util.Logger;
 
 import java.util.*;
+import java.util.concurrent.atomic.*;
 
 /**
  * Keeps track of how many channels receive it, its subjective quality index,
@@ -157,6 +158,11 @@ public class RTPEncodingDesc
      * The last frame from this encoding that has been received.
      */
     private FrameDesc lastReceivedFrame;
+
+    /**
+     * The number of receivers for this encoding.
+     */
+    private AtomicInteger numOfReceivers = new AtomicInteger();
 
     /**
      * Ctor.
@@ -659,5 +665,45 @@ public class RTPEncodingDesc
     public int getHeight()
     {
         return height;
+    }
+
+    /**
+     * Gets the number of receivers for this encoding.
+     *
+     * @return the number of receivers for this encoding.
+     */
+    public boolean isReceived()
+    {
+        return numOfReceivers.get() > 0;
+    }
+
+    /**
+     * Atomically increments the number of receivers of this encoding.
+     */
+    public void incrReceivers()
+    {
+        numOfReceivers.incrementAndGet();
+        if (logger.isTraceEnabled())
+        {
+            logger.trace("increment_receivers,hash="
+                + track.getMediaStreamTrackReceiver().getStream().hashCode()
+                + ",idx=" + idx
+                + ",receivers=" + numOfReceivers);
+        }
+    }
+
+    /**
+     * Atomically decrements the number of receivers of this encoding.
+     */
+    public void decrReceivers()
+    {
+        numOfReceivers.decrementAndGet();
+        if (logger.isTraceEnabled())
+        {
+            logger.trace("decrement_receivers,hash="
+                + track.getMediaStreamTrackReceiver().getStream().hashCode()
+                + ",idx=" + idx
+                + ",receivers=" + numOfReceivers);
+        }
     }
 }

@@ -249,7 +249,8 @@ public class MediaStreamTrackDesc
                         = nowMs - lastReceivedFrame.getReceivedMs();
 
                     if (enc.isActive()
-                        && silentIntervalMs > SUSPENSION_THRESHOLD_MS)
+                        && silentIntervalMs > SUSPENSION_THRESHOLD_MS
+                        && enc.isReceived())
                     {
                         maybeSuspended = true;
                         logger.info("maybe_suspended,stream="
