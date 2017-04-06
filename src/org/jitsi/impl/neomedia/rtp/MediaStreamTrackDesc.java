@@ -264,6 +264,13 @@ public class MediaStreamTrackDesc
 
             if (maybeSuspended || activated)
             {
+                if (logger.isTraceEnabled())
+                {
+                    String reason = maybeSuspended ? "maybe_suspended" : "activated";
+                    logger.trace("send_fir,stream="
+                        + mediaStreamTrackReceiver.getStream().hashCode()
+                        + ",reason=" + reason);
+                }
                 // FIXME only when suspended encodings are received.
                 ((RTPTranslatorImpl) mediaStreamTrackReceiver.getStream()
                     .getRTPTranslator()).getRtcpFeedbackMessageSender()
@@ -282,6 +289,13 @@ public class MediaStreamTrackDesc
 
                 if (!encoding.isActive())
                 {
+                    if (logger.isTraceEnabled())
+                    {
+                        logger.trace("send_fir,stream="
+                            + mediaStreamTrackReceiver.getStream().hashCode()
+                            + ",reason=late");
+                    }
+
                     // FIXME only when encodings is received.
                     ((RTPTranslatorImpl) mediaStreamTrackReceiver.getStream()
                         .getRTPTranslator()).getRtcpFeedbackMessageSender()
