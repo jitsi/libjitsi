@@ -336,6 +336,11 @@ class SendSideBandwidthEstimation
     private synchronized void updateReceiverEstimate(long bandwidth)
     {
         bwe_incoming_ = bandwidth;
+        if (logger.isDebugEnabled())
+        {
+            logger.debug("bwe,stream=" + mediaStream.hashCode() +
+                " receiver_estimate=" + bandwidth);
+        }
         setBitrate(capBitrateToThresholds(bitrate_));
     }
 
