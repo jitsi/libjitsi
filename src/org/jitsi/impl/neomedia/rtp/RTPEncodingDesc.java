@@ -21,6 +21,7 @@ import org.jitsi.util.*;
 import org.jitsi.util.Logger;
 
 import java.util.*;
+import java.util.concurrent.atomic.*;
 
 /**
  * Keeps track of how many channels receive it, its subjective quality index,
@@ -159,6 +160,11 @@ public class RTPEncodingDesc
     private FrameDesc lastReceivedFrame;
 
     /**
+     * The number of receivers for this encoding.
+     */
+    private AtomicInteger numOfReceivers = new AtomicInteger();
+
+    /**
      * Ctor.
      *
      * @param track the {@link MediaStreamTrackDesc} that this instance belongs to.
@@ -234,8 +240,8 @@ public class RTPEncodingDesc
      */
     private static void applyFrameBoundsHeuristics(FrameDesc a, FrameDesc b)
     {
-        int end = a.getEnd(), start = b.getStart();
-        if (end != -1 && start != -1)
+        int aLastSeqNum = a.getEnd(), bFirstSeqNum = b.getStart();
+        if (aLastSeqNum != -1 && bFirstSeqNum != -1)
         {
             // No need for heuristics.
             return;
@@ -254,28 +260,30 @@ public class RTPEncodingDesc
         }
         else
         {
-            int min = b.getMinSeen(), max = a.getMaxSeen();
-            int snDiff = (min - max) & 0xFFFF;
+            int bMinSeqNum = b.getMinSeen(), aMaxSeqNum = a.getMaxSeen();
+            int snDiff = (bMinSeqNum - aMaxSeqNum) & 0xFFFF;
 
-            if (start != -1 || end != -1)
+            if (bFirstSeqNum != -1 || aLastSeqNum != -1)
             {
                 if (snDiff == 2)
                 {
-                    if (end == -1)
+                    if (aLastSeqNum == -1)
                     {
+                        aLastSeqNum = (aMaxSeqNum + 1) & 0xFFFF;
                         if (logger.isDebugEnabled())
                         {
-                            logger.debug("Guessed frame end.");
+                            logger.debug("Guessed frame end=" + aLastSeqNum);
                         }
-                        a.setEnd((max + 1) & 0xFFFF);
+                        a.setEnd(aLastSeqNum);
                     }
                     else
                     {
+                        bFirstSeqNum = (bMinSeqNum - 1) & 0xFFFF;
                         if (logger.isDebugEnabled())
                         {
-                            logger.debug("Guessed frame start.");
+                            logger.debug("Guessed frame start=" + bFirstSeqNum);
                         }
-                        b.setStart((min - 1) & 0xFFFF);
+                        b.setStart(bFirstSeqNum);
                     }
                 }
                 else if (snDiff < 2 || snDiff > (-3 & 0xFFFF))
@@ -288,13 +296,17 @@ public class RTPEncodingDesc
             {
                 if (snDiff == 3)
                 {
+                    bFirstSeqNum = (bMinSeqNum - 1) & 0xFFFF;
+                    aLastSeqNum = (aMaxSeqNum + 1) & 0xFFFF;
                     if (logger.isDebugEnabled())
                     {
-                        logger.debug("Guessed frame start/end.");
+                        logger.debug(
+                            "Guessed frame start=" + bFirstSeqNum
+                                + ",end=" + aLastSeqNum);
                     }
 
-                    a.setEnd((max + 1) & 0xFFFF);
-                    b.setStart((min - 1) & 0xFFFF);
+                    a.setEnd(aLastSeqNum);
+                    b.setStart(bFirstSeqNum);
                 }
                 else if (snDiff < 3 || snDiff > (-4 & 0xFFFF))
                 {
@@ -344,6 +356,38 @@ public class RTPEncodingDesc
     public boolean isActive()
     {
         return active;
+    }
+
+    /**
+     * Gets a boolean value indicating whether or not this instance is
+     * streaming.
+     *
+     * @param performTimeoutCheck  when true, it requires fresh data and not
+     * just the active property to be set.
+     *
+     * @return true if this instance is streaming, false otherwise.
+     */
+    public boolean isActive(boolean performTimeoutCheck)
+    {
+        if (active && performTimeoutCheck)
+        {
+            if (lastReceivedFrame == null)
+            {
+                return false;
+            }
+            else
+            {
+                long timeSinceLastReceivedFrameMs = System.currentTimeMillis()
+                    - lastReceivedFrame.getReceivedMs();
+
+                return timeSinceLastReceivedFrameMs
+                    <= MediaStreamTrackDesc.SUSPENSION_THRESHOLD_MS;
+            }
+        }
+        else
+        {
+            return active;
+        }
     }
 
     /**
@@ -654,5 +698,45 @@ public class RTPEncodingDesc
     public int getHeight()
     {
         return height;
+    }
+
+    /**
+     * Gets the number of receivers for this encoding.
+     *
+     * @return the number of receivers for this encoding.
+     */
+    public boolean isReceived()
+    {
+        return numOfReceivers.get() > 0;
+    }
+
+    /**
+     * Atomically increments the number of receivers of this encoding.
+     */
+    public void incrReceivers()
+    {
+        numOfReceivers.incrementAndGet();
+        if (logger.isTraceEnabled())
+        {
+            logger.trace("increment_receivers,hash="
+                + track.getMediaStreamTrackReceiver().getStream().hashCode()
+                + ",idx=" + idx
+                + ",receivers=" + numOfReceivers);
+        }
+    }
+
+    /**
+     * Atomically decrements the number of receivers of this encoding.
+     */
+    public void decrReceivers()
+    {
+        numOfReceivers.decrementAndGet();
+        if (logger.isTraceEnabled())
+        {
+            logger.trace("decrement_receivers,hash="
+                + track.getMediaStreamTrackReceiver().getStream().hashCode()
+                + ",idx=" + idx
+                + ",receivers=" + numOfReceivers);
+        }
     }
 }

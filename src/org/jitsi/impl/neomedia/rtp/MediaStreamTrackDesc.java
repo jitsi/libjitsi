@@ -16,6 +16,8 @@
 package org.jitsi.impl.neomedia.rtp;
 
 import org.jitsi.impl.neomedia.rtp.translator.*;
+import org.jitsi.service.configuration.*;
+import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
@@ -29,6 +31,37 @@ import org.jitsi.util.*;
 public class MediaStreamTrackDesc
 {
     /**
+     * The system property name that holds the maximum frequency (in millis) at
+     * which the media engine generates key frame.
+     *
+     * We take that into account to identify batches of key frames which helps
+     * us identify which simulcast flows are active/inactive.
+     */
+    public static final String MIN_KEY_FRAME_WAIT_MS_PNAME
+        = "org.jitsi.impl.neomedia.rtp.MediaStreamTrackDesc" +
+            ".MIN_KEY_FRAME_WAIT_MS";
+
+    /**
+     * The system property name that holds the maximum time interval (in millis)
+     * an encoding can be considered active without new frames.
+     */
+    public static final String SUSPENSION_THRESHOLD_MS_PNAME
+        = "org.jitsi.impl.neomedia.rtp.MediaStreamTrackDesc" +
+            ".SUSPENSION_THRESHOLD_MS";
+
+    /**
+     * The default maximum frequency (in millis) at which the media engine
+     * generates key frame.
+     */
+    private static final int MIN_KEY_FRAME_WAIT_MS_DEFAULT = 300;
+
+    /**
+     * The default maximum time interval (in millis) an encoding can be
+     * considered active without new frames.
+     */
+    private static final int SUSPENSION_THRESHOLD_MS_DEFAULT = 600;
+
+    /**
      * The {@link Logger} used by the {@link MediaStreamTrackDesc} class and its
      * instances for logging output.
      */
@@ -36,16 +69,27 @@ public class MediaStreamTrackDesc
         = Logger.getLogger(MediaStreamTrackDesc.class);
 
     /**
-     * The minimum time (in millis) that is required for the media engine to
-     * generate a new key frame.
+     * The ConfigurationService to get config values from.
      */
-    private static final int MIN_KEY_FRAME_WAIT_MS = 300;
+    private static final ConfigurationService
+        cfg = LibJitsi.getConfigurationService();
+
+    /**
+     * The minimum time (in millis) that is required for the media engine to
+     * generate a new key frame (or, equivalently, the maximum frequency at
+     * which the media engine generates key frame).
+     */
+    private static final int MIN_KEY_FRAME_WAIT_MS = cfg != null ? cfg.getInt(
+        MIN_KEY_FRAME_WAIT_MS_PNAME, MIN_KEY_FRAME_WAIT_MS_DEFAULT)
+        : MIN_KEY_FRAME_WAIT_MS_DEFAULT;
 
     /**
      * The maximum time interval (in millis) an encoding can be considered
      * active without new frames.
      */
-    private static final int SUSPENSION_THRESHOLD_MS = 600;
+    public static final int SUSPENSION_THRESHOLD_MS = cfg != null ? cfg.getInt(
+        SUSPENSION_THRESHOLD_MS_PNAME, SUSPENSION_THRESHOLD_MS_DEFAULT)
+        : SUSPENSION_THRESHOLD_MS_DEFAULT;
 
     /**
      * The {@link RTPEncodingDesc}s that this {@link MediaStreamTrackDesc}
@@ -125,10 +169,13 @@ public class MediaStreamTrackDesc
      * index. The "stable" bitrate is measured on every new frame and with a
      * 5000ms window.
      *
+     * @param performTimeoutCheck when true, it requires the matching encoding
+     * to have fresh data and not just its active property to be set to true.
+     *
      * @return the last "stable" bitrate (bps) of the encoding at the specified
      * index.
      */
-    public long getBps(int idx)
+    public long getBps(int idx, boolean performTimeoutCheck)
     {
         if (ArrayUtils.isNullOrEmpty(rtpEncodings))
         {
@@ -139,7 +186,7 @@ public class MediaStreamTrackDesc
         {
             for (int i = idx; i > -1; i--)
             {
-                if (!rtpEncodings[i].isActive())
+                if (!rtpEncodings[i].isActive(performTimeoutCheck))
                 {
                     continue;
                 }
@@ -219,24 +266,32 @@ public class MediaStreamTrackDesc
 
                 if (lastReceivedFrame != null)
                 {
-                    long silentIntervalMs
+                    long timeSinceLastReceivedFrameMs
                         = nowMs - lastReceivedFrame.getReceivedMs();
 
                     if (enc.isActive()
-                        && silentIntervalMs > SUSPENSION_THRESHOLD_MS)
+                        && timeSinceLastReceivedFrameMs > SUSPENSION_THRESHOLD_MS
+                        && enc.isReceived())
                     {
                         maybeSuspended = true;
                         logger.info("maybe_suspended,stream="
                             + mediaStreamTrackReceiver.getStream().hashCode()
                             + " ssrc=" + enc.getPrimarySSRC()
                             + ",idx=" + enc.getIndex()
-                            + ",silent_ms=" + silentIntervalMs);
+                            + ",silent_ms=" + timeSinceLastReceivedFrameMs);
                     }
                 }
             }
 
             if (maybeSuspended || activated)
             {
+                if (logger.isTraceEnabled())
+                {
+                    String reason = maybeSuspended ? "maybe_suspended" : "activated";
+                    logger.trace("send_fir,stream="
+                        + mediaStreamTrackReceiver.getStream().hashCode()
+                        + ",reason=" + reason);
+                }
                 // FIXME only when suspended encodings are received.
                 ((RTPTranslatorImpl) mediaStreamTrackReceiver.getStream()
                     .getRTPTranslator()).getRtcpFeedbackMessageSender()
@@ -255,6 +310,13 @@ public class MediaStreamTrackDesc
 
                 if (!encoding.isActive())
                 {
+                    if (logger.isTraceEnabled())
+                    {
+                        logger.trace("send_fir,stream="
+                            + mediaStreamTrackReceiver.getStream().hashCode()
+                            + ",reason=late");
+                    }
+
                     // FIXME only when encodings is received.
                     ((RTPTranslatorImpl) mediaStreamTrackReceiver.getStream()
                         .getRTPTranslator()).getRtcpFeedbackMessageSender()
