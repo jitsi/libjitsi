@@ -358,6 +358,37 @@ public class RTPEncodingDesc
     }
 
     /**
+     * Gets a boolean value indicating whether or not this instance is
+     * streaming.
+     *
+     * @param performTimeoutCheck  when true, it requires fresh data and not
+     * just the active property to be set.
+     *
+     * @return true if this instance is streaming, false otherwise.
+     */
+    public boolean isActive(boolean performTimeoutCheck)
+    {
+        if (active && performTimeoutCheck)
+        {
+            if (lastReceivedFrame == null)
+            {
+                return false;
+            }
+            else
+            {
+                long silentIntervalMs
+                    = System.currentTimeMillis() - lastReceivedFrame.getReceivedMs();
+
+                return silentIntervalMs <= MediaStreamTrackDesc.SUSPENSION_THRESHOLD_MS;
+            }
+        }
+        else
+        {
+            return active;
+        }
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override

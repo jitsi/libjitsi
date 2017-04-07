@@ -151,10 +151,13 @@ public class MediaStreamTrackDesc
      * index. The "stable" bitrate is measured on every new frame and with a
      * 5000ms window.
      *
+     * @param performTimeoutCheck when true, it requires the matching encoding
+     * to have fresh data and not just its active property to be set to true.
+     *
      * @return the last "stable" bitrate (bps) of the encoding at the specified
      * index.
      */
-    public long getBps(int idx)
+    public long getBps(int idx, boolean performTimeoutCheck)
     {
         if (ArrayUtils.isNullOrEmpty(rtpEncodings))
         {
@@ -165,7 +168,7 @@ public class MediaStreamTrackDesc
         {
             for (int i = idx; i > -1; i--)
             {
-                if (!rtpEncodings[i].isActive())
+                if (!rtpEncodings[i].isActive(performTimeoutCheck))
                 {
                     continue;
                 }
