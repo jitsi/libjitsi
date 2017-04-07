@@ -31,8 +31,11 @@ import org.jitsi.util.*;
 public class MediaStreamTrackDesc
 {
     /**
-     * The system property name that holds the minimum time (in millis) that is
-     * required for the media engine to generate a new key frame.
+     * The system property name that holds the maximum frequency (in millis) at
+     * which the media engine generates key frame.
+     *
+     * We take that into account to identify batches of key frames which helps
+     * us identify which simulcast flows are active/inactive.
      */
     public static final String MIN_KEY_FRAME_WAIT_MS_PNAME
         = "org.jitsi.impl.neomedia.rtp.MediaStreamTrackDesc" +
@@ -45,6 +48,18 @@ public class MediaStreamTrackDesc
     public static final String SUSPENSION_THRESHOLD_MS_PNAME
         = "org.jitsi.impl.neomedia.rtp.MediaStreamTrackDesc" +
             ".SUSPENSION_THRESHOLD_MS";
+
+    /**
+     * The default maximum frequency (in millis) at which the media engine
+     * generates key frame.
+     */
+    private static final int MIN_KEY_FRAME_WAIT_MS_DEFAULT = 300;
+
+    /**
+     * The default maximum time interval (in millis) an encoding can be
+     * considered active without new frames.
+     */
+    private static final int SUSPENSION_THRESHOLD_MS_DEFAULT = 600;
 
     /**
      * The {@link Logger} used by the {@link MediaStreamTrackDesc} class and its
@@ -61,17 +76,20 @@ public class MediaStreamTrackDesc
 
     /**
      * The minimum time (in millis) that is required for the media engine to
-     * generate a new key frame.
+     * generate a new key frame (or, equivalently, the maximum frequency at
+     * which the media engine generates key frame).
      */
-    private static final int MIN_KEY_FRAME_WAIT_MS
-        = cfg != null ? cfg.getInt(MIN_KEY_FRAME_WAIT_MS_PNAME, 300) : 300;
+    private static final int MIN_KEY_FRAME_WAIT_MS = cfg != null ? cfg.getInt(
+        MIN_KEY_FRAME_WAIT_MS_PNAME, MIN_KEY_FRAME_WAIT_MS_DEFAULT)
+        : MIN_KEY_FRAME_WAIT_MS_DEFAULT;
 
     /**
      * The maximum time interval (in millis) an encoding can be considered
      * active without new frames.
      */
-    public static final int SUSPENSION_THRESHOLD_MS
-        = cfg != null ? cfg.getInt(SUSPENSION_THRESHOLD_MS_PNAME, 600) : 600;
+    public static final int SUSPENSION_THRESHOLD_MS = cfg != null ? cfg.getInt(
+        SUSPENSION_THRESHOLD_MS_PNAME, SUSPENSION_THRESHOLD_MS_DEFAULT)
+        : SUSPENSION_THRESHOLD_MS_DEFAULT;
 
     /**
      * The {@link RTPEncodingDesc}s that this {@link MediaStreamTrackDesc}
@@ -248,11 +266,11 @@ public class MediaStreamTrackDesc
 
                 if (lastReceivedFrame != null)
                 {
-                    long silentIntervalMs
+                    long timeSinceLastReceivedFrameMs
                         = nowMs - lastReceivedFrame.getReceivedMs();
 
                     if (enc.isActive()
-                        && silentIntervalMs > SUSPENSION_THRESHOLD_MS
+                        && timeSinceLastReceivedFrameMs > SUSPENSION_THRESHOLD_MS
                         && enc.isReceived())
                     {
                         maybeSuspended = true;
@@ -260,7 +278,7 @@ public class MediaStreamTrackDesc
                             + mediaStreamTrackReceiver.getStream().hashCode()
                             + " ssrc=" + enc.getPrimarySSRC()
                             + ",idx=" + enc.getIndex()
-                            + ",silent_ms=" + silentIntervalMs);
+                            + ",silent_ms=" + timeSinceLastReceivedFrameMs);
                     }
                 }
             }

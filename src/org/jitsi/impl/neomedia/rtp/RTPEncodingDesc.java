@@ -240,8 +240,8 @@ public class RTPEncodingDesc
      */
     private static void applyFrameBoundsHeuristics(FrameDesc a, FrameDesc b)
     {
-        int aEnd = a.getEnd(), bStart = b.getStart();
-        if (aEnd != -1 && bStart != -1)
+        int aLastSeqNum = a.getEnd(), bFirstSeqNum = b.getStart();
+        if (aLastSeqNum != -1 && bFirstSeqNum != -1)
         {
             // No need for heuristics.
             return;
@@ -260,30 +260,30 @@ public class RTPEncodingDesc
         }
         else
         {
-            int bMin = b.getMinSeen(), aMax = a.getMaxSeen();
-            int snDiff = (bMin - aMax) & 0xFFFF;
+            int bMinSeqNum = b.getMinSeen(), aMaxSeqNum = a.getMaxSeen();
+            int snDiff = (bMinSeqNum - aMaxSeqNum) & 0xFFFF;
 
-            if (bStart != -1 || aEnd != -1)
+            if (bFirstSeqNum != -1 || aLastSeqNum != -1)
             {
                 if (snDiff == 2)
                 {
-                    if (aEnd == -1)
+                    if (aLastSeqNum == -1)
                     {
-                        aEnd = (aMax + 1) & 0xFFFF;
+                        aLastSeqNum = (aMaxSeqNum + 1) & 0xFFFF;
                         if (logger.isDebugEnabled())
                         {
-                            logger.debug("Guessed frame end=" + aEnd);
+                            logger.debug("Guessed frame end=" + aLastSeqNum);
                         }
-                        a.setEnd(aEnd);
+                        a.setEnd(aLastSeqNum);
                     }
                     else
                     {
-                        bStart = (bMin - 1) & 0xFFFF;
+                        bFirstSeqNum = (bMinSeqNum - 1) & 0xFFFF;
                         if (logger.isDebugEnabled())
                         {
-                            logger.debug("Guessed frame start=" + bStart);
+                            logger.debug("Guessed frame start=" + bFirstSeqNum);
                         }
-                        b.setStart(bStart);
+                        b.setStart(bFirstSeqNum);
                     }
                 }
                 else if (snDiff < 2 || snDiff > (-3 & 0xFFFF))
@@ -296,16 +296,17 @@ public class RTPEncodingDesc
             {
                 if (snDiff == 3)
                 {
-                    bStart = (bMin - 1) & 0xFFFF;
-                    aEnd = (aMax + 1) & 0xFFFF;
+                    bFirstSeqNum = (bMinSeqNum - 1) & 0xFFFF;
+                    aLastSeqNum = (aMaxSeqNum + 1) & 0xFFFF;
                     if (logger.isDebugEnabled())
                     {
                         logger.debug(
-                            "Guessed frame start=" + bStart + ",end=" + aEnd);
+                            "Guessed frame start=" + bFirstSeqNum
+                                + ",end=" + aLastSeqNum);
                     }
 
-                    a.setEnd(aEnd);
-                    b.setStart(bStart);
+                    a.setEnd(aLastSeqNum);
+                    b.setStart(bFirstSeqNum);
                 }
                 else if (snDiff < 3 || snDiff > (-4 & 0xFFFF))
                 {
@@ -376,10 +377,11 @@ public class RTPEncodingDesc
             }
             else
             {
-                long silentIntervalMs
-                    = System.currentTimeMillis() - lastReceivedFrame.getReceivedMs();
+                long timeSinceLastReceivedFrameMs = System.currentTimeMillis()
+                    - lastReceivedFrame.getReceivedMs();
 
-                return silentIntervalMs <= MediaStreamTrackDesc.SUSPENSION_THRESHOLD_MS;
+                return timeSinceLastReceivedFrameMs
+                    <= MediaStreamTrackDesc.SUSPENSION_THRESHOLD_MS;
             }
         }
         else
