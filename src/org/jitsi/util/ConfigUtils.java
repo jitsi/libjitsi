@@ -228,4 +228,30 @@ public class ConfigUtils
             s = cfg.getString(property, defaultValue);
         return s;
     }
+
+    /**
+     * Gets the value as a {@code String} of a property from either a specific
+     * {@code ConfigurationService} or {@code System}.
+     *
+     * @param cfg the {@code ConfigurationService} to get the value from or
+     * {@code null} if the property is to be retrieved from {@code System}
+     * @param property the name of the property to get
+     * @param propertyAlternative an alternative name of the property
+     * @param defaultValue the value to be returned if {@code property} is not
+     * associated with a value
+     * @return the value as a {@code String} of {@code property} retrieved from
+     * either {@code cfg} or {@code System}
+     */
+    public static String getString(ConfigurationService cfg,
+                            String property,
+                            String propertyAlternative,
+                            String defaultValue)
+    {
+        String ret = getString(cfg, property, null);
+        if (ret == null)
+        {
+            ret = getString(cfg, propertyAlternative, defaultValue);
+        }
+        return ret;
+    }
 }
