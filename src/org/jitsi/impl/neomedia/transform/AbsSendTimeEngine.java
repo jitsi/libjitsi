@@ -37,6 +37,11 @@ public class AbsSendTimeEngine
     private static final int b = 1_000_000_000;
 
     /**
+     * The length of the data in the abs-send-time extension (see the draft).
+     */
+    private static final int EXT_LENGTH = 3;
+
+    /**
      * The <tt>Logger</tt> used by the {@link AbsSendTimeEngine} class and its
      * instances.
      */
@@ -68,7 +73,7 @@ public class AbsSendTimeEngine
                 = pkt.getHeaderExtension((byte) extensionID);
             if (ext == null)
             {
-                ext = pkt.addExtension((byte) extensionID, 3);
+                ext = pkt.addExtension((byte) extensionID, EXT_LENGTH);
             }
 
             setTimestamp(ext.getBuffer(), ext.getOffset() + 1);
