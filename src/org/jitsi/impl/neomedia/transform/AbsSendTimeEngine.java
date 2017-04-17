@@ -68,7 +68,7 @@ public class AbsSendTimeEngine
                 = pkt.getHeaderExtension((byte) extensionID);
             if (ext == null)
             {
-                ext = pkt.addExtension((byte) extensionID, 2);
+                ext = pkt.addExtension((byte) extensionID, 3);
             }
 
             setTimestamp(ext.getBuffer(), ext.getOffset() + 1);
