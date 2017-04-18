@@ -3739,9 +3739,7 @@ public class MediaStreamImpl
      * Utility method that determines whether or not a packet is a start of
      * frame.
      *
-     * @param buf the buffer that holds the RTP payload.
-     * @param off the offset in the buff where the RTP payload is found.
-     * @param len then length of the RTP payload in the buffer.
+     * @param pkt raw rtp packet.
      *
      * @return true if the packet is the start of a frame, false otherwise.
      *
@@ -3749,8 +3747,36 @@ public class MediaStreamImpl
      * but I don't want to be obliged to cast to use this method.
      *
      */
-    public boolean isStartOfFrame(byte[] buf, int off, int len)
+    public boolean isStartOfFrame(RawPacket pkt)
     {
+        if (!RTPPacketPredicate.INSTANCE.test(pkt))
+        {
+            return false;
+        }
+
+        byte[] buf = pkt.getBuffer();
+        int off = pkt.getOffset();
+        int len = pkt.getLength();
+        
+        if (frameMarkingsExtensionId != -1)
+        {
+            RawPacket.HeaderExtension fmhe
+                = pkt.getHeaderExtension(frameMarkingsExtensionId);
+            if (fmhe != null)
+            {
+                return FrameMarkingHeaderExtension.isStartOfFrame(fmhe);
+            }
+
+            if (logger.isDebugEnabled())
+            {
+                logger.debug("Packet with no frame marking, while frame marking"
+                             + " is enabled.");
+            }
+            // Note that we go on and try to use the payload itself. We may want
+            // to change this behaviour in the future, because it will give
+            // wrong results if the payload is encrypted.
+        }
+        
         REDBlock redBlock = getPayloadBlock(buf, off, len);
         if (redBlock == null || redBlock.getLength() == 0)
         {
@@ -3784,9 +3810,7 @@ public class MediaStreamImpl
      * Utility method that determines whether or not a packet is an end of
      * frame.
      *
-     * @param buf the buffer that holds the RTP payload.
-     * @param off the offset in the buff where the RTP payload is found.
-     * @param len then length of the RTP payload in the buffer.
+     * @param pkt raw rtp packet.
      *
      * @return true if the packet is the end of a frame, false otherwise.
      *
@@ -3794,8 +3818,36 @@ public class MediaStreamImpl
      * but I don't want to be obliged to cast to use this method.
      *
      */
-    public boolean isEndOfFrame(byte[] buf, int off, int len)
+    public boolean isEndOfFrame(RawPacket pkt)
     {
+        if (!RTPPacketPredicate.INSTANCE.test(pkt))
+        {
+            return false;
+        }
+
+        byte[] buf = pkt.getBuffer();
+        int off = pkt.getOffset();
+        int len = pkt.getLength();
+        
+        if (frameMarkingsExtensionId != -1)
+        {
+            RawPacket.HeaderExtension fmhe
+                = pkt.getHeaderExtension(frameMarkingsExtensionId);
+            if (fmhe != null)
+            {
+                return FrameMarkingHeaderExtension.isEndOfFrame(fmhe);
+            }
+
+            if (logger.isDebugEnabled())
+            {
+                logger.debug("Packet with no frame marking, while frame marking"
+                             + " is enabled.");
+            }
+            // Note that we go on and try to use the payload itself. We may want
+            // to change this behaviour in the future, because it will give
+            // wrong results if the payload is encrypted.
+        }
+        
         REDBlock redBlock = getPayloadBlock(buf, off, len);
         if (redBlock == null || redBlock.getLength() == 0)
         {
