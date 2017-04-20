@@ -30,6 +30,7 @@ import org.jitsi.service.neomedia.*;
  * }</pre>
  *
  * @author Boris Grozev
+ * @author Sergio Garcia Murillo
  */
 public class FrameMarkingHeaderExtension
 {
@@ -37,6 +38,11 @@ public class FrameMarkingHeaderExtension
      * The "start of frame" bit.
      */
     private static byte S_BIT = (byte) 0x80;
+    
+    /**
+     * The "end of frame" bit.
+     */
+    private static byte E_BIT = (byte) 0x40;
 
     /**
      * The "independent frame" bit.
@@ -64,5 +70,39 @@ public class FrameMarkingHeaderExtension
         // The data follows the one-byte header.
         byte b = baf.getBuffer()[baf.getOffset() + 1];
         return (b & KF_MASK) != 0;
+    }
+    
+    /**
+     * @return true if the extension contained in the given buffer indicates
+     * that the corresponding RTP packet is the first packet of a frame (i.e.
+     * the S bit is set).
+     */
+    public static boolean isStartOfFrame(ByteArrayBuffer baf)
+    {
+        if (baf == null || baf.getLength() < 2)
+        {
+            return false;
+        }
+
+        // The data follows the one-byte header.
+        byte b = baf.getBuffer()[baf.getOffset() + 1];
+        return (b & S_BIT) != 0;
+    }
+    
+    /**
+     * @return true if the extension contained in the given buffer indicates
+     * that the corresponding RTP packet is the last packet of a frame (i.e.
+     * the E bit is set).
+     */    
+    public static boolean isEndOfFrame(ByteArrayBuffer baf) {
+            
+        if (baf == null || baf.getLength() < 2)
+        {
+            return false;
+        }
+
+        // The data follows the one-byte header.
+        byte b = baf.getBuffer()[baf.getOffset() + 1];
+        return (b & E_BIT) != 0;
     }
 }

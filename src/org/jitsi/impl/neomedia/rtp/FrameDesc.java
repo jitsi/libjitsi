@@ -231,13 +231,11 @@ public class FrameDesc
         boolean changed = false;
 
         int seqNum = pkt.getSequenceNumber();
-        byte[] buf = pkt.getBuffer();
-        int off = pkt.getOffset(), len = pkt.getLength();
 
         MediaStreamImpl stream = rtpEncoding.getMediaStreamTrack()
             .getMediaStreamTrackReceiver().getStream();
 
-        boolean isSOF = stream.isStartOfFrame(buf, off, len);
+        boolean isSOF = stream.isStartOfFrame(pkt);
 
         if (minSeen == -1 || RTPUtils.sequenceNumberDiff(minSeen, seqNum) > 0)
         {
@@ -251,7 +249,7 @@ public class FrameDesc
             maxSeen = seqNum;
         }
 
-        if (end == -1 && stream.isEndOfFrame(buf, off, len))
+        if (end == -1 && stream.isEndOfFrame(pkt))
         {
             changed = true;
             end = seqNum;
