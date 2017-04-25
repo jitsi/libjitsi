@@ -542,20 +542,91 @@ public class DePacketizer
         }
 
         /**
+         * Determines whether the VP8 payload specified in the buffer that is
+         * passed as an argument has a picture ID or not.
+         *
+         * @param buf the byte buffer that contains the VP8 payload.
+         * @param off the offset in the byte buffer where the VP8 payload
+         * starts.
+         * @param len the length of the VP8 payload in the byte buffer.
+         * @return true if the VP8 payload contains a picture ID, false
+         * otherwise.
+         */
+        public static boolean hasPictureId(byte[] buf, int off, int len)
+        {
+            if (!isValid(buf, off))
+                return false;
+
+            if ((buf[off] & X_BIT) == 0
+                || (buf[off+1] & I_BIT) == 0)
+                return false;
+
+            return true;
+        }
+
+        /**
+         * Determines whether the VP8 payload specified in the buffer that is
+         * passed as an argument has an extended picture ID or not.
+         *
+         * @param buf the byte buffer that contains the VP8 payload.
+         * @param off the offset in the byte buffer where the VP8 payload
+         * starts.
+         * @param len the length of the VP8 payload in the byte buffer.
+         * @return true if the VP8 payload contains an extended picture ID,
+         * false otherwise.
+         */
+        public static boolean hasExtendedPictureId(byte[] buf, int off, int len)
+        {
+            return hasPictureId(buf, off, len) && (buf[off+2] & M_BIT) != 0;
+        }
+
+        /**
+         * Determines whether the VP8 payload specified in the buffer that is
+         * passed as an argument has a KEYIDX field or not.
+         *
+         * @param buf the byte buffer that contains the VP8 payload.
+         * @param off the offset in the byte buffer where the VP8 payload
+         * starts.
+         * @param len the length of the VP8 payload in the byte buffer.
+         * @return true if the VP8 payload contains a KEYIDX, false
+         * otherwise.
+         */
+        public static boolean hasKEYIDX(byte[] buf, int off, int len)
+        {
+            return (buf[off] & X_BIT) != 0
+                && ((buf[off + 1] & T_BIT) != 0 || (buf[off + 1] & K_BIT) != 0);
+        }
+
+        /**
+         * Determines whether the VP8 payload specified in the buffer that is
+         * passed as an argument has a TL0PICIDX field or not.
+         *
+         * @param buf the byte buffer that contains the VP8 payload.
+         * @param off the offset in the byte buffer where the VP8 payload
+         * starts.
+         * @param len the length of the VP8 payload in the byte buffer.
+         * @return true if the VP8 payload contains a TL0PICIDX, false
+         * otherwise.
+         */
+        public static boolean hasTL0PICIDX(byte[] buf, int off, int len)
+        {
+            return (buf[off] & X_BIT) != 0 && (buf[off+1] & L_BIT) != 0;
+        }
+
+        /**
          * Gets the value of the PictureID field of a VP8 Payload Descriptor.
          * @param input
          * @param offset
          * @return the value of the PictureID field of a VP8 Payload Descriptor,
          * or -1 if the fields is not present.
          */
-        private static int getPictureId(byte[] input, int offset)
+        public static int getPictureId(byte[] input, int offset)
         {
-            if (!isValid(input, offset))
+            if (input == null
+                || !hasPictureId(input, offset, input.length - offset))
+            {
                 return -1;
-
-            if ((input[offset] & X_BIT) == 0
-                || (input[offset+1] & I_BIT) == 0)
-                return -1;
+            }
 
             boolean isLong = (input[offset+2] & M_BIT) != 0;
             if (isLong)
@@ -564,6 +635,60 @@ public class DePacketizer
             else
                 return input[offset+2] & 0x7f;
 
+        }
+
+        /**
+         * Sets the extended picture ID for the VP8 payload specified in the
+         * buffer that is passed as an argument.
+         *
+         * @param buf the byte buffer that contains the VP8 payload.
+         * @param off the offset in the byte buffer where the VP8 payload
+         * starts.
+         * @param len the length of the VP8 payload in the byte buffer.
+         * @return true if the operation succeeded, false otherwise.
+         */
+        public static boolean setExtendedPictureId(
+            byte[] buf, int off, int len, int val)
+        {
+            if (!hasExtendedPictureId(buf, off, len))
+            {
+                return false;
+            }
+
+            buf[off + 2] = (byte) (0x80 | (val >> 8) & 0x7F);
+            buf[off + 3] = (byte) (val & 0xFF);
+
+            return true;
+        }
+
+        /**
+         * Sets the TL0PICIDX field for the VP8 payload specified in the
+         * buffer that is passed as an argument.
+         *
+         * @param buf the byte buffer that contains the VP8 payload.
+         * @param off the offset in the byte buffer where the VP8 payload
+         * starts.
+         * @param len the length of the VP8 payload in the byte buffer.
+         * @return true if the operation succeeded, false otherwise.
+         */
+        public static boolean setTL0PICIDX(byte[] buf, int off, int len, int val)
+        {
+            if (!hasTL0PICIDX(buf, off, len))
+            {
+                return false;
+            }
+
+            int sz = getSize(buf, off);
+            if (hasKEYIDX(buf, off, len))
+            {
+                buf[off + sz - 2] = (byte) val;
+            }
+            else
+            {
+                buf[off + sz - 1] = (byte) val;
+            }
+
+            return true;
         }
 
         public static boolean isValid(byte[] input, int offset)
