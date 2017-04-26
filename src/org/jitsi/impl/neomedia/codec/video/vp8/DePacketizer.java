@@ -205,8 +205,9 @@ public class DePacketizer
     {
         byte[] inData = (byte[])inBuffer.getData();
         int inOffset = inBuffer.getOffset();
+        int inLength = inBuffer.getLength();
 
-        if (!VP8PayloadDescriptor.isValid(inData, inOffset))
+        if (!VP8PayloadDescriptor.isValid(inData, inOffset, inLength))
         {
             logger.warn("Invalid RTP/VP8 packet discarded.");
             outBuffer.setDiscard(true);
@@ -219,8 +220,8 @@ public class DePacketizer
         boolean inMarker = (inBuffer.getFlags() & Buffer.FLAG_RTP_MARKER) != 0;
         boolean inIsStartOfFrame
                 = VP8PayloadDescriptor.isStartOfFrame(inData, inOffset);
-        int inLength = inBuffer.getLength();
-        int inPdSize = VP8PayloadDescriptor.getSize(inData, inOffset);
+
+        int inPdSize = VP8PayloadDescriptor.getSize(inData, inOffset, inLength);
         int inPayloadLength = inLength - inPdSize;
 
         if (empty
@@ -394,15 +395,9 @@ public class DePacketizer
      */
     public static boolean isKeyFrame(byte[] buf, int off, int len)
     {
-        if (buf == null || buf.length < off + len
-            || len < RawPacket.FIXED_HEADER_SIZE)
-        {
-            return false;
-        }
-
         // Check if this is the start of a VP8 partition in the payload
         // descriptor.
-        if (!DePacketizer.VP8PayloadDescriptor.isValid(buf, off))
+        if (!DePacketizer.VP8PayloadDescriptor.isValid(buf, off, len))
         {
             return false;
         }
@@ -413,7 +408,7 @@ public class DePacketizer
         }
 
         int szVP8PayloadDescriptor = DePacketizer
-            .VP8PayloadDescriptor.getSize(buf, off);
+            .VP8PayloadDescriptor.getSize(buf, off, len);
 
         return DePacketizer.VP8PayloadHeader.isKeyFrame(
                 buf, off + szVP8PayloadDescriptor);
@@ -482,7 +477,7 @@ public class DePacketizer
                 return -1;
             }
 
-            int sz = getSize(buf, off);
+            int sz = getSize(buf, off, len);
             if (buf.length < off + sz || sz < 1)
             {
                 return -1;
@@ -518,9 +513,9 @@ public class DePacketizer
          * <tt>offset</tt> in <tt>input</tt>, or -1 if the input is not a valid
          * VP8 Payload Descriptor. The size is between 1 and 6.
          */
-        public static int getSize(byte[] input, int offset)
+        public static int getSize(byte[] input, int offset, int length)
         {
-            if (!isValid(input, offset))
+            if (!isValid(input, offset, length))
                 return -1;
 
             if ((input[offset] & X_BIT) == 0)
@@ -542,20 +537,52 @@ public class DePacketizer
         }
 
         /**
+         * Determines whether the VP8 payload specified in the buffer that is
+         * passed as an argument has a picture ID or not.
+         *
+         * @param buf the byte buffer that contains the VP8 payload.
+         * @param off the offset in the byte buffer where the VP8 payload
+         * starts.
+         * @param len the length of the VP8 payload in the byte buffer.
+         * @return true if the VP8 payload contains a picture ID, false
+         * otherwise.
+         */
+        public static boolean hasPictureId(byte[] buf, int off, int len)
+        {
+            return isValid(buf, off, len)
+                && (buf[off] & X_BIT) != 0 && (buf[off+1] & I_BIT) != 0;
+        }
+
+        /**
+         * Determines whether the VP8 payload specified in the buffer that is
+         * passed as an argument has an extended picture ID or not.
+         *
+         * @param buf the byte buffer that contains the VP8 payload.
+         * @param off the offset in the byte buffer where the VP8 payload
+         * starts.
+         * @param len the length of the VP8 payload in the byte buffer.
+         * @return true if the VP8 payload contains an extended picture ID,
+         * false otherwise.
+         */
+        public static boolean hasExtendedPictureId(byte[] buf, int off, int len)
+        {
+            return hasPictureId(buf, off, len) && (buf[off+2] & M_BIT) != 0;
+        }
+
+        /**
          * Gets the value of the PictureID field of a VP8 Payload Descriptor.
          * @param input
          * @param offset
          * @return the value of the PictureID field of a VP8 Payload Descriptor,
          * or -1 if the fields is not present.
          */
-        private static int getPictureId(byte[] input, int offset)
+        public static int getPictureId(byte[] input, int offset)
         {
-            if (!isValid(input, offset))
+            if (input == null
+                || !hasPictureId(input, offset, input.length - offset))
+            {
                 return -1;
-
-            if ((input[offset] & X_BIT) == 0
-                || (input[offset+1] & I_BIT) == 0)
-                return -1;
+            }
 
             boolean isLong = (input[offset+2] & M_BIT) != 0;
             if (isLong)
@@ -566,9 +593,74 @@ public class DePacketizer
 
         }
 
-        public static boolean isValid(byte[] input, int offset)
+        /**
+         * Sets the extended picture ID for the VP8 payload specified in the
+         * buffer that is passed as an argument.
+         *
+         * @param buf the byte buffer that contains the VP8 payload.
+         * @param off the offset in the byte buffer where the VP8 payload
+         * starts.
+         * @param len the length of the VP8 payload in the byte buffer.
+         * @return true if the operation succeeded, false otherwise.
+         */
+        public static boolean setExtendedPictureId(
+            byte[] buf, int off, int len, int val)
         {
+            if (!hasExtendedPictureId(buf, off, len))
+            {
+                return false;
+            }
+
+            buf[off + 2] = (byte) (0x80 | (val >> 8) & 0x7F);
+            buf[off + 3] = (byte) (val & 0xFF);
+
             return true;
+        }
+
+        /**
+         * Sets the TL0PICIDX field for the VP8 payload specified in the
+         * buffer that is passed as an argument.
+         *
+         * @param buf the byte buffer that contains the VP8 payload.
+         * @param off the offset in the byte buffer where the VP8 payload
+         * starts.
+         * @param len the length of the VP8 payload in the byte buffer.
+         * @return true if the operation succeeded, false otherwise.
+         */
+        public static boolean setTL0PICIDX(byte[] buf, int off, int len, int val)
+        {
+            if (!isValid(buf, off, len)
+                || (buf[off] & X_BIT) == 0 || (buf[off + 1] & L_BIT) == 0)
+            {
+                return false;
+            }
+
+            int offTL0PICIDX = 2;
+            if ((buf[off + 1] & I_BIT) != 0)
+            {
+                offTL0PICIDX++;
+                if ((buf[off + 2] & M_BIT) != 0)
+                {
+                    offTL0PICIDX++;
+                }
+            }
+
+            buf[off + offTL0PICIDX] = (byte) val;
+            return true;
+        }
+
+        /**
+         * Checks whether the arguments specify a valid buffer.
+         *
+         * @param buf
+         * @param off
+         * @param len
+         * @return true if the arguments specify a valid buffer, false
+         * otherwise.
+         */
+        public static boolean isValid(byte[] buf, int off, int len)
+        {
+            return buf != null && buf.length >= off + len && off > -1 && len > 0;
         }
 
         /**
