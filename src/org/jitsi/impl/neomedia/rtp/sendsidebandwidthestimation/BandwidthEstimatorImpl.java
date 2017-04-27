@@ -41,7 +41,7 @@ public class BandwidthEstimatorImpl
      * The system property name of the initial value of the estimation, in bits
      * per second.
      */
-    private static final String START_BITRATE_BPS_PNAME = "org.jitsi.impl" +
+    public static final String START_BITRATE_BPS_PNAME = "org.jitsi.impl" +
         ".neomedia.rtp.sendsidebandwidthestimation.BandwidthEstimatorImpl" +
         ".START_BITRATE_BPS";
 
