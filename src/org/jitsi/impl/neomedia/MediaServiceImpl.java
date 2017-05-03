@@ -33,6 +33,7 @@ import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.codec.video.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.format.*;
+import org.jitsi.impl.neomedia.jmfext.media.protocol.wavfile.WavMediaDevice;
 import org.jitsi.impl.neomedia.recording.*;
 import org.jitsi.impl.neomedia.rtp.translator.*;
 import org.jitsi.impl.neomedia.transform.dtls.*;
@@ -447,7 +448,10 @@ public class MediaServiceImpl
         switch (device.getMediaType())
         {
         case AUDIO:
-            return new AudioMixerMediaDevice((AudioMediaDeviceImpl) device);
+            AudioMediaDeviceImpl deviceToUse = (AudioMediaDeviceImpl) device;
+            String filename = System.getProperty("net.java.sip.communicator.impl.neomedia.audioSystem.wavFileName", "media/input/play.wav");
+            deviceToUse = new WavMediaDevice(filename);
+            return new AudioMixerMediaDevice(deviceToUse);
         case VIDEO:
             return new VideoTranslatorMediaDevice((MediaDeviceImpl) device);
         default:
