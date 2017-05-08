@@ -141,6 +141,17 @@ public class RtxTransformer
     }
 
     /**
+     * Returns a boolean that indicates whether or not the destination
+     * endpoint supports RTX.
+     *
+     * @return true if the destination endpoint supports RTX, otherwise false.
+     */
+    public boolean destinationSupportsRtx()
+    {
+        return !apt2rtx.isEmpty();
+    }
+
+    /**
      * Returns the sequence number to use for a specific RTX packet, which
      * is based on the packet's original sequence number.
      *
@@ -210,6 +221,7 @@ public class RtxTransformer
 
         return encoding.getRTXSSRC();
     }
+
     /**
      * Retransmits a packet to {@link #mediaStream}. If the destination supports
      * the RTX format, the packet will be encapsulated in RTX, otherwise, the
