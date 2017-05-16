@@ -67,11 +67,15 @@ public class PayloadTypeTransformEngine
         if (mappingOverridesCopy == null
                 || mappingOverridesCopy.isEmpty()
                 || pkt.getVersion() != RTPHeader.VERSION)
+        {
             return pkt;
+        }
 
         Byte newPT = mappingOverridesCopy.get(pkt.getPayloadType());
-        if(newPT != null)
+        if (newPT != null)
+        {
             pkt.setPayloadType(newPT);
+        }
 
         return pkt;
     }

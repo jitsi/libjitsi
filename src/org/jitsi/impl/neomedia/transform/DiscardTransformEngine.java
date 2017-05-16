@@ -113,7 +113,7 @@ public class DiscardTransformEngine
     };
 
     /**
-     * The {@link PacketTransformer} for RTP packets.
+     * The {@link PacketTransformer} for RTCP packets.
      */
     private final PacketTransformer rtcpTransformer
         = new SinglePacketTransformerAdapter()
