@@ -493,6 +493,16 @@ public class VideoMediaStreamImpl
     private CachingTransformer cachingTransformer;
 
     /**
+     * Whether the remote end supports RTCP FIR.
+     */
+    private boolean supportsFir = false;
+
+    /**
+     * Whether the remote end supports RTCP PLI.
+     */
+    private boolean supportsPli = false;
+
+    /**
      * Initializes a new <tt>VideoMediaStreamImpl</tt> instance which will use
      * the specified <tt>MediaDevice</tt> for both capture and playback of video
      * exchanged via the specified <tt>StreamConnector</tt>.
@@ -533,6 +543,41 @@ public class VideoMediaStreamImpl
         return rtxTransformer;
     }
 
+    /**
+     * Sets the value of the flag which indicates whether the remote end
+     * supports RTCP FIR or not.
+     * @param supportsFir the value to set.
+     */
+    public void setSupportsFir(boolean supportsFir)
+    {
+        this.supportsFir = supportsFir;
+    }
+
+    /**
+     * Sets the value of the flag which indicates whether the remote end
+     * supports RTCP PLI or not.
+     * @param supportsPli the value to set.
+     */
+    public void setSupportsPli(boolean supportsPli)
+    {
+        this.supportsPli = supportsPli;
+    }
+
+    /**
+     * @return {@code true} iff the remote end supports RTCP FIR.
+     */
+    public boolean supportsFir()
+    {
+        return supportsFir;
+    }
+
+    /**
+     * @return {@code true} iff the remote end supports RTCP PLI.
+     */
+    public boolean supportsPli()
+    {
+        return supportsPli;
+    }
     /**
      * Set remote SSRC.
      *
