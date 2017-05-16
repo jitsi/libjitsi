@@ -173,7 +173,9 @@ public class RTCPFeedbackMessageSender
         for (int mediaSenderSSRC : mediaSenderSSRCs)
         {
             if (sendFIR(mediaSenderSSRC))
+            {
                 sentFIR = true;
+            }
         }
 
         return sentFIR;
@@ -225,7 +227,7 @@ public class RTCPFeedbackMessageSender
         /**
          * The media sender SSRC of this <tt>KeyframeRequester</tt>
          */
-        private final int mediaSenderSSRC;
+        private final long mediaSenderSSRC;
 
         /**
          * The sequence number of the next FIR.
@@ -245,7 +247,7 @@ public class RTCPFeedbackMessageSender
         public KeyframeRequester(int mediaSenderSSRC)
         {
             super(FIR_RETRY_INTERVAL_MS);
-            this.mediaSenderSSRC = mediaSenderSSRC;
+            this.mediaSenderSSRC = mediaSenderSSRC & 0xffff_ffffL;
             this.remainingRetries = 0;
         }
 
@@ -292,8 +294,7 @@ public class RTCPFeedbackMessageSender
 
             if (TRACE)
             {
-                logger.trace("Stopping FIRs to ssrc="
-                                 + (mediaSenderSSRC & 0xffffffffL));
+                logger.trace("Stopping FIRs to ssrc=" + mediaSenderSSRC);
             }
 
             // This lock only runs while we're waiting for a key frame. It
@@ -321,7 +322,7 @@ public class RTCPFeedbackMessageSender
                         if (TRACE)
                         {
                             logger.trace("Starting FIRs to ssrc="
-                                + (mediaSenderSSRC & 0xffffffffL));
+                                + mediaSenderSSRC);
                         }
 
                         remainingRetries = FIR_MAX_RETRIES;
@@ -333,7 +334,7 @@ public class RTCPFeedbackMessageSender
                         if (TRACE)
                         {
                             logger.trace("Pending FIRs to ssrc="
-                                + (mediaSenderSSRC & 0xffffffffL));
+                                + mediaSenderSSRC);
                         }
 
                         return true;
@@ -347,7 +348,7 @@ public class RTCPFeedbackMessageSender
                 remainingRetries--;
 
                 logger.info("Sending a FIR to ssrc="
-                            + (mediaSenderSSRC & 0xffffffffL)
+                            + mediaSenderSSRC
                             + " remainingRetries=" + remainingRetries);
             }
 
@@ -360,7 +361,7 @@ public class RTCPFeedbackMessageSender
             }
 
             StreamRTPManager streamRTPManager = rtpTranslator
-                .findStreamRTPManagerByReceiveSSRC(mediaSenderSSRC);
+                .findStreamRTPManagerByReceiveSSRC((int) mediaSenderSSRC);
 
             if (streamRTPManager == null)
             {
@@ -374,7 +375,7 @@ public class RTCPFeedbackMessageSender
                 RTCPFeedbackMessageEvent.FMT_FIR,
                 RTCPFeedbackMessageEvent.PT_PS,
                 senderSSRC,
-                0xffffffffL & mediaSenderSSRC);
+                mediaSenderSSRC);
 
             fir.setSequenceNumber(sequenceNumber.incrementAndGet());
 
