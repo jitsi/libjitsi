@@ -37,7 +37,7 @@ public class RTCPFeedbackMessagePacket
     private int fmt;
 
     /**
-     * Payload type (PT).
+     * Packet type (PT).
      */
     private byte pt;
 
@@ -66,7 +66,7 @@ public class RTCPFeedbackMessagePacket
      * Constructor.
      *
      * @param fmt feedback message type
-     * @param pt payload type
+     * @param pt packet type
      * @param senderSSRC SSRC of packet sender
      * @param sourceSSRC SSRC of media source
      */
@@ -95,9 +95,9 @@ public class RTCPFeedbackMessagePacket
     }
 
     /**
-     * Gets the payload type (PT) of this <tt>RTCPFeedbackMessagePacket</tt>.
+     * Gets the packet type (PT) of this <tt>RTCPFeedbackMessagePacket</tt>.
      *
-     * @return the payload type (PT) of this <tt>RTCPFeedbackMessagePacket</tt>
+     * @return the packet type (PT) of this <tt>RTCPFeedbackMessagePacket</tt>
      */
     public byte getPayloadType()
     {
@@ -122,7 +122,7 @@ public class RTCPFeedbackMessagePacket
      * the RTP Audio-Visual Profile with Feedback (AVPF)&quot. The sequence
      * number space is unique for each pairing of the SSRC of command source and
      * the SSRC of the command target. The sequence number SHALL be increased by
-     * 1 modulo 256 for each new command.  A repetition SHALL NOT increase the
+     * 1 modulo 256 for each new command. A repetition SHALL NOT increase the
      * sequence number. The initial value is arbitrary.
      *
      * @return the (command) sequence number of this Full Intra Request (FIR)
@@ -158,9 +158,9 @@ public class RTCPFeedbackMessagePacket
     }
 
     /**
-     * Sets the payload type (PT) of this <tt>RTCPFeedbackMessagePacket</tt>.
+     * Sets the packet type (PT) of this <tt>RTCPFeedbackMessagePacket</tt>.
      *
-     * @param pt the payload type (PT) to set on this
+     * @param pt the packet type (PT) to set on this
      * <tt>RTCPFeedbackMessagePacket</tt>
      */
     public void setPayloadType(byte pt)
@@ -241,9 +241,12 @@ public class RTCPFeedbackMessagePacket
          * the header and any padding.
          */
         int fmt = getFeedbackMessageType();
+        byte pt = getPayloadType();
+        boolean fir = pt == RTCPFeedbackMessageEvent.PT_PS
+            && fmt == RTCPFeedbackMessageEvent.FMT_FIR;
         int rtcpPacketLength = 2;
 
-        if (fmt == RTCPFeedbackMessageEvent.FMT_FIR)
+        if (fir)
         {
             /*
              * RFC 5104 "Codec Control Messages in the RTP Audio-Visual Profile
@@ -264,8 +267,8 @@ public class RTCPFeedbackMessagePacket
          * feedback message type (FMT): 5 bits.
          */
         buf[off++] = (byte) (0x80 /* RTP version */ | (fmt & 0x1F));
-        // payload type (PT): 8 bits
-        buf[off++] = getPayloadType();
+        // packet type (PT): 8 bits
+        buf[off++] = pt;
 
         // length: 16 bits
         buf[off++] = (byte) ((rtcpPacketLength & 0xFF00) >> 8);
@@ -284,12 +287,13 @@ public class RTCPFeedbackMessagePacket
          * by the FIR feedback message and SHALL be set to 0.
          */
         writeSSRC(
-                (fmt == RTCPFeedbackMessageEvent.FMT_FIR) ? 0 : sourceSSRC,
+                fir ? 0 : sourceSSRC,
                 buf,
                 off);
         off += 4;
 
-        if (fmt == RTCPFeedbackMessageEvent.FMT_FIR)
+        // FCI entries
+        if (fir)
         {
             /*
              * SSRC: 32 bits. The SSRC value of the media sender that is
