@@ -62,6 +62,17 @@ public class DataSource
     private static final long CLOCK_TICK_INTERVAL = 20;
 
     /**
+     * The optional {@link MediaLocator} remainder to indicate to
+     * {@code DataSource} and its associated {@code AudioSilenceStream} that
+     * {@code BufferTransferHandler.transferData(PushBufferStream)} is to not be
+     * invoked. If {@code true}, then the {@code DataSource} is a dummy suitable
+     * for scenarios in which an capature device is required but no audio
+     * samples from it are necessary such as negotiating signaling for audio but
+     * actually RTP translating other participants/peers' audio.
+     */
+    public static final String NO_TRANSFER_DATA = "noTransferData";
+
+    /**
      * The list of <tt>Format</tt>s supported by the
      * <tt>AudioSilenceCaptureDevice</tt> instances.
      */
@@ -91,7 +102,12 @@ public class DataSource
         int streamIndex,
         FormatControl formatControl)
     {
-        return new AudioSilenceStream(this, formatControl);
+        return
+            new AudioSilenceStream(
+                    this,
+                    formatControl,
+                    !NO_TRANSFER_DATA.equalsIgnoreCase(
+                            getLocator().getRemainder()));
     }
 
     /**
@@ -129,6 +145,17 @@ public class DataSource
         private Thread thread;
 
         /**
+         * The indicator which determined whether this instance is to invoke
+         * {@code BufferTransferHandler.transferData(PushBufferStream)} and,
+         * thus, tick the media clock that it represents. If {@code false}, then
+         * it is a dummy suitable for scenarios in which an audio capture device
+         * is required but no audio samples from it are necessary such as
+         * negotiating signaling for audio but actually RTP translating other
+         * participants/peers' audio.
+         */
+        private final boolean transferData;
+
+        /**
          * Initializes a new <tt>AudioSilenceStream</tt> which is to be exposed
          * by a specific <tt>AudioSilenceCaptureDevice</tt> and which is to have
          * its <tt>Format</tt>-related information abstracted by a specific
@@ -139,12 +166,19 @@ public class DataSource
          * of <tt>PushBufferStream</tt>s
          * @param formatControl the <tt>FormatControl</tt> which is to abstract
          * the <tt>Format</tt>-related information of the new instance
+         * @param transferData {@code true} if the new instance is to invoke
+         * {@code BufferTransferHandler.transferData(PushBufferStream)} and,
+         * thus, tick the media clock that it represents; otherwise,
+         * {@code false}.
          */
         public AudioSilenceStream(
             DataSource dataSource,
-            FormatControl formatControl)
+            FormatControl formatControl,
+            boolean transferData)
         {
             super(dataSource, formatControl);
+
+            this.transferData = transferData;
         }
 
         /**
@@ -170,14 +204,13 @@ public class DataSource
                 AudioFormat format = (AudioFormat) getFormat();
                 int frameSizeInBytes
                     = format.getChannels()
-                    * (((int) format.getSampleRate()) / 50)
-                    * (format.getSampleSizeInBits() / 8);
-
+                        * (((int) format.getSampleRate()) / 50)
+                        * (format.getSampleSizeInBits() / 8);
                 byte[] data
                     = AbstractCodec2.validateByteArraySize(
-                    buffer,
-                    frameSizeInBytes,
-                    false);
+                            buffer,
+                            frameSizeInBytes,
+                            false);
 
                 Arrays.fill(data, 0, frameSizeInBytes, (byte) 0);
 
@@ -196,23 +229,19 @@ public class DataSource
         {
             try
             {
-                /*
-                 * Make sure that the current thread which implements the actual
-                 * ticking of the clock implemented by this instance uses a
-                 * thread priority considered appropriate for audio processing.
-                 */
+                // Make sure that the current thread which implements the actual
+                // ticking of the clock implemented by this instance uses a
+                // thread priority considered appropriate for audio processing.
                 AbstractAudioRenderer.useAudioThreadPriority();
 
-                /*
-                 * The method implements a clock which ticks at a certain and
-                 * regular interval of time which is not affected by the
-                 * duration of the execution of, for example, the invocation of
-                 * BufferTransferHandler.transferData(PushBufferStream).
-                 *
-                 * XXX The implementation utilizes System.currentTimeMillis()
-                 * and, consequently, may be broken by run-time adjustments to
-                 * the system time.
-                 */
+                // The method implements a clock which ticks at a certain and
+                // regular interval of time which is not affected by the
+                // duration of the execution of, for example, the invocation of
+                // BufferTransferHandler.transferData(PushBufferStream).
+                //
+                // XXX The implementation utilizes System.currentTimeMillis()
+                // and, consequently, may be broken by run-time adjustments to
+                // the system time.
                 long tickTime = System.currentTimeMillis();
 
                 while (true)
@@ -222,21 +251,17 @@ public class DataSource
 
                     if (tick)
                     {
-                        /*
-                         * The current thread has woken up just in time or too
-                         * late for the next scheduled clock tick and,
-                         * consequently, the clock should tick right now.
-                         */
+                        // The current thread has woken up just in time or too
+                        // late for the next scheduled clock tick and,
+                        // consequently, the clock should tick right now.
                         tickTime += CLOCK_TICK_INTERVAL;
                     }
                     else
                     {
-                        /*
-                         * The current thread has woken up too early for the
-                         * next scheduled clock tick and, consequently, it
-                         * should sleep until the time of the next scheduled
-                         * clock tick comes.
-                         */
+                        // The current thread has woken up too early for the
+                        // next scheduled clock tick and, consequently, it
+                        // should sleep until the time of the next scheduled
+                        // clock tick comes.
                         try
                         {
                             Thread.sleep(sleepInterval);
@@ -245,23 +270,20 @@ public class DataSource
                         {
                             Thread.currentThread().interrupt();
                         }
-                        /*
-                         * The clock will not tick and spurious wakeups will be
-                         * handled. However, the current thread will first check
-                         * whether it is still utilized by this
-                         * AudioSilenceStream in order to not delay stop
-                         * requests.
-                         */
+
+                        // The clock will not tick and spurious wakeups will be
+                        // handled. However, the current thread will first check
+                        // whether it is still utilized by this
+                        // AudioSilenceStream in order to not delay stop
+                        // requests.
                     }
 
                     synchronized (this)
                     {
-                        /*
-                         * If the current Thread is no longer utilized by this
-                         * AudioSilenceStream, it no longer has the right to
-                         * touch it. If this AudioSilenceStream has been
-                         * stopped, the current Thread should stop as well.
-                         */
+                        // If the current Thread is no longer utilized by this
+                        // AudioSilenceStream, it no longer has the right to
+                        // touch it. If this AudioSilenceStream has been
+                        // stopped, the current Thread should stop as well.
                         if ((thread != Thread.currentThread()) || !started)
                             break;
                     }
@@ -314,6 +336,13 @@ public class DataSource
         public synchronized void start()
             throws IOException
         {
+            if (!transferData)
+            {
+                // Skip creating the thread that will invoke transferData.
+                this.started = true;
+                return;
+            }
+
             if (thread == null)
             {
                 String className = getClass().getName();

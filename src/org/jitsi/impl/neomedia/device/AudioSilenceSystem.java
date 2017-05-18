@@ -21,17 +21,24 @@ import javax.media.*;
 import java.util.*;
 
 /**
- * Audio system used by server side technologies that do not capture any sound.
- * The device is producing silence.
+ * Implements an {@llink AudioSystem} which produces silence without capturing
+ * from an actual hardware device. Hence, it is suitable for server-side
+ * technologies that do not need to and/or cannot capture speech.
  *
  * @author Pawel Domas
  */
 public class AudioSilenceSystem
     extends AudioSystem
 {
+    /**
+     * The protocol of the {@code MediaLocator} of {@code AudioSilenceSystem}.
+     */
     private static final String LOCATOR_PROTOCOL
         = LOCATOR_PROTOCOL_AUDIOSILENCE;
 
+    /**
+     * Initializes a new {@code AudioSilenceSystem} instance.
+     */
     protected AudioSilenceSystem()
         throws Exception
     {
@@ -42,17 +49,30 @@ public class AudioSilenceSystem
     protected void doInitialize()
         throws Exception
     {
-        CaptureDeviceInfo2 captureDevice
-            = new CaptureDeviceInfo2(
+        List<CaptureDeviceInfo2> captureDevices
+            = new ArrayList<CaptureDeviceInfo2>(2);
+
+        captureDevices.add(
+            new CaptureDeviceInfo2(
                     "AudioSilenceCaptureDevice",
                     new MediaLocator(LOCATOR_PROTOCOL + ":"),
                     DataSource.SUPPORTED_FORMATS,
-                    null, null, null);
+                    null, null, null));
 
-        List<CaptureDeviceInfo2> captureDevices
-            = new ArrayList<CaptureDeviceInfo2>(1);
-
-        captureDevices.add(captureDevice);
+        // The following is a dummy audio capture device which does not even
+        // produce silence. It is suitable for scenarios in which an audio
+        // capture device is required but no audio samples from it are necessary
+        // such as negotiating signalling for audio but actually RTP translating
+        // other participants/peers' audio.
+        captureDevices.add(
+            new CaptureDeviceInfo2(
+                    "AudioSilenceCaptureDevice:" + DataSource.NO_TRANSFER_DATA,
+                    new MediaLocator(
+                            LOCATOR_PROTOCOL
+                                + ":"
+                                + DataSource.NO_TRANSFER_DATA),
+                    DataSource.SUPPORTED_FORMATS,
+                    null, null, null));
 
         setCaptureDevices(captureDevices);
     }
