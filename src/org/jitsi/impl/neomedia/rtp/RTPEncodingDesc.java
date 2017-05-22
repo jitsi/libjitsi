@@ -94,8 +94,9 @@ public class RTPEncodingDesc
     private final int height;
 
     /**
-     * The max frame rate of the bitstream that this instance represents. The
-     * actual frame rate may be less due to bad network or system load.
+     * The max frame rate (in fps) of the bitstream that this instance
+     * represents. The actual frame rate may be less due to bad network or
+     * system load.
      */
     private final double frameRate;
 
@@ -214,7 +215,7 @@ public class RTPEncodingDesc
      * @param tid temporal layer ID for this layering/encoding.
      * @param sid spatial layer ID for this layering/encoding.
      * @param height the max height of this encoding
-     * @param frameRate the max frame rate of this encoding
+     * @param frameRate the max frame rate (in fps) of this encoding
      * @param dependencyEncodings  The {@link RTPEncodingDesc} on which this
      * layer depends.
      */
@@ -717,9 +718,11 @@ public class RTPEncodingDesc
     }
 
     /**
-     * Gets the max frame rate of the bitstream that this instance represents.
+     * Gets the max frame rate (in fps) of the bitstream that this instance
+     * represents.
      *
-     * @return the max frame rate of the bitstream that this instance represents.
+     * @return the max frame rate (in fps) of the bitstream that this instance
+     * represents.
      */
     public double getFrameRate()
     {
