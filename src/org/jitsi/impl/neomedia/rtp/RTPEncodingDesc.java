@@ -46,6 +46,11 @@ public class RTPEncodingDesc
     private final static int NO_HEIGHT = -1;
 
     /**
+     * A value used to designate the absence of frame rate information.
+     */
+    private final static double NO_FRAME_RATE = -1;
+
+    /**
      * The default window size in ms for the bitrate estimation.
      *
      * TODO maybe make this configurable.
@@ -83,9 +88,17 @@ public class RTPEncodingDesc
     private final int sid;
 
     /**
-     * Gets the height of the bitstream that this instance represents.
+     * The max height of the bitstream that this instance represents. The actual
+     * height may be less due to bad network or system load.
      */
     private final int height;
+
+    /**
+     * The max frame rate (in fps) of the bitstream that this instance
+     * represents. The actual frame rate may be less due to bad network or
+     * system load.
+     */
+    private final double frameRate;
 
     /**
      * The root {@link RTPEncodingDesc} of the dependencies DAG. Useful for
@@ -185,8 +198,9 @@ public class RTPEncodingDesc
     public RTPEncodingDesc(
         MediaStreamTrackDesc track, long primarySSRC, long rtxSSRC)
     {
-        this(track, 0, primarySSRC, rtxSSRC, NO_HEIGHT /* height */,
-            -1 /* tid */, -1 /* sid */, null /* dependencies */);
+        this(track, 0, primarySSRC, rtxSSRC, -1 /* tid */, -1 /* sid */,
+            NO_HEIGHT /* height */, NO_FRAME_RATE /* frame rate */,
+            null /* dependencies */);
     }
 
     /**
@@ -200,7 +214,8 @@ public class RTPEncodingDesc
      * @param rtxSSRC The RTX SSRC for this layering/encoding.
      * @param tid temporal layer ID for this layering/encoding.
      * @param sid spatial layer ID for this layering/encoding.
-     * @param height the height of this encoding
+     * @param height the max height of this encoding
+     * @param frameRate the max frame rate (in fps) of this encoding
      * @param dependencyEncodings  The {@link RTPEncodingDesc} on which this
      * layer depends.
      */
@@ -209,11 +224,13 @@ public class RTPEncodingDesc
         long primarySSRC, long rtxSSRC,
         int tid, int sid,
         int height,
+        double frameRate,
         RTPEncodingDesc[] dependencyEncodings)
     {
         // XXX we should be able to snif the actual height from the RTP
         // packets.
         this.height = height;
+        this.frameRate = frameRate;
         this.primarySSRC = primarySSRC;
         this.rtxSSRC = rtxSSRC;
         this.track = track;
@@ -691,13 +708,25 @@ public class RTPEncodingDesc
     }
 
     /**
-     * Gets the height of the bitstream that this instance represents.
+     * Gets the max height of the bitstream that this instance represents.
      *
-     * @return the height of the bitstream that this instance represents.
+     * @return the max height of the bitstream that this instance represents.
      */
     public int getHeight()
     {
         return height;
+    }
+
+    /**
+     * Gets the max frame rate (in fps) of the bitstream that this instance
+     * represents.
+     *
+     * @return the max frame rate (in fps) of the bitstream that this instance
+     * represents.
+     */
+    public double getFrameRate()
+    {
+        return frameRate;
     }
 
     /**
