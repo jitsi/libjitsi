@@ -573,10 +573,13 @@ public class SRTPCryptoContext
 
         int seqNo = pkt.getSequenceNumber();
 
+        // Whether s_l was initialized while processing this packet.
+        boolean seqNumWasJustSet = false;
         if (!seqNumSet)
         {
             seqNumSet = true;
             s_l = seqNo;
+            seqNumWasJustSet = true;
         }
 
         // Guess the SRTP index (48 bit), see RFC 3711, 3.3.1
@@ -625,6 +628,16 @@ public class SRTPCryptoContext
             {
                 logger.debug("SRTP auth failed for SSRC " + ssrc);
             }
+        }
+
+        if (!b && seqNumWasJustSet)
+        {
+            // We set the initial value of s_l as a result of processing this
+            // packet, but the packet failed to authenticate. We shouldn't
+            // update our state based on an untrusted packet, so we revert
+            // seqNumSet.
+            seqNumSet = false;
+            s_l = 0;
         }
 
         return b;
