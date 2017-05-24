@@ -47,7 +47,8 @@ public abstract class AbstractTrackStats
     protected final AtomicLong bytes = new AtomicLong();
 
     /**
-     * The total number of bytes.
+     * The total number of RTP packets. This excludes RTCP packets, because
+     * the value is used to calculate the number of lost RTP packets.
      */
     protected final AtomicLong packets = new AtomicLong();
 
