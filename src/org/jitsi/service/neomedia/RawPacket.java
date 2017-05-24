@@ -55,6 +55,12 @@ public class RawPacket
     public static final int FIXED_HEADER_SIZE = 12;
 
     /**
+     * The minimum size in bytes of a valid RTCP packet. An empty Receiver
+     * Report is 8 bytes long.
+     */
+    private static final int RTCP_MIN_SIZE = 8;
+
+    /**
      * Byte array storing the content of this Packet
      */
     private byte[] buffer;
@@ -193,9 +199,21 @@ public class RawPacket
      */
     public static boolean isInvalid(byte[] buffer, int offset, int length)
     {
-        return (buffer == null)
-            || (buffer.length < offset + length)
-            || (length < FIXED_HEADER_SIZE);
+        // RTP packets are at least 12 bytes long, RTCP packets can be 8.
+        if (buffer == null || buffer.length < offset + length
+            || length < RTCP_MIN_SIZE)
+        {
+            return true;
+        }
+
+        int pt = buffer[offset + 1] & 0xff;
+        if (pt < 200 || pt > 211)
+        {
+            // This is an RTP packet.
+            return length < FIXED_HEADER_SIZE;
+        }
+
+        return false;
     }
 
     /**
