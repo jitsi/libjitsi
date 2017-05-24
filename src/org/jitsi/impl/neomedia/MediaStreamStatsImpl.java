@@ -66,7 +66,7 @@ public class MediaStreamStatsImpl
     }
 
     /**
-     * The <tt>Logger</tt> used by the <tt>MediaStreamImpl</tt> class and its
+     * The {@link Logger} used by the {@link MediaStreamStatsImpl} class and its
      * instances for logging output.
      */
     private static final Logger logger

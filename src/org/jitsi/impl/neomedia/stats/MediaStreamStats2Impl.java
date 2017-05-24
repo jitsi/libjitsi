@@ -2,6 +2,7 @@ package org.jitsi.impl.neomedia.stats;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.service.neomedia.stats.*;
+import org.jitsi.util.*;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -17,6 +18,13 @@ public class MediaStreamStats2Impl
      * Window over which rates will be computed.
      */
     private static int INTERVAL = 1000;
+
+    /**
+     * The {@link Logger} used by the {@link MediaStreamStats2Impl} class and its
+     * instances for logging output.
+     */
+    private static final Logger logger
+        = Logger.getLogger(MediaStreamStatsImpl.class);
 
     /**
      * Hold per-SSRC statistics for received streams.
@@ -231,6 +239,14 @@ public class MediaStreamStats2Impl
     @Override
     public ReceiveTrackStatsImpl getReceiveStats(long ssrc)
     {
+        if (ssrc < 0)
+        {
+            logger.error("No received stats for an invalid SSRC: " + ssrc);
+            // We don't want to lose the data (and trigger an NPE), but at
+            // least we collect all invalid SSRC under the value of -1;
+            ssrc = -1;
+        }
+
         ReceiveTrackStatsImpl stats = receiveSsrcStats.get(ssrc);
         if (stats == null)
         {
@@ -254,6 +270,14 @@ public class MediaStreamStats2Impl
     @Override
     public SendTrackStatsImpl getSendStats(long ssrc)
     {
+        if (ssrc < 0)
+        {
+            logger.error("No send stats for an invalid SSRC: " + ssrc);
+            // We don't want to lose the data (and trigger an NPE), but at
+            // least we collect all invalid SSRC under the value of -1;
+            ssrc = -1;
+        }
+
         SendTrackStatsImpl stats = sendSsrcStats.get(ssrc);
         if (stats == null)
         {
