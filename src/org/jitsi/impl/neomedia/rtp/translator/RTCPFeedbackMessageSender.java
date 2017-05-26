@@ -77,9 +77,9 @@ public class RTCPFeedbackMessageSender
                 RTCPFeedbackMessageSender.class.getSimpleName());
 
     /**
-     * The FIR requesters. One per media sender SSRC.
+     * The keyframe requesters. One per media source SSRC.
      */
-    private final ConcurrentMap<Integer, KeyframeRequester> kfRequesters
+    private final ConcurrentMap<Long, KeyframeRequester> kfRequesters
         = new ConcurrentHashMap<>();
 
     /**
@@ -119,12 +119,12 @@ public class RTCPFeedbackMessageSender
      * @param mediaSenderSSRC the SSRC of the media sender/source
      * @return {@code true} if an RTCP message was sent; otherwise,
      * {@code false}.
-     * @deprecated Use the generic {@link #requestKeyframe(int)} instead.
+     * @deprecated Use the generic {@link #requestKeyframe(long)} instead.
      */
     @Deprecated
     public boolean sendFIR(int mediaSenderSSRC)
     {
-        return requestKeyframe(mediaSenderSSRC);
+        return requestKeyframe(mediaSenderSSRC & 0xffff_ffffL);
     }
 
     /**
@@ -138,7 +138,7 @@ public class RTCPFeedbackMessageSender
      * @return {@code true} if an RTCP message was sent; otherwise,
      * {@code false}.
      */
-    public boolean requestKeyframe(int mediaSenderSSRC)
+    public boolean requestKeyframe(long mediaSenderSSRC)
     {
         boolean registerRecurringRunnable = false;
         KeyframeRequester keyframeRequester = kfRequesters.get(mediaSenderSSRC);
@@ -184,12 +184,18 @@ public class RTCPFeedbackMessageSender
      * @param mediaSenderSSRCs the SSRCs of the media senders/sources
      * @return {@code true} if an RTCP message was sent; otherwise,
      * {@code false}.
-     * @deprecated Use the generic {@link #requestKeyframe(int[])} instead.
+     * @deprecated Use the generic {@link #requestKeyframe(long[])} instead.
      */
     @Deprecated
     public boolean sendFIR(int[] mediaSenderSSRCs)
     {
-        return requestKeyframe(mediaSenderSSRCs);
+        long[] ssrcsAsLong = new long[mediaSenderSSRCs.length];
+        for (int i = 0; i < ssrcsAsLong.length; i++)
+        {
+            ssrcsAsLong[i] = mediaSenderSSRCs[i] & 0xffff_ffffL;
+        }
+
+        return requestKeyframe(ssrcsAsLong);
     }
 
     /**
@@ -203,24 +209,23 @@ public class RTCPFeedbackMessageSender
      * @return {@code true} if an RTCP message was sent; otherwise,
      * {@code false}.
      */
-    public boolean requestKeyframe(int[] mediaSenderSSRCs)
+    public boolean requestKeyframe(long[] mediaSenderSSRCs)
     {
         if (mediaSenderSSRCs == null || mediaSenderSSRCs.length == 0)
         {
             return false;
         }
 
-        boolean sentFIR = false;
-
-        for (int mediaSenderSSRC : mediaSenderSSRCs)
+        boolean requested = false;
+        for (long mediaSenderSSRC : mediaSenderSSRCs)
         {
-            if (sendFIR(mediaSenderSSRC))
+            if (requestKeyframe(mediaSenderSSRC))
             {
-                sentFIR = true;
+                requested = true;
             }
         }
 
-        return sentFIR;
+        return requested;
     }
 
     /**
@@ -238,7 +243,7 @@ public class RTCPFeedbackMessageSender
      */
     public void maybeStopRequesting(
         StreamRTPManagerDesc streamRTPManager,
-        int ssrc,
+        long ssrc,
         byte[] buf,
         int off,
         int len)
@@ -286,10 +291,10 @@ public class RTCPFeedbackMessageSender
          *
          * @param mediaSenderSSRC
          */
-        public KeyframeRequester(int mediaSenderSSRC)
+        public KeyframeRequester(long mediaSenderSSRC)
         {
             super(FIR_RETRY_INTERVAL_MS);
-            this.mediaSenderSSRC = mediaSenderSSRC & 0xffff_ffffL;
+            this.mediaSenderSSRC = mediaSenderSSRC;
             this.remainingRetries = 0;
         }
 
