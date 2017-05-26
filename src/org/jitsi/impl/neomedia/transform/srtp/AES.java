@@ -97,7 +97,7 @@ public class AES
      * The number of milliseconds after which the benchmark which elected
      * {@link #factory} is to be considered expired.
      */
-    public static final long FACTORY_TIMEOUT = 60 * 1000;
+    public static final long FACTORY_TIMEOUT = 600 * 1000;
 
     /**
      * The class to instantiate as a <tt>BlockCipherFactory</tt> implementation
@@ -118,7 +118,7 @@ public class AES
      * It consists of blocks and its length specifies the number of blocks to
      * process for the purposes of the benchmark.
      */ 
-    private static final byte[] in = new byte[BLOCK_SIZE * 1024];
+    private static final byte[] in = new byte[BLOCK_SIZE * 64];
 
     /**
      * The <tt>Logger</tt> used by the <tt>AES</tt> class to print out debug
@@ -198,11 +198,13 @@ public class AES
 
                     long startTime = System.nanoTime();
 
-                    for (int inOff = 0;
-                            inOff < inEnd;
-                            inOff = inOff + blockSize)
-                    {
-                        cipher.processBlock(in, inOff, out, 0);
+                    for (int i = 0; i < 10000; i++) {
+                        for (int inOff = 0;
+                                inOff < inEnd;
+                                inOff = inOff + blockSize)
+                        {
+                            cipher.processBlock(in, inOff, out, 0);
+                        }
                     }
                     // We do not invoke the method BlockCipher.reset() so we do
                     // not need to take it into account in the benchmark.
