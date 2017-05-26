@@ -18,8 +18,10 @@ package org.jitsi.impl.neomedia.rtcp;
 import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.rtp.*;
+import org.jitsi.impl.neomedia.rtp.translator.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.service.neomedia.event.*;
 import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.*;
 import org.jitsi.util.concurrent.*;
@@ -374,8 +376,8 @@ public class RTCPReceiverFeedbackTermination
         @Override
         public RawPacket transform(RawPacket pkt)
         {
-            // Kill RRs.
-            return doTransform(pkt);
+            // Kill the RRs that FMJ is sending.
+            return doTransform(pkt, true);
         }
 
         /**
@@ -384,10 +386,10 @@ public class RTCPReceiverFeedbackTermination
         @Override
         public RawPacket reverseTransform(RawPacket pkt)
         {
-            return doTransform(pkt);
+            return doTransform(pkt, false);
         }
 
-        private RawPacket doTransform(RawPacket pkt)
+        private RawPacket doTransform(RawPacket pkt, boolean send)
         {
             RTCPIterator it = new RTCPIterator(pkt);
             while (it.hasNext())
@@ -397,6 +399,23 @@ public class RTCPReceiverFeedbackTermination
                 if (pt == RTCPRRPacket.RR || RTCPREMBPacket.isREMBPacket(baf))
                 {
                     it.remove();
+                }
+
+                if (!send)
+                {
+                    int fmt = RTCPHeaderUtils.getReportCount(baf);
+                    if ((pt == RTCPFeedbackMessageEvent.PT_PS
+                            && fmt == RTCPFeedbackMessageEvent.FMT_PLI)
+                        || (pt == RTCPFeedbackMessageEvent.PT_PS
+                            && fmt == RTCPFeedbackMessageEvent.FMT_FIR))
+                    {
+                        long source = RTCPFBPacket.getSourceSSRC(baf);
+                        ((RTPTranslatorImpl) stream.getRTPTranslator())
+                            .getRtcpFeedbackMessageSender()
+                            .requestKeyframe(source);
+
+                        it.remove();
+                    }
                 }
             }
             return pkt;
