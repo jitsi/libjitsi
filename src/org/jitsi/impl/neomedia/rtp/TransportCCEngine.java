@@ -306,21 +306,6 @@ public class TransportCCEngine
     }
 
     /**
-     * Handles RTP packets for this {@link TransportCCEngine}.
-     */
-    private static class RTCPTransformer
-        extends SinglePacketTransformerAdapter
-    {
-        /**
-         * Initializes a new {@link RTPTransformer} instance.
-         */
-        private RTCPTransformer()
-        {
-            super(RTCPPacketPredicate.INSTANCE);
-        }
-    }
-
-    /**
      * Adds a {@link MediaStream} to the list of {@link MediaStream}s which
      * use this {@link TransportCCEngine}.
      * @param mediaStream the stream to add.
@@ -360,5 +345,21 @@ public class TransportCCEngine
             return mediaStreams.isEmpty() ? null : mediaStreams.get(0);
         }
     }
+
+    /**
+     * Handles RTCP packets for this {@link TransportCCEngine}.
+     */
+    private static class RTCPTransformer
+        extends SinglePacketTransformerAdapter
+    {
+        /**
+         * Initializes a new {@link RTPTransformer} instance.
+         */
+        private RTCPTransformer()
+        {
+            super(RTCPPacketPredicate.INSTANCE);
+        }
+    }
+
 
 }

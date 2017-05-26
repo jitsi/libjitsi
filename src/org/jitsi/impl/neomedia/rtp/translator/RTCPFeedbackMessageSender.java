@@ -20,6 +20,7 @@ import java.util.concurrent.atomic.*;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.rtp.*;
+import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.event.*;
 import org.jitsi.util.*;
 import org.jitsi.util.concurrent.*;
@@ -76,9 +77,9 @@ public class RTCPFeedbackMessageSender
                 RTCPFeedbackMessageSender.class.getSimpleName());
 
     /**
-     * The FIR requesters. One per media sender SSRC.
+     * The keyframe requesters. One per media source SSRC.
      */
-    private final ConcurrentMap<Integer, KeyframeRequester> kfRequesters
+    private final ConcurrentMap<Long, KeyframeRequester> kfRequesters
         = new ConcurrentHashMap<>();
 
     /**
@@ -105,19 +106,39 @@ public class RTCPFeedbackMessageSender
     {
         long ssrc = rtpTranslator.getLocalSSRC(null);
 
-        return (ssrc == Long.MAX_VALUE) ? -1 : (ssrc & 0xffffffffl);
+        return (ssrc == Long.MAX_VALUE) ? -1 : ssrc;
     }
 
     /**
-     * Sends a Full Intra Request (FIR) Command to a media sender/source with a
-     * specific synchronization source identifier (SSRC) through a specific
-     * <tt>MediaStream</tt>.
+     * Sends an RTCP Full Intra Request (FIR) or Picture Loss Indication (PLI),
+     * to the media sender/source with a specific synchronization source
+     * identifier (SSRC).
+     * Whether to send a FIR or a PLI message is decided based on whether the
+     * {@link MediaStream} associated with the SSRC supports FIR or PLI.
      *
      * @param mediaSenderSSRC the SSRC of the media sender/source
-     * @return <tt>true</tt> if a FIR command was sent; otherwise,
-     * <tt>false</tt>
+     * @return {@code true} if an RTCP message was sent; otherwise,
+     * {@code false}.
+     * @deprecated Use the generic {@link #requestKeyframe(long)} instead.
      */
+    @Deprecated
     public boolean sendFIR(int mediaSenderSSRC)
+    {
+        return requestKeyframe(mediaSenderSSRC & 0xffff_ffffL);
+    }
+
+    /**
+     * Sends an RTCP Full Intra Request (FIR) or Picture Loss Indication (PLI),
+     * to the media sender/source with a specific synchronization source
+     * identifier (SSRC).
+     * Whether to send a FIR or a PLI message is decided based on whether the
+     * {@link MediaStream} associated with the SSRC supports FIR or PLI.
+     *
+     * @param mediaSenderSSRC the SSRC of the media sender/source
+     * @return {@code true} if an RTCP message was sent; otherwise,
+     * {@code false}.
+     */
+    public boolean requestKeyframe(long mediaSenderSSRC)
     {
         boolean registerRecurringRunnable = false;
         KeyframeRequester keyframeRequester = kfRequesters.get(mediaSenderSSRC);
@@ -154,29 +175,57 @@ public class RTCPFeedbackMessageSender
     }
 
     /**
-     * Sends Full Intra Request (FIR) Commands to media senders/sources with
-     * specific synchronization source identifiers (SSRCs).
+     * Sends an RTCP Full Intra Request (FIR) or Picture Loss Indication (PLI),
+     * to media senders/sources with a specific synchronization source
+     * identifiers (SSRCs).
+     * Whether to send a FIR or a PLI message is decided based on whether the
+     * {@link MediaStream} associated with the SSRC supports FIR or PLI.
      *
      * @param mediaSenderSSRCs the SSRCs of the media senders/sources
-     * @return <tt>true</tt> if a FIR command was sent; otherwise,
-     * <tt>false</tt>
+     * @return {@code true} if an RTCP message was sent; otherwise,
+     * {@code false}.
+     * @deprecated Use the generic {@link #requestKeyframe(long[])} instead.
      */
+    @Deprecated
     public boolean sendFIR(int[] mediaSenderSSRCs)
+    {
+        long[] ssrcsAsLong = new long[mediaSenderSSRCs.length];
+        for (int i = 0; i < ssrcsAsLong.length; i++)
+        {
+            ssrcsAsLong[i] = mediaSenderSSRCs[i] & 0xffff_ffffL;
+        }
+
+        return requestKeyframe(ssrcsAsLong);
+    }
+
+    /**
+     * Sends an RTCP Full Intra Request (FIR) or Picture Loss Indication (PLI),
+     * to media senders/sources with a specific synchronization source
+     * identifiers (SSRCs).
+     * Whether to send a FIR or a PLI message is decided based on whether the
+     * {@link MediaStream} associated with the SSRC supports FIR or PLI.
+     *
+     * @param mediaSenderSSRCs the SSRCs of the media senders/sources
+     * @return {@code true} if an RTCP message was sent; otherwise,
+     * {@code false}.
+     */
+    public boolean requestKeyframe(long[] mediaSenderSSRCs)
     {
         if (mediaSenderSSRCs == null || mediaSenderSSRCs.length == 0)
         {
             return false;
         }
 
-        boolean sentFIR = false;
-
-        for (int mediaSenderSSRC : mediaSenderSSRCs)
+        boolean requested = false;
+        for (long mediaSenderSSRC : mediaSenderSSRCs)
         {
-            if (sendFIR(mediaSenderSSRC))
-                sentFIR = true;
+            if (requestKeyframe(mediaSenderSSRC))
+            {
+                requested = true;
+            }
         }
 
-        return sentFIR;
+        return requested;
     }
 
     /**
@@ -194,7 +243,7 @@ public class RTCPFeedbackMessageSender
      */
     public void maybeStopRequesting(
         StreamRTPManagerDesc streamRTPManager,
-        int ssrc,
+        long ssrc,
         byte[] buf,
         int off,
         int len)
@@ -225,7 +274,7 @@ public class RTCPFeedbackMessageSender
         /**
          * The media sender SSRC of this <tt>KeyframeRequester</tt>
          */
-        private final int mediaSenderSSRC;
+        private final long mediaSenderSSRC;
 
         /**
          * The sequence number of the next FIR.
@@ -242,7 +291,7 @@ public class RTCPFeedbackMessageSender
          *
          * @param mediaSenderSSRC
          */
-        public KeyframeRequester(int mediaSenderSSRC)
+        public KeyframeRequester(long mediaSenderSSRC)
         {
             super(FIR_RETRY_INTERVAL_MS);
             this.mediaSenderSSRC = mediaSenderSSRC;
@@ -292,8 +341,7 @@ public class RTCPFeedbackMessageSender
 
             if (TRACE)
             {
-                logger.trace("Stopping FIRs to ssrc="
-                                 + (mediaSenderSSRC & 0xffffffffL));
+                logger.trace("Stopping FIRs to ssrc=" + mediaSenderSSRC);
             }
 
             // This lock only runs while we're waiting for a key frame. It
@@ -321,7 +369,7 @@ public class RTCPFeedbackMessageSender
                         if (TRACE)
                         {
                             logger.trace("Starting FIRs to ssrc="
-                                + (mediaSenderSSRC & 0xffffffffL));
+                                + mediaSenderSSRC);
                         }
 
                         remainingRetries = FIR_MAX_RETRIES;
@@ -333,7 +381,7 @@ public class RTCPFeedbackMessageSender
                         if (TRACE)
                         {
                             logger.trace("Pending FIRs to ssrc="
-                                + (mediaSenderSSRC & 0xffffffffL));
+                                + mediaSenderSSRC);
                         }
 
                         return true;
@@ -347,7 +395,7 @@ public class RTCPFeedbackMessageSender
                 remainingRetries--;
 
                 logger.info("Sending a FIR to ssrc="
-                            + (mediaSenderSSRC & 0xffffffffL)
+                            + mediaSenderSSRC
                             + " remainingRetries=" + remainingRetries);
             }
 
@@ -360,7 +408,7 @@ public class RTCPFeedbackMessageSender
             }
 
             StreamRTPManager streamRTPManager = rtpTranslator
-                .findStreamRTPManagerByReceiveSSRC(mediaSenderSSRC);
+                .findStreamRTPManagerByReceiveSSRC((int) mediaSenderSSRC);
 
             if (streamRTPManager == null)
             {
@@ -369,17 +417,42 @@ public class RTCPFeedbackMessageSender
                 return false;
             }
 
-            RTCPFeedbackMessagePacket fir
-                = new RTCPFeedbackMessagePacket(
-                RTCPFeedbackMessageEvent.FMT_FIR,
-                RTCPFeedbackMessageEvent.PT_PS,
-                senderSSRC,
-                0xffffffffL & mediaSenderSSRC);
+            // TODO: Use only one of the RTCP packet implementations
+            // (RTCPFeedbackMessagePacket or RTCPFBPacket)
+            RTCPFeedbackMessagePacket request;
+            VideoMediaStreamImpl videoMediaStream
+                = (VideoMediaStreamImpl) streamRTPManager.getMediaStream();
 
-            fir.setSequenceNumber(sequenceNumber.incrementAndGet());
+            // If the media sender supports both, we will send a PLI. If it
+            // supports neither, we will also send a PLI to better handle the
+            // case where signaling is inaccurate (e.g. missing), because all
+            // currently known browsers support PLI.
+            if (!videoMediaStream.supportsPli()
+                && videoMediaStream.supportsFir())
+            {
+                request = new RTCPFeedbackMessagePacket(
+                    RTCPFeedbackMessageEvent.FMT_FIR,
+                    RTCPFeedbackMessageEvent.PT_PS,
+                    senderSSRC,
+                    mediaSenderSSRC);
+                request.setSequenceNumber(sequenceNumber.incrementAndGet());
+            }
+            else
+            {
+                request = new RTCPFeedbackMessagePacket(
+                    RTCPFeedbackMessageEvent.FMT_PLI,
+                    RTCPFeedbackMessageEvent.PT_PS,
+                    senderSSRC,
+                    mediaSenderSSRC);
+                if (!videoMediaStream.supportsPli())
+                {
+                    logger.warn("Sending a PLI to a media sender for which PLI"
+                                + " support hasn't been explicitly signaled.");
+                }
+            }
 
-            return rtpTranslator.writeControlPayload(
-                fir, streamRTPManager.getMediaStream());
+
+            return rtpTranslator.writeControlPayload(request, videoMediaStream);
         }
     }
 }
