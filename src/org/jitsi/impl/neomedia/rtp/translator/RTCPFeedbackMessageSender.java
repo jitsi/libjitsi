@@ -139,7 +139,7 @@ public class RTCPFeedbackMessageSender
      * {@code false}.
      */
     public boolean requestKeyframe(int mediaSenderSSRC)
-        {
+    {
         boolean registerRecurringRunnable = false;
         KeyframeRequester keyframeRequester = kfRequesters.get(mediaSenderSSRC);
         if (keyframeRequester == null)
@@ -204,7 +204,7 @@ public class RTCPFeedbackMessageSender
      * {@code false}.
      */
     public boolean requestKeyframe(int[] mediaSenderSSRCs)
-        {
+    {
         if (mediaSenderSSRCs == null || mediaSenderSSRCs.length == 0)
         {
             return false;
