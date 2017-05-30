@@ -52,17 +52,74 @@ public class StatisticsEngine
     implements TransformEngine
 {
     /**
+     * The RTP statistics prefix we use for every log.
+     * Simplifies parsing and searching for statistics info in log files.
+     */
+    public static final String RTP_STAT_PREFIX = "rtpstat:";
+    /**
      * The <tt>Logger</tt> used by the <tt>StatisticsEngine</tt> class and its
      * instances for logging output.
      */
     private static final Logger logger
         = Logger.getLogger(StatisticsEngine.class);
+    /**
+     * The stream created us.
+     */
+    private final MediaStreamImpl mediaStream;
+    /**
+     * The <tt>MediaType</tt> of {@link #mediaStream}. Cached for the purposes
+     * of performance.
+     */
+    private final MediaType mediaType;
+    /**
+     * The number of RTCP sender reports (SR) and/or receiver reports (RR) sent.
+     * Mapped per ssrc.
+     */
+    private final Map<Long,Long> numberOfRTCPReportsMap = new HashMap<>();
+    /**
+     * The sum of the jitter values we have reported in RTCP reports, in RTP
+     * timestamp units.
+     */
+    private final Map<Long,Long> jitterSumMap = new HashMap<>();
+    /**
+     * The {@link RTCPPacketParserEx} which this instance will use to parse
+     * RTCP packets.
+     */
+    private final RTCPPacketParserEx parser = new RTCPPacketParserEx();
+    /**
+     * The <tt>PacketTransformer</tt> instance to use for RTP.
+     */
+    private final PacketTransformer rtpTransformer = new RTPPacketTransformer();
+    /**
+     * The {@link MediaStreamStats2Impl} of the {@link MediaStream}.
+     */
+    private final MediaStreamStats2Impl mediaStreamStats;
+    /**
+     * The minimum inter arrival jitter value we have reported, in RTP timestamp
+     * units.
+     */
+    private long maxInterArrivalJitter = 0;
+    /**
+     * The minimum inter arrival jitter value we have reported, in RTP timestamp
+     * units.
+     */
+    private long minInterArrivalJitter = -1;
 
     /**
-     * The RTP statistics prefix we use for every log.
-     * Simplifies parsing and searching for statistics info in log files.
+     * Creates Statistic engine.
+     * @param stream the stream creating us.
      */
-    public static final String RTP_STAT_PREFIX = "rtpstat:";
+    public StatisticsEngine(MediaStreamImpl stream)
+    {
+        // XXX think about removing the isRTCP method now that we have the
+        // RTCPPacketPredicate in place.
+        super(RTCPPacketPredicate.INSTANCE);
+
+        mediaStream = stream;
+        mediaStreamStats = stream.getMediaStreamStats();
+
+        mediaType = this.mediaStream.getMediaType();
+    }
 
     /**
      * Determines whether <tt>buf</tt> appears to contain an RTCP packet
@@ -116,70 +173,68 @@ public class StatisticsEngine
     }
 
     /**
-     * The minimum inter arrival jitter value we have reported, in RTP timestamp
-     * units.
+     * Computes the sum of the values of a specific {@code Map} with
+     * {@code Long} values.
+     *
+     * @param map the {@code Map} with {@code Long} values to sum up. Note that
+     * we synchronize on this object!
+     * @return the sum of the values of the specified {@code map}
      */
-    private long maxInterArrivalJitter = 0;
-
-    /**
-     * The stream created us.
-     */
-    private final MediaStreamImpl mediaStream;
-
-    /**
-     * The <tt>MediaType</tt> of {@link #mediaStream}. Cached for the purposes
-     * of performance.
-     */
-    private final MediaType mediaType;
-
-    /**
-     * The minimum inter arrival jitter value we have reported, in RTP timestamp
-     * units.
-     */
-    private long minInterArrivalJitter = -1;
-
-    /**
-     * The number of RTCP sender reports (SR) and/or receiver reports (RR) sent.
-     * Mapped per ssrc.
-     */
-    private final Map<Long,Long> numberOfRTCPReportsMap = new HashMap<>();
-
-    /**
-     * The sum of the jitter values we have reported in RTCP reports, in RTP
-     * timestamp units.
-     */
-    private final Map<Long,Long> jitterSumMap = new HashMap<>();
-
-    /**
-     * The {@link RTCPPacketParserEx} which this instance will use to parse
-     * RTCP packets.
-     */
-    private final RTCPPacketParserEx parser = new RTCPPacketParserEx();
-
-    /**
-     * The <tt>PacketTransformer</tt> instance to use for RTP.
-     */
-    private final PacketTransformer rtpTransformer = new RTPPacketTransformer();
-
-    /**
-     * The {@link MediaStreamStats2Impl} of the {@link MediaStream}.
-     */
-    private final MediaStreamStats2Impl mediaStreamStats;
-
-    /**
-     * Creates Statistic engine.
-     * @param stream the stream creating us.
-     */
-    public StatisticsEngine(MediaStreamImpl stream)
+    private static long getCumulativeValue(Map<?,Long> map)
     {
-        // XXX think about removing the isRTCP method now that we have the
-        // RTCPPacketPredicate in place.
-        super(RTCPPacketPredicate.INSTANCE);
+        long cumulativeValue = 0;
 
-        mediaStream = stream;
-        mediaStreamStats = stream.getMediaStreamStats();
+        synchronized (map)
+        {
+            for (Long value : map.values())
+            {
+                if (value == null)
+                    continue;
 
-        mediaType = this.mediaStream.getMediaType();
+                cumulativeValue += value;
+            }
+        }
+        return cumulativeValue;
+    }
+
+    /**
+     * Utility method to return a value from a map and perform unboxing only if
+     * the result value is not null.
+     * @param map the map to get the value. Note that we synchronize on that
+     * object!
+     * @param ssrc the key
+     * @return the result value or 0 if nothing is found.
+     */
+    private static long getMapValue(Map<?,Long> map, long ssrc)
+    {
+        synchronized (map)
+        {
+            // there can be no entry, or the value can be null
+            Long res = map.get(ssrc);
+            return res == null ? 0 : res;
+        }
+    }
+
+    /**
+     * Utility method to increment map value with specified step. If entry is
+     * missing add it.
+     *
+     * @param map the map holding the values. Note that we synchronize on that
+     * object!
+     * @param ssrc the key of the value to increment
+     * @param step increment step value
+     */
+    private static void incrementSSRCCounter(
+            Map<Long,Long> map,
+            long ssrc,
+            long step)
+    {
+        synchronized(map)
+        {
+            Long count = map.get(ssrc);
+
+            map.put(ssrc, (count == null) ? step : (count + step));
+        }
     }
 
     /**
@@ -565,7 +620,7 @@ public class StatisticsEngine
          * which we do not have (because, for example, we do not voice activity
          * detection).
          */
-        
+
         // residual echo return loss (RERL)
         /*
          * WebRTC, which is available and default on OS X, appears to be able to
@@ -584,7 +639,7 @@ public class StatisticsEngine
         /*
          * TODO Requires notions such as noise and noise sources, simultaneous
          * impairments, and others that we do not know how to define at the time
-         * of this writing. 
+         * of this writing.
          */
         // ext. R factor
         /*
@@ -1023,6 +1078,12 @@ public class StatisticsEngine
                 else if (rtcp instanceof RTCPTCCPacket)
                 {
                     // TODO: handle for the purpose of BWE.
+                    /**
+                     * Intuition: Packet is RTCP, wakeup RTCPPacketListeners which may
+                     * include BWE workers
+                     */
+                    streamStats.tccReceived((RTCPTCCPacket)rtcp);
+
                 }
                 break;
 
@@ -1191,71 +1252,6 @@ public class StatisticsEngine
                     }
                 }
             }
-        }
-    }
-
-    /**
-     * Computes the sum of the values of a specific {@code Map} with
-     * {@code Long} values.
-     *
-     * @param map the {@code Map} with {@code Long} values to sum up. Note that
-     * we synchronize on this object!
-     * @return the sum of the values of the specified {@code map}
-     */
-    private static long getCumulativeValue(Map<?,Long> map)
-    {
-        long cumulativeValue = 0;
-
-        synchronized (map)
-        {
-            for (Long value : map.values())
-            {
-                if (value == null)
-                    continue;
-
-                cumulativeValue += value;
-            }
-        }
-        return cumulativeValue;
-    }
-
-    /**
-     * Utility method to return a value from a map and perform unboxing only if
-     * the result value is not null.
-     * @param map the map to get the value. Note that we synchronize on that
-     * object!
-     * @param ssrc the key
-     * @return the result value or 0 if nothing is found.
-     */
-    private static long getMapValue(Map<?,Long> map, long ssrc)
-    {
-        synchronized (map)
-        {
-            // there can be no entry, or the value can be null
-            Long res = map.get(ssrc);
-            return res == null ? 0 : res;
-        }
-    }
-
-    /**
-     * Utility method to increment map value with specified step. If entry is
-     * missing add it.
-     *
-     * @param map the map holding the values. Note that we synchronize on that
-     * object!
-     * @param ssrc the key of the value to increment
-     * @param step increment step value
-     */
-    private static void incrementSSRCCounter(
-            Map<Long,Long> map,
-            long ssrc,
-            long step)
-    {
-        synchronized(map)
-        {
-            Long count = map.get(ssrc);
-
-            map.put(ssrc, (count == null) ? step : (count + step));
         }
     }
 
