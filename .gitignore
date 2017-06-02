@@ -9,6 +9,8 @@ libjitsi.jar
 .classpath
 .project
 libjitsi.iml
+alz-libjitsi.iml
+libjitsi.iml
 src/native/windows/directshow/Debug/*
 lib/native/win32-x86/*.exp
 lib/native/win32-x86-64/*.exp
