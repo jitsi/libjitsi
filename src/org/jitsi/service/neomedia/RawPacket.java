@@ -62,6 +62,9 @@ public class RawPacket
 
     /**
      * Byte array storing the content of this Packet
+     * Note that if this instance changes, then {@link #headerExtensions} MUST
+     * be reinitialized. It is best to use {@link #setBuffer(byte[])} instead of
+     * accessing this field directly.
      */
     private byte[] buffer;
 
@@ -462,7 +465,7 @@ public class RawPacket
         }
 
         // All that is left to do is update the RawPacket state.
-        this.buffer = newBuffer;
+        setBuffer(newBuffer);
         this.offset = newOffset;
         this.length = newHeaderLength + payloadLength;
 
@@ -1407,7 +1410,7 @@ public class RawPacket
 
             System.arraycopy(buffer, offset, newBuffer, 0, length);
             offset = 0;
-            buffer = newBuffer;
+            setBuffer(newBuffer);
         }
     }
 
@@ -1616,7 +1619,7 @@ public class RawPacket
         newBuffer[offset] = (byte)((newBuffer[offset] & 0xF0)
                                     | newCsrcCount);
 
-        this.buffer = newBuffer;
+        setBuffer(newBuffer);
         this.length = payloadOffsetForNewBuff + length
                 - payloadOffsetForOldBuff - offset;
     }
