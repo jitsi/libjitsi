@@ -1612,7 +1612,7 @@ public class MediaStreamStatsImpl
 
     /**
      * Notifies listeners that a transport-wide-cc packet was received.
-     * Listeners may include Bandwidth Estimators
+     * Listeners may include Remote Bitrate Estimators or Bandwidth Estimators
      * @param tccPacket
      */
     public void tccReceived(RTCPTCCPacket tccPacket)
@@ -1623,6 +1623,7 @@ public class MediaStreamStatsImpl
             {
                 for (RTCPPacketListener listener : rtcpPacketListeners)
                 {
+
                     listener.tccReceived(tccPacket);
                 }
             }

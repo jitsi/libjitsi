@@ -346,6 +346,14 @@ public class MediaStreamImpl
     private byte frameMarkingsExtensionId = -1;
 
     /**
+     * @return the TransportCCEngine associated with this MediaStream
+     */
+    @Override
+    public TransportCCEngine getTransportCCEngine() {
+        return transportCCEngine;
+    }
+
+    /**
      * The {@link TransportCCEngine} instance, if any, for this
      * {@link MediaStream}. The instance could be shared between more than one
      * {@link MediaStream}, if they all use the same transport.

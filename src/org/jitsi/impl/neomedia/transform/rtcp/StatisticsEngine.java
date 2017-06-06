@@ -1042,7 +1042,6 @@ public class StatisticsEngine
             case RTCPPacket.RR:
                 {
                 RTCPReport report;
-
                 try
                 {
                     ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -1083,7 +1082,6 @@ public class StatisticsEngine
                      * include BWE workers
                      */
                     streamStats.tccReceived((RTCPTCCPacket)rtcp);
-
                 }
                 break;
 
