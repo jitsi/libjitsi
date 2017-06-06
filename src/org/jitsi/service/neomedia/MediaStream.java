@@ -552,9 +552,4 @@ public interface MediaStream
      */
     void setTransportCCEngine(TransportCCEngine engine);
 
-
-    /**
-     * @return the transportCCEngine for this MediaStream
-     */
-    TransportCCEngine getTransportCCEngine();
-}
+ }
