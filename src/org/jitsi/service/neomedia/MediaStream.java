@@ -551,5 +551,4 @@ public interface MediaStream
      * @param engine the engine to set.
      */
     void setTransportCCEngine(TransportCCEngine engine);
-
- }
+}
