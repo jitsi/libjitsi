@@ -652,7 +652,5 @@ public class RTCPTCCPacket
             super(RTPUtils.sequenceNumberComparator);
         }
     }
-
-
 }
 
