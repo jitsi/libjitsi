@@ -449,40 +449,40 @@ public class MediaStreamImpl
         synchronized (dynamicRTPPayloadTypes)
         {
             dynamicRTPPayloadTypes.put(Byte.valueOf(rtpPayloadType), format);
+        }
 
-            String encoding = format.getEncoding();
+        String encoding = format.getEncoding();
 
-            if (Constants.RED.equals(encoding))
+        if (Constants.RED.equals(encoding))
+        {
+            REDTransformEngine redTransformEngine = getRedTransformEngine();
+            if (redTransformEngine != null)
             {
-                REDTransformEngine redTransformEngine = getRedTransformEngine();
-                if (redTransformEngine != null)
-                {
-                    redTransformEngine.setIncomingPT(rtpPayloadType);
-                    // setting outgoingPT enables RED encapsulation for outgoing
-                    // packets.
-                    redTransformEngine.setOutgoingPT(rtpPayloadType);
-                }
+                redTransformEngine.setIncomingPT(rtpPayloadType);
+                // setting outgoingPT enables RED encapsulation for outgoing
+                // packets.
+                redTransformEngine.setOutgoingPT(rtpPayloadType);
             }
-            else if (Constants.ULPFEC.equals(encoding))
+        }
+        else if (Constants.ULPFEC.equals(encoding))
+        {
+            FECTransformEngine fecTransformEngine = getFecTransformEngine();
+            if (fecTransformEngine != null)
             {
-                FECTransformEngine fecTransformEngine = getFecTransformEngine();
-                if (fecTransformEngine != null)
-                {
-                    fecTransformEngine.setIncomingPT(rtpPayloadType);
-                    // TODO ULPFEC without RED doesn't make sense.
-                    fecTransformEngine.setOutgoingPT(rtpPayloadType);
-                }
+                fecTransformEngine.setIncomingPT(rtpPayloadType);
+                // TODO ULPFEC without RED doesn't make sense.
+                fecTransformEngine.setOutgoingPT(rtpPayloadType);
             }
+        }
 
-            if (rtpManager != null)
-            {
-                // We do not add RED and FEC payload types to the RTP Manager
-                // because RED and FEC packets will be handled before they get
-                // to the RTP Manager.
-                rtpManager.addFormat(
-                        mediaFormatImpl.getFormat(),
-                        rtpPayloadType);
-            }
+        if (rtpManager != null)
+        {
+            // We do not add RED and FEC payload types to the RTP Manager
+            // because RED and FEC packets will be handled before they get
+            // to the RTP Manager.
+            rtpManager.addFormat(
+                    mediaFormatImpl.getFormat(),
+                    rtpPayloadType);
         }
 
         this.onDynamicPayloadTypesChanged();
@@ -497,20 +497,20 @@ public class MediaStreamImpl
         synchronized (dynamicRTPPayloadTypes)
         {
             dynamicRTPPayloadTypes.clear();
+        }
 
-            REDTransformEngine redTransformEngine = getRedTransformEngine();
-            if (redTransformEngine != null)
-            {
-                redTransformEngine.setIncomingPT((byte) -1);
-                redTransformEngine.setOutgoingPT((byte) -1);
-            }
+        REDTransformEngine redTransformEngine = getRedTransformEngine();
+        if (redTransformEngine != null)
+        {
+            redTransformEngine.setIncomingPT((byte) -1);
+            redTransformEngine.setOutgoingPT((byte) -1);
+        }
 
-            FECTransformEngine fecTransformEngine = getFecTransformEngine();
-            if (fecTransformEngine != null)
-            {
-                fecTransformEngine.setIncomingPT((byte) -1);
-                fecTransformEngine.setOutgoingPT((byte) -1);
-            }
+        FECTransformEngine fecTransformEngine = getFecTransformEngine();
+        if (fecTransformEngine != null)
+        {
+            fecTransformEngine.setIncomingPT((byte) -1);
+            fecTransformEngine.setOutgoingPT((byte) -1);
         }
 
         this.onDynamicPayloadTypesChanged();
@@ -1495,19 +1495,16 @@ public class MediaStreamImpl
      */
     public byte getDynamicRTPPayloadType(String encoding)
     {
-        synchronized (dynamicRTPPayloadTypes)
+        for (Map.Entry<Byte, MediaFormat> dynamicRTPPayloadType
+                : getDynamicRTPPayloadTypes().entrySet())
         {
-            for (Map.Entry<Byte, MediaFormat> dynamicRTPPayloadType
-                    : dynamicRTPPayloadTypes.entrySet())
+            if (dynamicRTPPayloadType.getValue().getEncoding().equals(
+                    encoding))
             {
-                if (dynamicRTPPayloadType.getValue().getEncoding().equals(
-                        encoding))
-                {
-                    return dynamicRTPPayloadType.getKey().byteValue();
-                }
+                return dynamicRTPPayloadType.getKey().byteValue();
             }
-            return -1;
         }
+        return -1;
     }
 
     /**
@@ -2090,32 +2087,29 @@ public class MediaStreamImpl
         if (!(format instanceof ParameterizedVideoFormat))
             return;
 
-        synchronized (dynamicRTPPayloadTypes)
+        for (Map.Entry<Byte,MediaFormat> dynamicRTPPayloadType
+                : getDynamicRTPPayloadTypes().entrySet())
         {
-            for (Map.Entry<Byte,MediaFormat> dynamicRTPPayloadType
-                    : dynamicRTPPayloadTypes.entrySet())
+            MediaFormat dynamicMediaFormat
+                = dynamicRTPPayloadType.getValue();
+
+            if (!(dynamicMediaFormat instanceof MediaFormatImpl))
+                continue;
+
+            @SuppressWarnings("unchecked")
+            MediaFormatImpl<? extends Format> dynamicMediaFormatImpl
+                = (MediaFormatImpl<? extends Format>) dynamicMediaFormat;
+            Format dynamicFormat = dynamicMediaFormatImpl.getFormat();
+
+            if (format.matches(dynamicFormat)
+                    && dynamicFormat.matches(format))
             {
-                MediaFormat dynamicMediaFormat
-                    = dynamicRTPPayloadType.getValue();
-
-                if (!(dynamicMediaFormat instanceof MediaFormatImpl))
-                    continue;
-
-                @SuppressWarnings("unchecked")
-                MediaFormatImpl<? extends Format> dynamicMediaFormatImpl
-                    = (MediaFormatImpl<? extends Format>) dynamicMediaFormat;
-                Format dynamicFormat = dynamicMediaFormatImpl.getFormat();
-
-                if (format.matches(dynamicFormat)
-                        && dynamicFormat.matches(format))
-                {
-                    rtpManager.addFormat(
-                            format,
-                            dynamicRTPPayloadType.getKey());
-                }
+                rtpManager.addFormat(
+                        format,
+                        dynamicRTPPayloadType.getKey());
             }
         }
-    }
+     }
 
     /**
      * Prints all statistics available for {@link #rtpManager}.
@@ -2273,19 +2267,16 @@ public class MediaStreamImpl
      */
     protected void registerCustomCodecFormats(StreamRTPManager rtpManager)
     {
-        synchronized (dynamicRTPPayloadTypes)
+        for (Map.Entry<Byte, MediaFormat> dynamicRTPPayloadType
+                : getDynamicRTPPayloadTypes().entrySet())
         {
-            for (Map.Entry<Byte, MediaFormat> dynamicRTPPayloadType
-                    : dynamicRTPPayloadTypes.entrySet())
-            {
-                @SuppressWarnings("unchecked")
-                MediaFormatImpl<? extends Format> mediaFormatImpl
-                    = (MediaFormatImpl<? extends Format>)
-                        dynamicRTPPayloadType.getValue();
-                Format format = mediaFormatImpl.getFormat();
+            @SuppressWarnings("unchecked")
+            MediaFormatImpl<? extends Format> mediaFormatImpl
+                = (MediaFormatImpl<? extends Format>)
+                    dynamicRTPPayloadType.getValue();
+            Format format = mediaFormatImpl.getFormat();
 
-                rtpManager.addFormat(format, dynamicRTPPayloadType.getKey());
-            }
+            rtpManager.addFormat(format, dynamicRTPPayloadType.getKey());
         }
 
         maybeUpdateDynamicRTPPayloadTypes(rtpManager);
