@@ -345,7 +345,6 @@ public class MediaStreamImpl
      */
     private byte frameMarkingsExtensionId = -1;
 
-
     /**
      * The {@link TransportCCEngine} instance, if any, for this
      * {@link MediaStream}. The instance could be shared between more than one
