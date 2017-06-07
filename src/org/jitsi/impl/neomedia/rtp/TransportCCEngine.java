@@ -18,11 +18,9 @@ package org.jitsi.impl.neomedia.rtp;
 import net.sf.fmj.media.rtp.RTCPSRPacket;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.rtcp.*;
-import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.RemoteBitrateEstimatorSingleStream;
-import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.RemoteBitrateObserver;
+import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
-import org.jitsi.service.neomedia.rtp.RTCPPacketListener;
 import org.jitsi.util.*;
 
 import java.io.*;
@@ -38,9 +36,8 @@ import java.util.concurrent.atomic.*;
  * @author Boris Grozev
  */
 public class TransportCCEngine
-
+    extends RTCPPacketListenerAdapter
     implements TransformEngine,
-        RTCPPacketListener,
         RemoteBitrateObserver
 {
     /**
@@ -110,9 +107,7 @@ public class TransportCCEngine
      * {@Link #outgoingPacketFields} holds a key value pair of the packet sequence
      * number and an object made up of the packet send time and the packet
      * size.
-     *
      */
-
     private Map<Integer,PacketDetail> outgoingPacketFields =  new HashMap<Integer,PacketDetail>();
 
     /**
@@ -283,7 +278,6 @@ public class TransportCCEngine
             super(RTPPacketPredicate.INSTANCE);
         }
 
-
         /**
          * {@inheritDoc}
          * <p></p>
@@ -294,7 +288,6 @@ public class TransportCCEngine
         @Override
         public RawPacket transform(RawPacket pkt)
         {
-
 
             if (extensionId != -1)
             {
@@ -415,36 +408,6 @@ public class TransportCCEngine
     }
 
     /**
-     * Notifies this listener that a {@link NACKPacket} has been received.
-     *
-     * @param nackPacket the received {@link NACKPacket}.
-     */
-    @Override
-    public void nackReceived(NACKPacket nackPacket) {
-
-    }
-
-    /**
-     * Notifies this listener that a {@link RTCPREMBPacket} has been received.
-     *
-     * @param rembPacket the received {@link RTCPREMBPacket}.
-     */
-    @Override
-    public void rembReceived(RTCPREMBPacket rembPacket) {
-
-    }
-
-    /**
-     * Notifies this listener that an {@link RTCPSRPacket} has been received.
-     *
-     * @param srPacket the received {@link RTCPSRPacket}.
-     */
-    @Override
-    public void srReceived(RTCPSRPacket srPacket) {
-
-    }
-
-    /**
      * Calls the bitrate extimator with receiver and sender parameters.
      * @note the bridge is the sender.
      * @param pkt
@@ -489,6 +452,5 @@ public class TransportCCEngine
     }
     private RemoteBitrateEstimatorSingleStream bitrateEstimator
             = new RemoteBitrateEstimatorSingleStream(this);
-
 
 }
