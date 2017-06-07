@@ -57,159 +57,27 @@ public class MediaStreamStatsImpl
     implements MediaStreamStats
 {
     /**
+     * Enumeration of the direction (DOWNLOAD or UPLOAD) used for the stats.
+     */
+    public enum StreamDirection
+    {
+        DOWNLOAD,
+        UPLOAD
+    }
+
+    /**
      * The {@link Logger} used by the {@link MediaStreamStatsImpl} class and its
      * instances for logging output.
      */
     private static final Logger logger
         = Logger.getLogger(MediaStreamStatsImpl.class);
+
     /**
      * Keeps track of when a given NTP time (found in an SR) has been received.
      * This is used to compute the correct RTT in the translator case.
      */
     private final Map<Long, Long> emission2reception
         = Collections.synchronizedMap(new LRUCache<Long, Long>(100));
-    /**
-     * The source data stream to analyze in order to compute the stats.
-     */
-    private final MediaStreamImpl mediaStreamImpl;
-    /**
-     * The detailed statistics about the RTCP reports sent and received by the
-     * associated local peer.
-     */
-    private final RTCPReports rtcpReports = new RTCPReports();
-    /**
-     * The list of listeners to be notified when RTCP packets are received.
-     */
-    private final List<RTCPPacketListener> rtcpPacketListeners
-        = Collections.synchronizedList(new LinkedList<RTCPPacketListener>());
-    /**
-     * The last jitter received/sent in a RTCP feedback (in RTP timestamp
-     * units).
-     */
-    private double[] jitterRTPTimestampUnits = {0, 0};
-    /**
-     * The last number of received/sent Bytes.
-     */
-    private long[] nbByte = {0, 0};
-    /**
-     * The total number of discarded packets
-     */
-    private long nbDiscarded = 0;
-    /**
-     * The number of packets for which FEC data was decoded. This is only
-     */
-    private long nbFec = 0;
-    /**
-     * The last number of download/upload lost packets.
-     */
-    private long[] nbLost = {0, 0};
-    /**
-     * The last number of received/sent packets.
-     */
-    private long[] nbPackets = {0, 0};
-    /**
-     * The last percent of discarded packets
-     */
-    private double percentDiscarded = 0;
-    /**
-     * The last download/upload loss rate computed (in %).
-     */
-    private double[] percentLoss = {0, 0};
-    /**
-     * The last used bandwidth computed in download/upload (in Kbit/s).
-     */
-    private double[] rateKiloBitPerSec = {0, 0};
-    /**
-     * The number of packets lost, as reported by the remote side in the last
-     * received RTCP RR.
-     */
-    private long nbPacketsLostUpload = 0;
-    /**
-     * The RTT computed with the RTCP feedback (cf. RFC3550, section 6.4.1,
-     * subsection "delay since last SR (DLSR): 32 bits").
-     * -1 if the RTT has not been computed yet. Otherwise the RTT in ms.
-     */
-    private long rttMs = -1;
-    /**
-     * The last time these stats have been updated.
-     */
-    private long updateTimeMs;
-    /**
-     * The last number of sent packets when the last feedback has been received.
-     * This counter is used to compute the upload loss rate.
-     */
-    private long uploadFeedbackNbPackets = 0;
-    /**
-     * The <tt>RTCPReportListener</tt> which listens to {@link #rtcpReports}
-     * about the sending and the receiving of RTCP sender/receiver reports and
-     * updates this <tt>MediaStreamStats</tt> with their feedback reports.
-     */
-    private final RTCPReportListener rtcpReportListener
-        = new RTCPReportAdapter()
-        {
-            /**
-             * {@inheritDoc}
-             *
-             * Updates this <tt>MediaStreamStats</tt> with the received feedback
-             * (report).
-             */
-            @Override
-            public void rtcpReportReceived(RTCPReport report)
-            {
-                MediaStreamStatsImpl.this.rtcpReportReceived(report);
-            }
-
-            /**
-             * {@inheritDoc}
-             *
-             * Updates this <tt>MediaStreamStats</tt> with the sent feedback
-             * (report).
-             */
-            @Override
-            public void rtcpReportSent(RTCPReport report)
-            {
-                List<?> feedbackReports = report.getFeedbackReports();
-
-                if (!feedbackReports.isEmpty())
-                {
-                    updateNewSentFeedback(
-                            (RTCPFeedback) feedbackReports.get(0));
-                }
-            }
-        };
-    /**
-     * The maximum inter arrival jitter value the other party has reported, in
-     * RTP time units.
-     */
-    private long minRemoteInterArrivalJitter = -1;
-    /**
-     * The minimum inter arrival jitter value the other party has reported, in
-     * RTP time units.
-     */
-    private long maxRemoteInterArrivalJitter = 0;
-    /**
-     * The sum of all RTP jitter values reported by the remote side, in RTP
-     * time units.
-     */
-    private long remoteJitterSum = 0;
-    /**
-     * The number of remote RTP jitter reports received.
-     */
-    private int remoteJitterCount = 0;
-
-    /**
-     * Creates a new instance of stats concerning a MediaStream.
-     *
-     * @param mediaStreamImpl The MediaStreamImpl used to compute the stats.
-     */
-    public MediaStreamStatsImpl(MediaStreamImpl mediaStreamImpl)
-    {
-        this.mediaStreamImpl = mediaStreamImpl;
-
-        updateTimeMs = System.currentTimeMillis();
-
-        getRTCPReports().addRTCPReportListener(rtcpReportListener);
-    }
 
     /**
      * Computes an Exponentially Weighted Moving Average (EWMA). Thus, the most
@@ -297,6 +165,169 @@ public class MediaStreamStatsImpl
             }
         }
         return null;
+    }
+
+    /**
+     * The last jitter received/sent in a RTCP feedback (in RTP timestamp
+     * units).
+     */
+    private double[] jitterRTPTimestampUnits = {0, 0};
+
+    /**
+     * The source data stream to analyze in order to compute the stats.
+     */
+    private final MediaStreamImpl mediaStreamImpl;
+
+    /**
+     * The last number of received/sent Bytes.
+     */
+    private long[] nbByte = {0, 0};
+
+    /**
+     * The total number of discarded packets
+     */
+    private long nbDiscarded = 0;
+
+    /**
+     * The number of packets for which FEC data was decoded. This is only
+     */
+    private long nbFec = 0;
+
+    /**
+     * The last number of download/upload lost packets.
+     */
+    private long[] nbLost = {0, 0};
+
+    /**
+     * The last number of received/sent packets.
+     */
+    private long[] nbPackets = {0, 0};
+
+    /**
+     * The last percent of discarded packets
+     */
+    private double percentDiscarded = 0;
+
+    /**
+     * The last download/upload loss rate computed (in %).
+     */
+    private double[] percentLoss = {0, 0};
+
+    /**
+     * The last used bandwidth computed in download/upload (in Kbit/s).
+     */
+    private double[] rateKiloBitPerSec = {0, 0};
+
+    /**
+     * The number of packets lost, as reported by the remote side in the last
+     * received RTCP RR.
+     */
+    private long nbPacketsLostUpload = 0;
+
+    /**
+     * The <tt>RTCPReportListener</tt> which listens to {@link #rtcpReports}
+     * about the sending and the receiving of RTCP sender/receiver reports and
+     * updates this <tt>MediaStreamStats</tt> with their feedback reports.
+     */
+    private final RTCPReportListener rtcpReportListener
+        = new RTCPReportAdapter()
+        {
+            /**
+             * {@inheritDoc}
+             *
+             * Updates this <tt>MediaStreamStats</tt> with the received feedback
+             * (report).
+             */
+            @Override
+            public void rtcpReportReceived(RTCPReport report)
+            {
+                MediaStreamStatsImpl.this.rtcpReportReceived(report);
+            }
+
+            /**
+             * {@inheritDoc}
+             *
+             * Updates this <tt>MediaStreamStats</tt> with the sent feedback
+             * (report).
+             */
+            @Override
+            public void rtcpReportSent(RTCPReport report)
+            {
+                List<?> feedbackReports = report.getFeedbackReports();
+
+                if (!feedbackReports.isEmpty())
+                {
+                    updateNewSentFeedback(
+                            (RTCPFeedback) feedbackReports.get(0));
+                }
+            }
+        };
+
+    /**
+     * The detailed statistics about the RTCP reports sent and received by the
+     * associated local peer.
+     */
+    private final RTCPReports rtcpReports = new RTCPReports();
+
+    /**
+     * The RTT computed with the RTCP feedback (cf. RFC3550, section 6.4.1,
+     * subsection "delay since last SR (DLSR): 32 bits").
+     * -1 if the RTT has not been computed yet. Otherwise the RTT in ms.
+     */
+    private long rttMs = -1;
+
+    /**
+     * The last time these stats have been updated.
+     */
+    private long updateTimeMs;
+
+    /**
+     * The last number of sent packets when the last feedback has been received.
+     * This counter is used to compute the upload loss rate.
+     */
+    private long uploadFeedbackNbPackets = 0;
+
+    /**
+     * The maximum inter arrival jitter value the other party has reported, in
+     * RTP time units.
+     */
+    private long minRemoteInterArrivalJitter = -1;
+
+    /**
+     * The minimum inter arrival jitter value the other party has reported, in
+     * RTP time units.
+     */
+    private long maxRemoteInterArrivalJitter = 0;
+
+    /**
+     * The sum of all RTP jitter values reported by the remote side, in RTP
+     * time units.
+     */
+    private long remoteJitterSum = 0;
+
+    /**
+     * The number of remote RTP jitter reports received.
+     */
+    private int remoteJitterCount = 0;
+
+    /**
+     * The list of listeners to be notified when RTCP packets are received.
+     */
+    private final List<RTCPPacketListener> rtcpPacketListeners
+        = Collections.synchronizedList(new LinkedList<RTCPPacketListener>());
+
+    /**
+     * Creates a new instance of stats concerning a MediaStream.
+     *
+     * @param mediaStreamImpl The MediaStreamImpl used to compute the stats.
+     */
+    public MediaStreamStatsImpl(MediaStreamImpl mediaStreamImpl)
+    {
+        this.mediaStreamImpl = mediaStreamImpl;
+
+        updateTimeMs = System.currentTimeMillis();
+
+        getRTCPReports().addRTCPReportListener(rtcpReportListener);
     }
 
     /**
@@ -979,6 +1010,7 @@ public class MediaStreamStatsImpl
         return 0;
     }
 
+
     @Override
     public long getNbSentBytes()
     {
@@ -1101,44 +1133,6 @@ public class MediaStreamStatsImpl
     }
 
     /**
-     * Sets a specific value on {@link #rttMs}. If there is an actual difference
-     * between the old and the new values, notifies the (known)
-     * <tt>CallStatsObserver</tt>s.
-     *
-     * @param rttMs the value to set on <tt>MediaStreamStatsImpl.rttMs</tt>
-     */
-    private void setRttMs(long rttMs)
-    {
-        if (this.rttMs != rttMs)
-        {
-            this.rttMs = rttMs;
-
-            // Notify the CallStatsObservers.
-            rttMs = getRttMs();
-            if (rttMs >= 0)
-            {
-                // RemoteBitrateEstimator is a CallStatsObserver and
-                // VideoMediaStream has a RemoteBitrateEstimator.
-                MediaStreamImpl mediaStream = this.mediaStreamImpl;
-
-                if (mediaStream instanceof VideoMediaStream)
-                {
-                    RemoteBitrateEstimator remoteBitrateEstimator
-                        = mediaStream.getRemoteBitrateEstimator();
-
-                    if (remoteBitrateEstimator instanceof CallStatsObserver)
-                    {
-                        ((CallStatsObserver) remoteBitrateEstimator)
-                            .onRttUpdate(
-                                    /* avgRttMs */ rttMs,
-                                    /* maxRttMs*/ rttMs);
-                    }
-                }
-            }
-        }
-    }
-
-    /**
      * Returns the jitter average of this upload stream.
      *
      * @return the last jitter average computed (in ms).
@@ -1206,6 +1200,44 @@ public class MediaStreamStatsImpl
             if(pcq.isAdaptiveBufferEnabled())
                 return true;
         return false;
+    }
+
+    /**
+     * Sets a specific value on {@link #rttMs}. If there is an actual difference
+     * between the old and the new values, notifies the (known)
+     * <tt>CallStatsObserver</tt>s.
+     *
+     * @param rttMs the value to set on <tt>MediaStreamStatsImpl.rttMs</tt>
+     */
+    private void setRttMs(long rttMs)
+    {
+        if (this.rttMs != rttMs)
+        {
+            this.rttMs = rttMs;
+
+            // Notify the CallStatsObservers.
+            rttMs = getRttMs();
+            if (rttMs >= 0)
+            {
+                // RemoteBitrateEstimator is a CallStatsObserver and
+                // VideoMediaStream has a RemoteBitrateEstimator.
+                MediaStreamImpl mediaStream = this.mediaStreamImpl;
+
+                if (mediaStream instanceof VideoMediaStream)
+                {
+                    RemoteBitrateEstimator remoteBitrateEstimator
+                        = mediaStream.getRemoteBitrateEstimator();
+
+                    if (remoteBitrateEstimator instanceof CallStatsObserver)
+                    {
+                        ((CallStatsObserver) remoteBitrateEstimator)
+                            .onRttUpdate(
+                                    /* avgRttMs */ rttMs,
+                                    /* maxRttMs*/ rttMs);
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -1608,35 +1640,5 @@ public class MediaStreamStatsImpl
     private MediaStreamStats2Impl getExtended()
     {
         return mediaStreamImpl.getMediaStreamStats();
-    }
-
-    /**
-     * Notifies listeners that a transport-wide-cc packet was received.
-     * Listeners may include Remote Bitrate Estimators or Bandwidth Estimators
-     * @param tccPacket
-     */
-    public void tccReceived(RTCPTCCPacket tccPacket)
-    {
-        if (tccPacket != null)
-        {
-            synchronized (rtcpPacketListeners)
-            {
-                for (RTCPPacketListener listener : rtcpPacketListeners)
-                {
-
-                    listener.tccReceived(tccPacket);
-                }
-            }
-        }
-    }
-
-
-    /**
-     * Enumeration of the direction (DOWNLOAD or UPLOAD) used for the stats.
-     */
-    public enum StreamDirection
-    {
-        DOWNLOAD,
-        UPLOAD
     }
 }
