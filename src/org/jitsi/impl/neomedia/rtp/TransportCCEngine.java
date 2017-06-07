@@ -288,7 +288,6 @@ public class TransportCCEngine
         @Override
         public RawPacket transform(RawPacket pkt)
         {
-
             if (extensionId != -1)
             {
                 RawPacket.HeaderExtension ext
