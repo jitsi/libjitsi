@@ -1647,7 +1647,8 @@ public class MediaStreamStatsImpl
      * Listeners may include Remote Bitrate Estimators or Bandwidth Estimators
      * @param tccPacket
      */
-    public void tccReceived(RTCPTCCPacket tccPacket)
+
+    public void tccPacketReceived(RTCPTCCPacket tccPacket)
     {
         if (tccPacket != null)
         {

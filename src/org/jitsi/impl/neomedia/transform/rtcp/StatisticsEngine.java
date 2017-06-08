@@ -1027,7 +1027,7 @@ public class StatisticsEngine
                      * Intuition: Packet is RTCP, wakeup RTCPPacketListeners which may
                      * include BWE workers
                      */
-                    streamStats.tccReceived((RTCPTCCPacket)rtcp);
+                    streamStats.tccPacketReceived((RTCPTCCPacket)rtcp);
                 }
                 break;
 
