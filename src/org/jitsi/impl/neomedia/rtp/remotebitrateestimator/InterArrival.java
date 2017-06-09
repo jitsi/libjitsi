@@ -156,23 +156,6 @@ class InterArrival
             if (prevTimestampGroup.completeTimeMs >= 0)
             {
                 /* long timestampDelta */ deltas[0]
-                    /** {@thoughts Julian}
-                     * I am thinking line 161 should be
-                     * "timestamp" - currentTimestampGroup.timestamp with the
-                     * current implementation.
-                     * since currentTimestampGroup still retains previous
-                     * timestamp value while "timestamp" is the current
-                     * value.
-                     * For example, after the timestamp of the first frame
-                     * is recorded in line 145, the @delta[0] for the second
-                     * frame will be equal to currentTimestampGroup.timestamp
-                     * since prevTimestampGroup.timestamp = 0 at this point.
-                     * The same goes with arrivalTimeDeltaMs.
-                     * If am correct, then it may be necessary to update
-                     * currentTimestampGroup to the current time stamp before
-                     * the conditional statement.
-                     * Please clarify.
-                     */
                     = currentTimestampGroup.timestamp
                         - prevTimestampGroup.timestamp;
 
