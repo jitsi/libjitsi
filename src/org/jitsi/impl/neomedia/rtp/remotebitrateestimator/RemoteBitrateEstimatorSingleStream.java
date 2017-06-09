@@ -385,11 +385,12 @@ public class RemoteBitrateEstimatorSingleStream
         /* int sizeDelta */ deltas[2] = 0;
 
             if (estimator.interArrival.computeDeltas(
-                    /** {@thoughts Julian} confirm that "timestamp" is
-                     * sendtime */
+                    /**  "timestamp" is sendtime -
+                     * time the packet is sent at the sender*/
                     sendTime,
-                    /** {@thoughts Julian} confirm that "arrivalTime" is
-                     * received time */
+                    /** "arrivalTime" is received time -
+                     * time recorderd by the receiver
+                     * when the packet is received */
                     receivedTime,
                     packetLength,
                     deltas))
