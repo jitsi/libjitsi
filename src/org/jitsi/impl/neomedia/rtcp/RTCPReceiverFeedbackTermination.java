@@ -104,6 +104,13 @@ public class RTCPReceiverFeedbackTermination
     {
         super.run();
 
+        RTPTranslator rtpTranslator = stream.getRTPTranslator();
+        if (rtpTranslator == null
+            || rtpTranslator.getStreamRTPManagers().size() < 3)
+        {
+            return;
+        }
+
         // Create and return the packet.
         // We use the stream's local source ID (SSRC) as the SSRC of packet
         // sender.
@@ -386,12 +393,20 @@ public class RTCPReceiverFeedbackTermination
         @Override
         public RawPacket reverseTransform(RawPacket pkt)
         {
+            RTPTranslator rtpTranslator = stream.getRTPTranslator();
+            if (rtpTranslator == null
+                || rtpTranslator.getStreamRTPManagers().size() < 3)
+            {
+                return pkt;
+            }
+
             return doTransform(pkt, false);
         }
 
         private RawPacket doTransform(RawPacket pkt, boolean send)
         {
             RTCPIterator it = new RTCPIterator(pkt);
+            boolean removed = true;
             while (it.hasNext())
             {
                 ByteArrayBuffer baf = it.next();
@@ -417,8 +432,13 @@ public class RTCPReceiverFeedbackTermination
                         it.remove();
                     }
                 }
+
+                if (removed && RTCPPacket.SDES == pt)
+                {
+                    it.remove();
+                }
             }
-            return pkt;
+            return pkt.getLength() == 0 ? null : pkt;
         }
     }
 }
