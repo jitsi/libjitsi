@@ -436,33 +436,6 @@ public class MediaStreamTrackDesc
     }
 
     /**
-     * Gets the maximum subjective quality index that complies to the max height
-     * specified as an argument.
-     *
-     * @param maxHeight the max height
-     * @return the maximum subjective quality index that complies to the max
-     * height specified as an argument, or -1 if no encoding meets the maxHeight
-     * that is specified as an argument..
-     */
-    public int getMaxIndex(int maxHeight)
-    {
-        int optimalIndex = -1;
-
-        if (!ArrayUtils.isNullOrEmpty(rtpEncodings))
-        {
-            for (int i = 0; i < rtpEncodings.length; i++)
-            {
-                if (rtpEncodings[i].getHeight() <= maxHeight)
-                {
-                    optimalIndex = i;
-                }
-            }
-        }
-
-        return optimalIndex;
-    }
-
-    /**
      * Stats for {@link MediaStreamTrackDesc} instances.
      */
     public static class Statistics
