@@ -418,7 +418,7 @@ public class RTCPReceiverFeedbackTermination
                     }
                 }
             }
-            return pkt;
+            return pkt.getLength() == 0 ? null : pkt;
         }
     }
 }
