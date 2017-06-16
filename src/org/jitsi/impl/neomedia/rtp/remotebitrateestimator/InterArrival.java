@@ -67,6 +67,13 @@ class InterArrival
 
     private double timestampToMsCoeff;
 
+    private int numConsecutiveReorderedPackets;
+
+    // After this many packet groups received out of order InterArrival will
+    // reset, assuming that clocks have made a jump.
+    private final int kReorderedResetThreshold = 3;
+    private final int kArrivalTimeOffsetThresholdMs = 3000;
+
     /**
      * A timestamp group is defined as all packets with a timestamp which are at
      * most {@code timestampGroupLengthTicks} older than the first timestamp in
@@ -84,6 +91,7 @@ class InterArrival
         kTimestampGroupLengthTicks = timestampGroupLengthTicks;
         this.timestampToMsCoeff = timestampToMsCoeff;
         burstGrouping = enableBurstGrouping;
+        numConsecutiveReorderedPackets = 0;
     }
 
     private boolean belongsToBurst(long arrivalTimeMs, long timestamp)
@@ -184,6 +192,8 @@ class InterArrival
             currentTimestampGroup.firstTimestamp = timestamp;
             currentTimestampGroup.timestamp = timestamp;
             currentTimestampGroup.size = 0;
+            currentTimestampGroup.lastSystemTimeMs = systemTimeMs;
+
         }
         else
         {
@@ -193,6 +203,8 @@ class InterArrival
         // Accumulate the frame size.
         currentTimestampGroup.size += packetSize;
         currentTimestampGroup.completeTimeMs = arrivalTimeMs;
+        currentTimestampGroup.lastSystemTimeMs = systemTimeMs;
+
 
         return calculatedDeltas;
     }
@@ -259,6 +271,8 @@ class InterArrival
 
         public long timestamp = 0L;
 
+        public long lastSystemTimeMs = -1L;
+
         /**
          * Assigns the values of the fields of <tt>source</tt> to the respective
          * fields of this {@code TimestampGroup}.
@@ -279,5 +293,12 @@ class InterArrival
         {
             return completeTimeMs == -1L;
         }
+    }
+
+    public void Reset() {
+        numConsecutiveReorderedPackets = 0;
+        currentTimestampGroup = new TimestampGroup();
+        prevTimestampGroup = new TimestampGroup();
+
     }
 }
