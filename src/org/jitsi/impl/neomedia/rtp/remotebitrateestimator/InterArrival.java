@@ -67,6 +67,13 @@ class InterArrival
 
     private double timestampToMsCoeff;
 
+    private int numConsecutiveReorderedPackets;
+
+    // After this many packet groups received out of order InterArrival will
+    // reset, assuming that clocks have made a jump.
+    private final int kReorderedResetThreshold = 3;
+    private final int kArrivalTimeOffsetThresholdMs = 3000;
+
     /**
      * A timestamp group is defined as all packets with a timestamp which are at
      * most {@code timestampGroupLengthTicks} older than the first timestamp in
@@ -84,6 +91,7 @@ class InterArrival
         kTimestampGroupLengthTicks = timestampGroupLengthTicks;
         this.timestampToMsCoeff = timestampToMsCoeff;
         burstGrouping = enableBurstGrouping;
+        numConsecutiveReorderedPackets = 0;
     }
 
     private boolean belongsToBurst(long arrivalTimeMs, long timestamp)
@@ -124,12 +132,40 @@ class InterArrival
      * {@code arrivalTimeDeltaMs} is the computed arrival-time delta,
      * {@code packetSizeDelta} is the computed size delta.
      * @return
+     *
+     * @Note: We have two {@Link computeDeltas}.
+     * One with a valid {@Link systemTimeMs} according to webrtc
+     * implementation as of June 12,2017 and a previous one
+     * with a default systemTimeMs (-1L). the later may be removed or
+     * deprecated.
      */
     public boolean computeDeltas(
             long timestamp,
             long arrivalTimeMs,
+            long systemTimeMs,
             int packetSize,
-            long[] deltas)
+            long[] deltas){
+
+        return solveDeltas(timestamp,arrivalTimeMs,
+                packetSize,deltas,systemTimeMs);
+    }
+
+    public boolean computeDeltas(
+            long timestamp,
+            long arrivalTimeMs,
+            int packetSize,
+            long[] deltas){
+
+                return solveDeltas(timestamp,arrivalTimeMs,
+                        packetSize,deltas,-1L);
+    }
+
+    public boolean solveDeltas(
+            long timestamp,
+            long arrivalTimeMs,
+            int packetSize,
+            long[] deltas,
+            long systemTimeMs )
     {
         if (deltas == null)
             throw new NullPointerException("deltas");
@@ -164,15 +200,36 @@ class InterArrival
                     = currentTimestampGroup.completeTimeMs
                         - prevTimestampGroup.completeTimeMs;
 
+                // Check system time differences to see if we have an unproportional jump
+                // in arrival time. In that case reset the inter-arrival computations.
+                long systemTimeDeltaMs =
+                        currentTimestampGroup.lastSystemTimeMs -
+                                prevTimestampGroup.lastSystemTimeMs;
+                if (prevTimestampGroup.lastSystemTimeMs != -1L &&
+                        currentTimestampGroup.lastSystemTimeMs != -1L &&
+                        arrivalTimeDeltaMs - systemTimeDeltaMs >=
+                    kArrivalTimeOffsetThresholdMs) {
+                    logger.warn( "The arrival time clock offset has changed (diff = "
+                            + String.valueOf(arrivalTimeDeltaMs - systemTimeDeltaMs)
+                            +  " ms), resetting.");
+                    Reset();
+                    return false;
+                }
+
                 if (arrivalTimeDeltaMs < 0)
                 {
-                    // The group of packets has been reordered since receiving
-                    // its local arrival timestamp.
-                    logger.warn(
-                            "Packets are being reordered on the path from the "
-                                + "socket to the bandwidth estimator. Ignoring "
-                                + "this packet for bandwidth estimation.");
-                    return false;
+                    ++numConsecutiveReorderedPackets;
+                    if (numConsecutiveReorderedPackets >= kReorderedResetThreshold) {
+                        // The group of packets has been reordered since receiving
+                        // its local arrival timestamp.
+                        logger.warn(
+                                "Packets are being reordered on the path from the "
+                                    + "socket to the bandwidth estimator. Ignoring "
+                                    + "this packet for bandwidth estimation.");
+                        return false;
+                    }
+                }else{
+                    numConsecutiveReorderedPackets = 0;
                 }
                 /* int packetSizeDelta */ deltas[2]
                     = (int)
@@ -184,6 +241,8 @@ class InterArrival
             currentTimestampGroup.firstTimestamp = timestamp;
             currentTimestampGroup.timestamp = timestamp;
             currentTimestampGroup.size = 0;
+            currentTimestampGroup.lastSystemTimeMs = systemTimeMs;
+
         }
         else
         {
@@ -193,6 +252,8 @@ class InterArrival
         // Accumulate the frame size.
         currentTimestampGroup.size += packetSize;
         currentTimestampGroup.completeTimeMs = arrivalTimeMs;
+        currentTimestampGroup.lastSystemTimeMs = systemTimeMs;
+
 
         return calculatedDeltas;
     }
@@ -259,6 +320,8 @@ class InterArrival
 
         public long timestamp = 0L;
 
+        public long lastSystemTimeMs = -1L;
+
         /**
          * Assigns the values of the fields of <tt>source</tt> to the respective
          * fields of this {@code TimestampGroup}.
@@ -279,5 +342,12 @@ class InterArrival
         {
             return completeTimeMs == -1L;
         }
+    }
+
+    public void Reset() {
+        numConsecutiveReorderedPackets = 0;
+        currentTimestampGroup = new TimestampGroup();
+        prevTimestampGroup = new TimestampGroup();
+
     }
 }
