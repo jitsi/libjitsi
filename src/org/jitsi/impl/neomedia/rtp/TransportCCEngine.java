@@ -354,7 +354,6 @@ public class TransportCCEngine
         {
             while(mediaStreams.remove(mediaStream))
             {
-                mediaStream.getMediaStreamStats().removeRTCPPacketListener(this);
                 // we loop in order to remove all instances.
             }
         }
@@ -388,13 +387,17 @@ public class TransportCCEngine
     }
 
     /**
-     * {@Link packetDetail} is an object that holds the
-     * length(size) of the packet in {@Link pktLength}
-     * and the time stamps of the outgoing packet
-     * in {@Link pktTime}
+     * {@Link BITRATE_UPDATE_INTERVAL} is an interval used to
      */
-    private class PacketDetail
-    {
+    private static final int BITRATE_UPDATE_INTERVAL = 5;
+
+    private class PacketDetail {
+        /**
+         * {@Link packetDetail} is an object that holds the
+         * length(size) of the packet in {@Link pktLength}
+         * and the time stamps of the outgoing packet
+         * in {@Link pktTime}
+         */
         int pktLength;
         long pktTime;
         PacketDetail(int length, long time){
@@ -411,42 +414,37 @@ public class TransportCCEngine
     @Override
     public void tccReceived(RTCPTCCPacket pkt)
     {
+
         PacketDetail retrievedPacketDetail;
         for (int receivedSequenceNo: pkt.getPackets().keySet()) {
-            /**
-             * Though weird and should not happen,
-             * Its possible that a received packet might not have a sequence
-             * number in the {@Link outgoingPacketsFields}. e.g if a packet
-             * is sent "N" times due to missing ACKs. Although, for
-             * this case, we expect the packet to be logged "N" times.
-             */
-            if (outgoingPacketFields.containsKey(receivedSequenceNo)){
-                retrievedPacketDetail = outgoingPacketFields
-                        .get(receivedSequenceNo);
-                if (retrievedPacketDetail != null) {
-                    /**
-                     * @TODO When this is complete, a bitrate estimator
-                     * is returned not the interArrivalTimeDelayVariation
-                     */
+            retrievedPacketDetail = outgoingPacketFields
+                    .get(receivedSequenceNo);
+            if (retrievedPacketDetail != null) {
+                /**
+                 * pass SSRC,SendtimeStamp,ReceivedTimeStamp,PacketSize
+                 * to the Remote bitrate Estimator.
+                 *
+                 * @TODO When this is complete, we should have
+                 * a bitrate estimator that uses a different
+                 * delta computation for the sendside of the bridge
+                 */
 
-                    long _bitrate = bitrateEstimator
-                            .rtcpTCCRemoteBitrateEstimator(
-                                    (int) pkt.getSourceSSRC(),
-                                    retrievedPacketDetail.pktTime,
-                                    pkt.getPackets().get(receivedSequenceNo),
-                                    retrievedPacketDetail.pktLength);
+                long _bitrate = bitrateEstimator
+                        .rtcpTCCRemoteBitrateEstimator((int) pkt.getSourceSSRC(),
+                                retrievedPacketDetail.pktTime,
+                                pkt.getPackets().get(receivedSequenceNo),
+                                retrievedPacketDetail.pktLength);
 
-                    /**
-                     * @_bitrate is the remote bandwith of the receiver
-                     * @TODO @_bitrate should be passed to the BandwidthEstimator
-                     */
+                /**
+                 * @_bitrate is the remote bandwith of the receiver
+                 * @TODO @_bitrate should be passed to the BandwidthEstimator
+                 */
 
-                    /**
-                     * We shouldn't keep packet details once we are done with
-                     * them. Hence, we should delete them
-                     */
-                    outgoingPacketFields.remove(receivedSequenceNo);
-                }
+                /**
+                 * We shouldn't keep packet details once we are done with
+                 * them. Hence, we should delete them
+                 */
+                pkt.getPackets().remove(receivedSequenceNo);
 
             }
         }

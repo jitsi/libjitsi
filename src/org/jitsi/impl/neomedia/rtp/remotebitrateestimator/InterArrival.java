@@ -132,40 +132,12 @@ class InterArrival
      * {@code arrivalTimeDeltaMs} is the computed arrival-time delta,
      * {@code packetSizeDelta} is the computed size delta.
      * @return
-     *
-     * @Note: We have two {@Link computeDeltas}.
-     * One with a valid {@Link systemTimeMs} according to webrtc
-     * implementation as of June 12,2017 and a previous one
-     * with a default systemTimeMs (-1L). the later may be removed or
-     * deprecated.
      */
     public boolean computeDeltas(
             long timestamp,
             long arrivalTimeMs,
-            long systemTimeMs,
             int packetSize,
-            long[] deltas){
-
-        return solveDeltas(timestamp,arrivalTimeMs,
-                packetSize,deltas,systemTimeMs);
-    }
-
-    public boolean computeDeltas(
-            long timestamp,
-            long arrivalTimeMs,
-            int packetSize,
-            long[] deltas){
-
-                return solveDeltas(timestamp,arrivalTimeMs,
-                        packetSize,deltas,-1L);
-    }
-
-    public boolean solveDeltas(
-            long timestamp,
-            long arrivalTimeMs,
-            int packetSize,
-            long[] deltas,
-            long systemTimeMs )
+            long[] deltas)
     {
         if (deltas == null)
             throw new NullPointerException("deltas");
@@ -200,36 +172,15 @@ class InterArrival
                     = currentTimestampGroup.completeTimeMs
                         - prevTimestampGroup.completeTimeMs;
 
-                // Check system time differences to see if we have an unproportional jump
-                // in arrival time. In that case reset the inter-arrival computations.
-                long systemTimeDeltaMs =
-                        currentTimestampGroup.lastSystemTimeMs -
-                                prevTimestampGroup.lastSystemTimeMs;
-                if (prevTimestampGroup.lastSystemTimeMs != -1L &&
-                        currentTimestampGroup.lastSystemTimeMs != -1L &&
-                        arrivalTimeDeltaMs - systemTimeDeltaMs >=
-                    kArrivalTimeOffsetThresholdMs) {
-                    logger.warn( "The arrival time clock offset has changed (diff = "
-                            + String.valueOf(arrivalTimeDeltaMs - systemTimeDeltaMs)
-                            +  " ms), resetting.");
-                    Reset();
-                    return false;
-                }
-
                 if (arrivalTimeDeltaMs < 0)
                 {
-                    ++numConsecutiveReorderedPackets;
-                    if (numConsecutiveReorderedPackets >= kReorderedResetThreshold) {
-                        // The group of packets has been reordered since receiving
-                        // its local arrival timestamp.
-                        logger.warn(
-                                "Packets are being reordered on the path from the "
-                                    + "socket to the bandwidth estimator. Ignoring "
-                                    + "this packet for bandwidth estimation.");
-                        return false;
-                    }
-                }else{
-                    numConsecutiveReorderedPackets = 0;
+                    // The group of packets has been reordered since receiving
+                    // its local arrival timestamp.
+                    logger.warn(
+                            "Packets are being reordered on the path from the "
+                                + "socket to the bandwidth estimator. Ignoring "
+                                + "this packet for bandwidth estimation.");
+                    return false;
                 }
                 /* int packetSizeDelta */ deltas[2]
                     = (int)

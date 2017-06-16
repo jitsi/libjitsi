@@ -349,7 +349,7 @@ public class RemoteBitrateEstimatorSingleStream
                                          long receivedTime,
                                          int packetLength)
     {
-        long nowMs = System.currentTimeMillis();
+        long nowMs = receivedTime; //Confirm if receivedTime is nowMs
 
         synchronized (critSect)
         {
@@ -385,14 +385,12 @@ public class RemoteBitrateEstimatorSingleStream
         /* int sizeDelta */ deltas[2] = 0;
 
             if (estimator.interArrival.computeDeltas(
-                    /**  "timestamp" is the rtp sendtime -
-                     * time the rtp packet is sent at the sender*/
+                    /** {@thoughts Julian} confirm that "timestamp" is
+                     * sendtime */
                     sendTime,
-                    /** "arrivalTime" is received time -
-                     * time recorderd by the receiver
-                     * when the packet is received */
+                    /** {@thoughts Julian} confirm that "arrivalTime" is
+                     * received time */
                     receivedTime,
-                    nowMs,
                     packetLength,
                     deltas))
             {
