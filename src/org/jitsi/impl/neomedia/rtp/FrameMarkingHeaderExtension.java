@@ -69,7 +69,7 @@ public class FrameMarkingHeaderExtension
 
         // The data follows the one-byte header.
         byte b = baf.getBuffer()[baf.getOffset() + 1];
-        return (b & KF_MASK) != 0;
+        return (byte)(b & KF_MASK) == KF_MASK;
     }
     
     /**
