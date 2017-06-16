@@ -46,4 +46,11 @@ public interface RTCPPacketListener
      * @param srPacket the received {@link RTCPSRPacket}.
      */
     void srReceived(RTCPSRPacket srPacket);
+
+    /**
+     * Notifies this listener that an {@Link RTCPTCCPacket} has been received.
+     *
+     * @param tccPacket the received {@Link RTCPTCCPacket}
+     */
+    void tccReceived(RTCPTCCPacket tccPacket);
 }

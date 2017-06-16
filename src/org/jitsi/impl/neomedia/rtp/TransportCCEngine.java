@@ -15,8 +15,10 @@
  */
 package org.jitsi.impl.neomedia.rtp;
 
+import net.sf.fmj.media.rtp.RTCPSRPacket;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.rtcp.*;
+import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
@@ -34,7 +36,9 @@ import java.util.concurrent.atomic.*;
  * @author Boris Grozev
  */
 public class TransportCCEngine
-    implements TransformEngine
+    extends RTCPPacketListenerAdapter
+    implements TransformEngine,
+        RemoteBitrateObserver
 {
     /**
      * The maximum number of received packets and their timestamps to save.
@@ -98,6 +102,13 @@ public class TransportCCEngine
      * number.
      */
     private long firstIncomingTs = -1;
+
+    /**
+     * {@Link #outgoingPacketFields} holds a key value pair of the packet sequence
+     * number and an object made up of the packet send time and the packet
+     * size.
+     */
+    private Map<Integer,PacketDetail> outgoingPacketFields =  new HashMap<Integer,PacketDetail>();
 
     /**
      * Notifies this instance that a data packet with a specific transport-wide
@@ -242,6 +253,18 @@ public class TransportCCEngine
     }
 
     /**
+     * Called when a receive channel group has a new bitrate estimate for the
+     * incoming streams.
+     *
+     * @param ssrcs
+     * @param bitrate
+     */
+    @Override
+    public void onReceiveBitrateChanged(Collection<Integer> ssrcs, long bitrate) {
+
+    }
+
+    /**
      * Handles RTP packets for this {@link TransportCCEngine}.
      */
     private class RTPTransformer
@@ -279,6 +302,7 @@ public class TransportCCEngine
                     ext.getBuffer(),
                     ext.getOffset() + 1,
                     (short) seq);
+                outgoingPacketFields.put(seq, new PacketDetail(pkt.getLength(),pkt.getTimestamp()));
             }
             return pkt;
         }
@@ -314,6 +338,7 @@ public class TransportCCEngine
     {
         synchronized (mediaStreams)
         {
+            mediaStream.getMediaStreamStats().addRTCPPacketListener(this);
             mediaStreams.add(mediaStream);
         }
     }
@@ -361,5 +386,70 @@ public class TransportCCEngine
         }
     }
 
+    /**
+     * {@Link BITRATE_UPDATE_INTERVAL} is an interval used to
+     */
+    private static final int BITRATE_UPDATE_INTERVAL = 5;
+
+    private class PacketDetail {
+        /**
+         * {@Link packetDetail} is an object that holds the
+         * length(size) of the packet in {@Link pktLength}
+         * and the time stamps of the outgoing packet
+         * in {@Link pktTime}
+         */
+        int pktLength;
+        long pktTime;
+        PacketDetail(int length, long time){
+            pktLength = length;
+            pktTime  = time;
+        }
+    }
+
+    /**
+     * Calls the bitrate extimator with receiver and sender parameters.
+     * @note the bridge is the sender.
+     * @param pkt
+     */
+    @Override
+    public void tccReceived(RTCPTCCPacket pkt)
+    {
+
+        PacketDetail retrievedPacketDetail;
+        for (int receivedSequenceNo: pkt.getPackets().keySet()) {
+            retrievedPacketDetail = outgoingPacketFields
+                    .get(receivedSequenceNo);
+            if (retrievedPacketDetail != null) {
+                /**
+                 * pass SSRC,SendtimeStamp,ReceivedTimeStamp,PacketSize
+                 * to the Remote bitrate Estimator.
+                 *
+                 * @TODO When this is complete, we should have
+                 * a bitrate estimator that uses a different
+                 * delta computation for the sendside of the bridge
+                 */
+
+                long _bitrate = bitrateEstimator
+                        .rtcpTCCRemoteBitrateEstimator((int) pkt.getSourceSSRC(),
+                                retrievedPacketDetail.pktTime,
+                                pkt.getPackets().get(receivedSequenceNo),
+                                retrievedPacketDetail.pktLength);
+
+                /**
+                 * @_bitrate is the remote bandwith of the receiver
+                 * @TODO @_bitrate should be passed to the BandwidthEstimator
+                 */
+
+                /**
+                 * We shouldn't keep packet details once we are done with
+                 * them. Hence, we should delete them
+                 */
+                pkt.getPackets().remove(receivedSequenceNo);
+
+            }
+        }
+    }
+    private RemoteBitrateEstimatorSingleStream bitrateEstimator
+            = new RemoteBitrateEstimatorSingleStream(this);
 
 }

@@ -399,4 +399,100 @@ public class RemoteBitrateEstimatorSingleStream
             this.detector = new OveruseDetector(options);
         }
     }
+
+
+    /**
+     * {@Link rtcpTCCBitrateEstimator} computes the current tcc bitrate for an
+     * rtp packet.
+     * @param ssrc_ is the related source identifier of the sender
+     *             (for instance video-bridge)
+     * @param sendTime is the time the rtp packet was sent
+     * @param receivedTime is the arrival time on the reportedTCC Packet
+     * @param packetLength is the length of the rtp packet
+     * @return a bitrate value
+     */
+    public long rtcpTCCRemoteBitrateEstimator (Integer ssrc_,
+                                         long sendTime,
+                                         long receivedTime,
+                                         int packetLength)
+    {
+        long nowMs = receivedTime; //Confirm if receivedTime is nowMs
+
+        synchronized (critSect)
+        {
+            // XXX The variable naming is chosen to keep the source code close to
+            // the original.
+            Detector it = overuseDetectors.get(ssrc_);
+
+            if (it == null)
+            {
+                // This is a new SSRC. Adding to map.
+                // TODO(holmer): If the channel changes SSRC the old SSRC will still
+                // be around in this map until the channel is deleted. This is OK
+                // since the callback will no longer be called for the old SSRC.
+                // This will be automatically cleaned up when we have one
+                // RemoteBitrateEstimator per REMB group.
+                it = new Detector(nowMs, new OverUseDetectorOptions(), true);
+                overuseDetectors.put(ssrc_, it);
+                ssrcs = null;
+            }
+
+            // XXX The variable naming is chosen to keep the source code close to
+            // the original.
+            Detector estimator = it;
+
+            estimator.lastPacketTimeMs = nowMs;
+            this.incomingBitrate.update(packetLength, nowMs);
+
+            BandwidthUsage priorState = estimator.detector.getState();
+            long[] deltas = this.deltas;
+
+        /* long timestampDelta */ deltas[0] = 0;
+        /* long timeDelta */ deltas[1] = 0;
+        /* int sizeDelta */ deltas[2] = 0;
+
+            if (estimator.interArrival.computeDeltas(
+                    /** {@thoughts Julian} confirm that "timestamp" is
+                     * sendtime */
+                    sendTime,
+                    /** {@thoughts Julian} confirm that "arrivalTime" is
+                     * received time */
+                    receivedTime,
+                    packetLength,
+                    deltas))
+            {
+                double timestampDeltaMs
+                        = /* timestampDelta */ deltas[0] * kTimestampToMs;
+
+                estimator.estimator.update(
+                    /* timeDelta */ deltas[1],
+                        timestampDeltaMs,
+                    /* sizeDelta */ (int) deltas[2],
+                        estimator.detector.getState());
+                estimator.detector.detect(
+                        estimator.estimator.getOffset(),
+                        timestampDeltaMs,
+                        estimator.estimator.getNumOfDeltas(),
+                        nowMs);
+            }
+            if (estimator.detector.getState() == BandwidthUsage.kBwOverusing)
+            {
+                long incomingBitrateBps = this.incomingBitrate.getRate(nowMs);
+
+                if (priorState != BandwidthUsage.kBwOverusing
+                        || remoteRate.isTimeToReduceFurther(
+                        nowMs,
+                        incomingBitrateBps))
+                {
+                    // The first overuse should immediately trigger a new estimate.
+                    // We also have to update the estimate immediately if we are
+                    // overusing and the target bitrate is too high compared to what
+                    // we are receiving.
+                    updateEstimate(nowMs);
+                }
+            }
+        }  // synchronized (critSect)
+
+        return this.incomingBitrate.getRate(receivedTime);
+    }
 }
