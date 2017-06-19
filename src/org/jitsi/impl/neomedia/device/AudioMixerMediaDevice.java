@@ -22,6 +22,7 @@ import java.util.*;
 
 import javax.media.*;
 import javax.media.control.*;
+import javax.media.format.*;
 import javax.media.protocol.*;
 import javax.media.rtp.*;
 
@@ -388,6 +389,23 @@ public class AudioMixerMediaDevice
                                 && (buffer.getData() != null))
                             {
                                 rawStreamListener.samplesRead(receiveStream, buffer);
+
+                                // Example on how to handle a ReceiveStream and Buffer:
+
+                                // We can match an SSRC to a conference participant based on signaling
+                                long ssrc = receiveStream.getSSRC();
+
+                                // We expect some sort of raw audio here, probably
+                                // pcm at 48000Hz. The Buffer's format should tell
+                                // us what it is.
+                                Format format = buffer.getFormat();
+                                AudioFormat audioFormat = (AudioFormat) format;
+                                boolean isPCM16khz
+                                    = format.getEncoding().equals("something_pcm?")
+                                    && audioFormat.getSampleRate() == 16000;
+
+                                // The Buffer's data is actually always a byte[], OK to cast:
+                                byte[] data = (byte[]) buffer.getData();
                             }
                         }
                     }
