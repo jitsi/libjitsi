@@ -1022,7 +1022,6 @@ public class StatisticsEngine
                 }
                 else if (rtcp instanceof RTCPTCCPacket)
                 {
-                    // TODO: handle for the purpose of BWE.
                     /**
                      * Intuition: Packet is RTCP, wakeup RTCPPacketListeners which may
                      * include BWE workers
