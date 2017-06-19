@@ -146,6 +146,8 @@ public class AudioMixerMediaDevice
         streamAudioLevelListeners
             = new HashMap<ReceiveStream, AudioLevelEventDispatcher>();
 
+    private RawStreamListener rawStreamListener;
+
     /**
      * Initializes a new <tt>AudioMixerMediaDevice</tt> instance which is to
      * enable audio mixing on a specific <tt>AudioMediaDeviceImpl</tt>.
@@ -378,6 +380,15 @@ public class AudioMixerMediaDevice
                             {
                                 streamEventDispatcher.addData(buffer);
                             }
+
+                            RawStreamListener rawStreamListener = AudioMixerMediaDevice.this.rawStreamListener;
+                            if ((rawStreamListener != null)
+                                && !buffer.isDiscard()
+                                && (buffer.getLength() > 0)
+                                && (buffer.getData() != null))
+                            {
+                                rawStreamListener.samplesRead(receiveStream, buffer);
+                            }
                         }
                     }
                 };
@@ -490,6 +501,11 @@ public class AudioMixerMediaDevice
             QualityPreset receivePreset)
     {
         return device.getSupportedFormats();
+    }
+
+    public void setRawStreamListener(RawStreamListener listener)
+    {
+        this.rawStreamListener = listener;
     }
 
     /**
@@ -1431,5 +1447,10 @@ public class AudioMixerMediaDevice
             DataSource inputDataSource)
     {
             return getAudioMixer().getTranscodingDataSource(inputDataSource);
+    }
+
+    public interface RawStreamListener
+    {
+        void samplesRead(ReceiveStream receiveStream, Buffer buffer);
     }
 }
