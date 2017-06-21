@@ -153,13 +153,7 @@ public class REDBlockIterator
 
             byte blockPT = (byte) (buffer[offset] & 0x7f);
             int blockOff = offset + 1; // + 1 for the primary block header.
-            int blockLen = length - blockOff;
-
-            if (buffer.length < blockOff + blockLen)
-            {
-                logger.warn("Primary block doesn't fit in RED packet.");
-                return null;
-            }
+            int blockLen = length - 1;
 
             return new REDBlock(buffer, blockOff, blockLen, blockPT);
         }
