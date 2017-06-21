@@ -71,8 +71,8 @@ class InterArrival
 
     // After this many packet groups received out of order InterArrival will
     // reset, assuming that clocks have made a jump.
-    private final int kReorderedResetThreshold = 3;
-    private final int kArrivalTimeOffsetThresholdMs = 3000;
+    private static final int kReorderedResetThreshold = 3;
+    private static final int kArrivalTimeOffsetThresholdMs = 3000;
 
     /**
      * A timestamp group is defined as all packets with a timestamp which are at
@@ -133,8 +133,8 @@ class InterArrival
      * {@code packetSizeDelta} is the computed size delta.
      * @return
      *
-     * @Note: We have two {@Link computeDeltas}.
-     * One with a valid {@Link systemTimeMs} according to webrtc
+     * @Note: We have two {@code computeDeltas}.
+     * One with a valid {@code systemTimeMs} according to webrtc
      * implementation as of June 12,2017 and a previous one
      * with a default systemTimeMs (-1L). the later may be removed or
      * deprecated.
@@ -142,25 +142,14 @@ class InterArrival
     public boolean computeDeltas(
             long timestamp,
             long arrivalTimeMs,
-            long systemTimeMs,
             int packetSize,
             long[] deltas){
 
-        return solveDeltas(timestamp,arrivalTimeMs,
-                packetSize,deltas,systemTimeMs);
-    }
-
-    public boolean computeDeltas(
-            long timestamp,
-            long arrivalTimeMs,
-            int packetSize,
-            long[] deltas){
-
-                return solveDeltas(timestamp,arrivalTimeMs,
+                return computeDeltas(timestamp,arrivalTimeMs,
                         packetSize,deltas,-1L);
     }
 
-    public boolean solveDeltas(
+    public boolean computeDeltas(
             long timestamp,
             long arrivalTimeMs,
             int packetSize,
@@ -226,9 +215,12 @@ class InterArrival
                                 "Packets are being reordered on the path from the "
                                     + "socket to the bandwidth estimator. Ignoring "
                                     + "this packet for bandwidth estimation.");
-                        return false;
+                        Reset();
                     }
-                }else{
+                    return false;
+                }
+                else
+                {
                     numConsecutiveReorderedPackets = 0;
                 }
                 /* int packetSizeDelta */ deltas[2]
@@ -241,7 +233,6 @@ class InterArrival
             currentTimestampGroup.firstTimestamp = timestamp;
             currentTimestampGroup.timestamp = timestamp;
             currentTimestampGroup.size = 0;
-            currentTimestampGroup.lastSystemTimeMs = systemTimeMs;
 
         }
         else
@@ -253,7 +244,6 @@ class InterArrival
         currentTimestampGroup.size += packetSize;
         currentTimestampGroup.completeTimeMs = arrivalTimeMs;
         currentTimestampGroup.lastSystemTimeMs = systemTimeMs;
-
 
         return calculatedDeltas;
     }
