@@ -3787,12 +3787,6 @@ public class MediaStreamImpl
             {
                 return FrameMarkingHeaderExtension.isStartOfFrame(fmhe);
             }
-
-            if (logger.isDebugEnabled())
-            {
-                logger.debug("Packet with no frame marking, while frame marking"
-                             + " is enabled.");
-            }
             // Note that we go on and try to use the payload itself. We may want
             // to change this behaviour in the future, because it will give
             // wrong results if the payload is encrypted.
@@ -3857,12 +3851,6 @@ public class MediaStreamImpl
             if (fmhe != null)
             {
                 return FrameMarkingHeaderExtension.isEndOfFrame(fmhe);
-            }
-
-            if (logger.isDebugEnabled())
-            {
-                logger.debug("Packet with no frame marking, while frame marking"
-                             + " is enabled.");
             }
             // Note that we go on and try to use the payload itself. We may want
             // to change this behaviour in the future, because it will give
