@@ -177,11 +177,10 @@ public class RemoteBitrateEstimatorSingleStream
         /**
          * @TODO Findout what to do with the interArrivalTime in this method
          */
-        long interArrivalTime = getInterArrivalDelayVariation (pkt.getSSRC(),
+        getBitrateEstimate (pkt.getSSRC(),
         pkt.getTimestamp(),
         System.currentTimeMillis(),
         pkt.getLength());
-
         return pkt;
     }
 
@@ -335,7 +334,7 @@ public class RemoteBitrateEstimatorSingleStream
 
 
     /**
-     * {@Link rtcpTCCBitrateEstimator} computes the current tcc bitrate for an
+     * {@link rtcpTCCBitrateEstimator} computes the current tcc bitrate for an
      * rtp packet.
      * @param ssrc_ is the related source identifier of the sender
      *             (for instance video-bridge)
@@ -344,7 +343,7 @@ public class RemoteBitrateEstimatorSingleStream
      * @param packetLength is the length of the rtp packet
      * @return a bitrate value
      */
-    public long getInterArrivalDelayVariation (Integer ssrc_,
+    public long getBitrateEstimate (Integer ssrc_,
                                          long sendTime,
                                          long receivedTime,
                                          int packetLength)
@@ -433,7 +432,7 @@ public class RemoteBitrateEstimatorSingleStream
 
 
     /**
-     * {@Link rtcpTCCRemoteBitrateEstimator} estimates the remote bitrate
+     * {@link rtcpTCCRemoteBitrateEstimator} estimates the remote bitrate
      * of the receiver from received rtcp tcc feedback packet parameters.
      * This acts for the send-side of the bridge
      * @param ssrc_ is the SSRC of the source
@@ -449,10 +448,10 @@ public class RemoteBitrateEstimatorSingleStream
                                               long receivedTime,
                                               int packetLength)
     {
-        long interArrivalTime = getInterArrivalDelayVariation (ssrc_,
+        long newBitrateEstimate = getBitrateEstimate (ssrc_,
                 sendTime,
                 receivedTime,
                 packetLength);
-        return  interArrivalTime;
+        return  newBitrateEstimate;
     }
 }
