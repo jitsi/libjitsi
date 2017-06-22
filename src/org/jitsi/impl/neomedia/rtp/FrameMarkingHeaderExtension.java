@@ -120,6 +120,12 @@ public class FrameMarkingHeaderExtension
         return (b & E_BIT) != 0;
     }
 
+    /**
+     * 
+     * @param baf Header extension byte array
+     * @param encoding Encoding type used to parse the LID field
+     * @return the spatial layerd id present in the LID or 0 if not present. 
+     */
     public static byte getSpatialID(ByteArrayBuffer baf, String encoding) {
         // Only present on scalable version
         if (baf == null || baf.getLength() < 4)
@@ -132,6 +138,11 @@ public class FrameMarkingHeaderExtension
         return 0;
     }
 
+    /**
+     * 
+     * @param baf Header extension byte array
+     * @return The temporal layer id (the LID bits) or 0 if not present
+     */
     public static byte getTemporalID(ByteArrayBuffer baf) {
         if (baf == null || baf.getLength() < 2)
         {
