@@ -404,7 +404,7 @@ public class TransportCCEngine
     }
 
     /**
-     * Calls the bitrate extimator with receiver and sender parameters.
+     * Calls the bitrate estimator with receiver and sender parameters.
      * @note the bridge is the sender.
      * @param pkt
      */
@@ -439,9 +439,7 @@ public class TransportCCEngine
                     /**
                      * @_bitrate is the remote bandwith of the receiver
                      * @TODO @_bitrate should be passed to the BandwidthEstimator
-                     */
-
-                    /**
+                     *
                      * We shouldn't keep packet details once we are done with
                      * them. Hence, we should delete them
                      */
