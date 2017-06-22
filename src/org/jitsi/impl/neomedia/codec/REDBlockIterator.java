@@ -142,12 +142,12 @@ public class REDBlockIterator
         }
         else
         {
-            if (buffer == null || offset < 0 || length < 0
+            // we need at least one byte to read the RED block payload type.
+            if (buffer == null || offset < 0 || length < 1
                     || buffer.length < offset + length)
             {
-                logger.warn("Prevented an array out of bounds exception: " +
-                        "buffer length: " + buffer.length + ", offset: "
-                        + offset + ", len: " + length);
+                logger.warn("Prevented an array out of bounds exception."
+                    + " offset: " + offset + ", length: " + length);
                 return null;
             }
 
