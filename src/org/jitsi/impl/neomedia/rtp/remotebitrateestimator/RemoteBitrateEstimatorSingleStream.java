@@ -392,10 +392,10 @@ public class RemoteBitrateEstimatorSingleStream
                      * time recorderd by the receiver
                      * when the packet is received */
                     receivedTime,
-                    nowMs,
                     packetLength,
-                    deltas))
-            {
+                    deltas,
+                    nowMs))
+             {
                 double timestampDeltaMs
                         = /* timestampDelta */ deltas[0] * kTimestampToMs;
 
