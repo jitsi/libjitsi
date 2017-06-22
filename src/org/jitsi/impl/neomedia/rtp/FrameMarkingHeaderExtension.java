@@ -21,6 +21,7 @@ import org.jitsi.service.neomedia.*;
  * Provides utility functions for the frame marking RTP header extension
  * described in https://tools.ietf.org/html/draft-ietf-avtext-framemarking-03
  *
+ * Non-Scalable
  * <pre>{@code
  *  0                   1
  *  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5
@@ -28,7 +29,15 @@ import org.jitsi.service.neomedia.*;
  * |  ID=? |  L=0  |S|E|I|D|0 0 0 0|
  * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  * }</pre>
- *
+ * 
+ * Scalable
+ * <pre>{@code
+ *  0                   1                   2                   3
+ *  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |  ID=? |  L=2  |S|E|I|D|B| TID |   LID         |    TL0PICIDX  |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * }</pre>
  * @author Boris Grozev
  * @author Sergio Garcia Murillo
  */
@@ -54,6 +63,11 @@ public class FrameMarkingHeaderExtension
      * first packet of a keyframe.
      */
     private static byte KF_MASK = (byte) (S_BIT | I_BIT);
+    
+    /**
+     * The bits for the temporalId 
+     */
+    private static byte TID_MASK = (byte) 0x07;
 
     /**
      * @return true if the extension contained in the given buffer indicates
@@ -104,5 +118,38 @@ public class FrameMarkingHeaderExtension
         // The data follows the one-byte header.
         byte b = baf.getBuffer()[baf.getOffset() + 1];
         return (b & E_BIT) != 0;
+    }
+
+    /**
+     * 
+     * @param baf Header extension byte array
+     * @param encoding Encoding type used to parse the LID field
+     * @return the spatial layerd id present in the LID or 0 if not present. 
+     */
+    public static byte getSpatialID(ByteArrayBuffer baf, String encoding) {
+        // Only present on scalable version
+        if (baf == null || baf.getLength() < 4)
+        {
+            return 0;
+        }
+        /*
+         * THIS IS STILL NOT YET CORRECTLY DEFINED ON FRAMEMARKING DRAFT!
+         */
+        return 0;
+    }
+
+    /**
+     * 
+     * @param baf Header extension byte array
+     * @return The temporal layer id (the LID bits) or 0 if not present
+     */
+    public static byte getTemporalID(ByteArrayBuffer baf) {
+        if (baf == null || baf.getLength() < 2)
+        {
+            return 0;
+        }
+        // The data follows the one-byte header.
+        byte b = baf.getBuffer()[baf.getOffset() + 1];
+        return (byte)(b & TID_MASK);
     }
 }

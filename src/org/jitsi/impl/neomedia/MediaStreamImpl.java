@@ -3653,6 +3653,21 @@ public class MediaStreamImpl
      */
     public int getTemporalID(byte[] buf, int off, int len)
     {
+        if (frameMarkingsExtensionId != -1)
+        {
+            RawPacket pkt = new RawPacket(buf, off, len);
+            RawPacket.HeaderExtension fmhe
+                = pkt.getHeaderExtension(frameMarkingsExtensionId);
+
+            if (fmhe != null)
+            {
+                return FrameMarkingHeaderExtension.getTemporalID(fmhe);
+            }
+            // Note that we go on and try to use the payload itself. We may want
+            // to change this behaviour in the future, because it will give
+            // wrong results if the payload is encrypted.
+        }
+    
         REDBlock redBlock = getPayloadBlock(buf, off, len);
         if (redBlock == null || redBlock.getLength() == 0)
         {
@@ -3702,6 +3717,21 @@ public class MediaStreamImpl
      */
     public int getSpatialID(byte[] buf, int off, int len)
     {
+        if (frameMarkingsExtensionId != -1) 
+	{
+            RawPacket pkt = new RawPacket(buf, off, len);
+	    String encoding = getFormat(pkt.getPayloadType()).getEncoding();
+            RawPacket.HeaderExtension fmhe
+                = pkt.getHeaderExtension(frameMarkingsExtensionId);
+            if (fmhe != null)
+            {
+                return FrameMarkingHeaderExtension.getSpatialID(fmhe,encoding);
+            }
+            // Note that we go on and try to use the payload itself. We may want
+            // to change this behaviour in the future, because it will give
+            // wrong results if the payload is encrypted.
+        }
+
         REDBlock redBlock = getPayloadBlock(buf, off, len);
         if (redBlock == null || redBlock.getLength() == 0)
         {
@@ -3756,12 +3786,6 @@ public class MediaStreamImpl
             if (fmhe != null)
             {
                 return FrameMarkingHeaderExtension.isStartOfFrame(fmhe);
-            }
-
-            if (logger.isDebugEnabled())
-            {
-                logger.debug("Packet with no frame marking, while frame marking"
-                             + " is enabled.");
             }
             // Note that we go on and try to use the payload itself. We may want
             // to change this behaviour in the future, because it will give
@@ -3828,12 +3852,6 @@ public class MediaStreamImpl
             {
                 return FrameMarkingHeaderExtension.isEndOfFrame(fmhe);
             }
-
-            if (logger.isDebugEnabled())
-            {
-                logger.debug("Packet with no frame marking, while frame marking"
-                             + " is enabled.");
-            }
             // Note that we go on and try to use the payload itself. We may want
             // to change this behaviour in the future, because it will give
             // wrong results if the payload is encrypted.
@@ -3891,12 +3909,6 @@ public class MediaStreamImpl
             if (fmhe != null)
             {
                 return FrameMarkingHeaderExtension.isKeyframe(fmhe);
-            }
-
-            if (logger.isDebugEnabled())
-            {
-                logger.debug("Packet with no frame marking, while frame marking"
-                             + " is enabled.");
             }
             // Note that we go on and try to use the payload itself. We may want
             // to change this behaviour in the future, because it will give
