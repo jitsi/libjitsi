@@ -334,18 +334,18 @@ public class RemoteBitrateEstimatorSingleStream
 
 
     /**
-     * {@link rtcpTCCBitrateEstimator} computes the current tcc bitrate for an
+     * {@code getBitrateEstimate} computes the current tcc bitrate for an
      * rtp packet.
      * @param ssrc_ is the related source identifier of the sender
      *             (for instance video-bridge)
-     * @param sendTime is the time the rtp packet was sent
-     * @param receivedTime is the arrival time on the reportedTCC Packet
+     * @param sendTimeMs is the time the rtp packet was sent
+     * @param receivedTimeMs is the arrival time on the reportedTCC Packet
      * @param packetLength is the length of the rtp packet
-     * @return a bitrate value
+     * @return the estimated bitrate value
      */
     public long getBitrateEstimate (Integer ssrc_,
-                                         long sendTime,
-                                         long receivedTime,
+                                         long sendTimeMs,
+                                         long receivedTimeMs,
                                          int packetLength)
     {
         long nowMs = System.currentTimeMillis();
@@ -386,11 +386,11 @@ public class RemoteBitrateEstimatorSingleStream
             if (estimator.interArrival.computeDeltas(
                     /**  "timestamp" is the rtp sendtime -
                      * time the rtp packet is sent at the sender*/
-                    sendTime,
+                    sendTimeMs,
                     /** "arrivalTime" is received time -
                      * time recorderd by the receiver
                      * when the packet is received */
-                    receivedTime,
+                    receivedTimeMs,
                     packetLength,
                     deltas,
                     nowMs))
@@ -427,30 +427,29 @@ public class RemoteBitrateEstimatorSingleStream
             }
         }  // synchronized (critSect)
 
-        return this.incomingBitrate.getRate(receivedTime);
+        return this.incomingBitrate.getRate(receivedTimeMs);
     }
 
 
     /**
-     * {@link rtcpTCCRemoteBitrateEstimator} estimates the remote bitrate
+     * {@code rtcpTCCRemoteBitrateEstimator} estimates the remote bitrate
      * of the receiver from received rtcp tcc feedback packet parameters.
      * This acts for the send-side of the bridge
      * @param ssrc_ is the SSRC of the source
-     * @param sendTime is the time the packet was sent by the bridge
-     * @param receivedTime is the time recorded by the receiver
+     * @param sendTimeMs is the time the packet was sent by the bridge
+     * @param receivedTimeMs is the time recorded by the receiver
      * @param packetLength is the packet length of the rtp packet sent
      *                     by the bridge
-     * @return currently returns an inter arrival delay variation.
-     * Expected to return a remote bitrate estimate of the receiver.
+     * @return returns a remote bitrate estimate of the receiver.
      */
     public long rtcpTCCRemoteBitrateEstimator(Integer ssrc_,
-                                              long sendTime,
-                                              long receivedTime,
+                                              long sendTimeMs,
+                                              long receivedTimeMs,
                                               int packetLength)
     {
         long newBitrateEstimate = getBitrateEstimate (ssrc_,
-                sendTime,
-                receivedTime,
+                sendTimeMs,
+                receivedTimeMs,
                 packetLength);
         return  newBitrateEstimate;
     }
