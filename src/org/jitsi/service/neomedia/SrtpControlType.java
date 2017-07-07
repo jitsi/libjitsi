@@ -44,7 +44,12 @@ public enum SrtpControlType
     /**
      * ZRTP: Media Path Key Agreement for Unicast Secure RTP (RFC 6189)
      */
-    ZRTP("ZRTP");
+    ZRTP("ZRTP"),
+
+    /**
+     * A no-op implementation.
+     */
+    NULL("NULL");
 
     /**
      * The human-readable non-localized name of the (S)RTP transport protocol
