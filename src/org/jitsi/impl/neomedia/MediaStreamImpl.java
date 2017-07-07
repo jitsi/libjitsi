@@ -400,7 +400,6 @@ public class MediaStreamImpl
             setDevice(device);
         }
 
-        // TODO Add option to disable ZRTP, e.g. by implementing a NullControl.
         // If you change the default behavior (initiates a ZrtpControlImpl if
         // the srtpControl attribute is null), please accordingly modify the
         // CallPeerMediaHandler.initStream function.
@@ -1132,7 +1131,11 @@ public class MediaStreamImpl
         engineChain.add(ohbEngine);
 
         // SRTP
-        engineChain.add(srtpControl.getTransformEngine());
+        TransformEngine srtpTransformEngine = srtpControl.getTransformEngine();
+        if (srtpTransformEngine != null)
+        {
+            engineChain.add(srtpControl.getTransformEngine());
+        }
 
         // SSRC audio levels
         /*
