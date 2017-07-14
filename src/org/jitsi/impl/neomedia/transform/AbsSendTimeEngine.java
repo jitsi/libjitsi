@@ -16,6 +16,7 @@
 package org.jitsi.impl.neomedia.transform;
 
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.service.neomedia.RawPacket.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
@@ -133,4 +134,62 @@ public class AbsSendTimeEngine
     {
         extensionID = id;
     }
+
+    /**
+     *
+     * @param packet is the RawPacket
+     * @returns the Absolute Send Time header extension if present
+     */
+    public HeaderExtension hasAbsoluteSendTimeExtension(RawPacket packet)
+    {
+
+        if(packet.getExtensionBit() )
+        {
+            return packet.getHeaderExtension((byte)getAbsSendTimeExtensionID());
+        }
+        return null;
+    }
+
+    /**
+     * @ToDo findout the prefered way of setting {@Link extensionID}
+     * returns AbsSendTime Extension ID
+     * @return
+     */
+    public int getAbsSendTimeExtensionID(){
+        return extensionID == -1 ? extensionID_for_debugging : extensionID ;
+    }
+
+    /**
+     *   1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24
+     *  +-+-+-+-+-+-+-+-+-+-+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+     *  |  ID   |  LEN  |            AbsSendTime Value                |
+     *  +-+-+-+-+-+-+-+-+-+-+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+     * getAbsSendTime returns the AbsSendTime as a 24bit value
+     * @param pkt is a RawPacket
+     * @return
+     */
+    public long getAbsSendTime(RawPacket pkt)
+    {
+        long absSendTime = -1L;
+        HeaderExtension header  = hasAbsoluteSendTimeExtension(pkt);
+        if (header != null)
+        {
+            //offSet is the byte index to read from
+            int offSet = 1;
+            if (header.getExtLength() == EXT_LENGTH) {
+                absSendTime = (header.getBuffer()[offSet] & 0xFF) << 16
+                        | (header.getBuffer()[offSet + 1] & 0xFF) << 8
+                        | (header.getBuffer()[offSet + 2] & 0xFF);
+            }
+        }
+        return absSendTime;
+    }
+
+    /**
+     * For debug purposes, if @{Link extensionID} is 0,
+     * use @{Link extensionID_for_debugging}
+     */
+
+     private static final int extensionID_for_debugging = 3;
+
 }
