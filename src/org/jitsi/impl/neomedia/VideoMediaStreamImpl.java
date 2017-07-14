@@ -449,20 +449,20 @@ public class VideoMediaStreamImpl
      * the incoming RTP streams.
      */
     private final RemoteBitrateEstimator remoteBitrateEstimator
-        = new RemoteBitrateEstimatorSingleStream(
-                new RemoteBitrateObserver()
+            = new RemoteBitrateEstimatorSelector(
+            new RemoteBitrateObserver()
+            {
+                @Override
+                public void onReceiveBitrateChanged(
+                        Collection<Integer> ssrcs,
+                        long bitrate)
                 {
-                    @Override
-                    public void onReceiveBitrateChanged(
-                            Collection<Integer> ssrcs,
-                            long bitrate)
-                    {
-                        VideoMediaStreamImpl.this
+                    VideoMediaStreamImpl.this
                             .remoteBitrateEstimatorOnReceiveBitrateChanged(
                                     ssrcs,
                                     bitrate);
-                    }
-                });
+                }
+            }); 
 
     /**
      * The facility which aids this instance in managing a list of
