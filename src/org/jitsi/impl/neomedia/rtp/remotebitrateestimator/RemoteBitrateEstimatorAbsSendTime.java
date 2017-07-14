@@ -522,10 +522,13 @@ public class RemoteBitrateEstimatorAbsSendTime
         synchronized (critSect) {
             Iterator<Map.Entry<Long, Long>> itr = ssrcs_.entrySet().iterator();
             while (itr.hasNext()) {
-                Long Key = (Long) itr.next().getValue();
-                if ((nowMs - (Long) ssrcs_.get(Key) > kStreamTimeOutMs)) {
-
-                    ssrcs_.remove((Long) Key);
+                /**
+                 * @Todo ask if this is the best way to modify a treemap object
+                 * while going through
+                 */
+                Map.Entry entry = itr.next();
+                if ((nowMs - (Long) entry.getValue() > kStreamTimeOutMs)) {
+                    itr.remove();
                 }
             }
             if (ssrcs_.isEmpty()) {
