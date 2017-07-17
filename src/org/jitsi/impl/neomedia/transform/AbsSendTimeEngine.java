@@ -52,7 +52,7 @@ public class AbsSendTimeEngine
     /**
      * The ID of the abs-send-time RTP header extension.
      */
-    private int extensionID = -1;
+    private byte extensionID = -1;
 
     /**
      * Initializes a new {@link AbsSendTimeEngine} instance.
@@ -130,7 +130,7 @@ public class AbsSendTimeEngine
      * disable this transformer.
      * @param id the ID to set.
      */
-    public void setExtensionID(int id)
+    public void setExtensionID(byte id)
     {
         extensionID = id;
     }
@@ -145,7 +145,7 @@ public class AbsSendTimeEngine
 
         if(packet.getExtensionBit() )
         {
-            return packet.getHeaderExtension((byte)getAbsSendTimeExtensionID());
+            return packet.getHeaderExtension(getAbsSendTimeExtensionID());
         }
         return null;
     }
@@ -155,7 +155,7 @@ public class AbsSendTimeEngine
      * returns AbsSendTime Extension ID
      * @return
      */
-    public int getAbsSendTimeExtensionID(){
+    public byte getAbsSendTimeExtensionID(){
         return extensionID == -1 ? extensionID_for_debugging : extensionID ;
     }
 
@@ -190,6 +190,6 @@ public class AbsSendTimeEngine
      * use @{Link extensionID_for_debugging}
      */
 
-     private static final int extensionID_for_debugging = 3;
+     private static final byte extensionID_for_debugging = 3;
 
 }
