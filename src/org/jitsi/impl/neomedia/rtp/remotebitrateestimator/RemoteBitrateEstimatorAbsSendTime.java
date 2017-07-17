@@ -17,10 +17,12 @@ package org.jitsi.impl.neomedia.rtp.remotebitrateestimator;
 
 
 import org.ice4j.util.RateStatistics;
+import org.jitsi.impl.neomedia.rtp.TransportCCEngine;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.*;
+import org.jitsi.util.concurrent.RecurringRunnable;
 import org.jitsi.util.function.Predicate;
 
 import java.util.*;
@@ -32,7 +34,8 @@ import java.util.*;
  */
 public class RemoteBitrateEstimatorAbsSendTime
     extends SinglePacketTransformer
-    implements RemoteBitrateEstimator
+    implements RemoteBitrateEstimator,
+        RecurringRunnable
 {
     private static final Logger logger = Logger
             .getLogger(RemoteBitrateEstimatorAbsSendTime.class);
@@ -109,6 +112,19 @@ public class RemoteBitrateEstimatorAbsSendTime
         return super.transform(pkts);
     }
 
+    /**
+     * Returns the number of milliseconds until this instance wants a worker
+     * thread to call {@link #run()}. The method is called on the same
+     * worker thread as Process will be called on.
+     *
+     * @return the number of milliseconds until this instance wants a worker
+     * thread to call {@link #run()}
+     */
+    @Override
+    public long getTimeUntilNextRun() {
+        return 0;
+    }
+
     private enum ProbeResult
     {
         kBitrateUpdated(0),
@@ -152,21 +168,11 @@ public class RemoteBitrateEstimatorAbsSendTime
         return time24Bits;
     }
 
-    /**
-      * Confirm this on line 133 of remote_bitrate_estimator_abs_send_time.h
-     */
     private  TreeMap<Long,Long> ssrcs_ = new TreeMap<Long, Long>();
     private  ArrayList<Probe> probes_ = new ArrayList<>();
     private  long totalProbesReceived;
     private  long firstPacketTimeMs;
     private  long lastUpdateMs;
-
-    /**
-     * @Todo confirm these
-     * clock and observer_ are defined as const
-     * e.g const Clock* const clock_;
-     * find out if there is need to make it final
-     */
     public RemoteBitrateObserver observer_;
     private AimdRateControl remoteRate  = new AimdRateControl();
     private InterArrival interArrival;
@@ -210,8 +216,7 @@ public class RemoteBitrateEstimatorAbsSendTime
         this.totalProbesReceived = 0;
         this.firstPacketTimeMs = -1;
         this.lastUpdateMs = -1;
-        // RTC_DCHECK(observer_);
-        logger.info("RemoteBitrateEstimatorAbsSendTime: Instantiating.");
+        logger.info("; RemoteBitrateEstimatorAbsSendTime: Instantiating.");
 
     }
 
@@ -294,6 +299,9 @@ public class RemoteBitrateEstimatorAbsSendTime
         return bestIt;
     }
 
+    @Override
+    public void run(){}
+
     ProbeResult processClusters(long nowMs)
     {
         synchronized (critSect) {
@@ -359,13 +367,15 @@ public class RemoteBitrateEstimatorAbsSendTime
     public RawPacket reverseTransform(
             RawPacket packet)
     {
-        if (absoluteSendTimeEngine.hasAbsoluteSendTimeExtension(packet) == null) {
+        if (absoluteSendTimeEngine
+                .hasAbsoluteSendTimeExtension(packet) == null) {
             logger.warn( "RemoteBitrateEstimatorAbsSendTimeImpl: Incoming" +
                     " packet is missing absolute send time extension!");
         return null;
     }
         logger.info("Using RemoteBitrateEstimatorAbsSendTime: Instantiating.");
-    incomingPacketInfo(System.currentTimeMillis(), absoluteSendTimeEngine.getAbsSendTime(packet),
+        incomingPacketInfo(System.currentTimeMillis(), absoluteSendTimeEngine
+                        .getAbsSendTime(packet),
             packet.getPayloadLength(), packet.getSSRC());
         return packet;
     }
@@ -515,8 +525,6 @@ public class RemoteBitrateEstimatorAbsSendTime
         }
     }
 
-    void Process() {}
-
     void timeoutStreams(long nowMs)
     {
         synchronized (critSect) {
@@ -562,15 +570,9 @@ public class RemoteBitrateEstimatorAbsSendTime
 
     long getlatestEstimate(List<Long> ssrcs,
         long bitrateBps) {
-        // Currently accessed from both the process thread (see
-        // ModuleRtpRtcpImpl::Process()) and the configuration thread (see
-        // Call::GetStats()). Should in the future only be accessed from
-        // a single thread.
+
         synchronized (critSect)
         {
-            //RTC_DCHECK(ssrcs);
-            //RTC_DCHECK(bitrate_bps);
-            //rtc::CritScope lock(&crit_);
             if (!remoteRate.isValidEstimate()) {
                 return -1;
             }
@@ -633,7 +635,16 @@ public class RemoteBitrateEstimatorAbsSendTime
     @Override
     public void removeStream(int ssrc)
     {
-
+        synchronized (critSect) {
+            try {
+                ssrcs_.remove(ssrc);
+            }
+            catch (ArrayIndexOutOfBoundsException e)
+            {
+                logger.info("Cannot remove SSRC, "
+                        + "SSRC not found");
+            }
+        }
     }
 
     @Override
@@ -659,7 +670,8 @@ public class RemoteBitrateEstimatorAbsSendTime
         }
 
         public Cluster(double send_mean_ms, double recv_mean_ms,
-                       int mean_size, int counter, int num_above_min_delta) {
+                       int mean_size, int counter, int num_above_min_delta)
+        {
             this.sendMeanMs = send_mean_ms;
             this.recvMeanMs = recv_mean_ms;
             this.meanSize = mean_size;
@@ -670,10 +682,7 @@ public class RemoteBitrateEstimatorAbsSendTime
 
 
         public int getSendBitrateBps() {
-            /**
-             * @TODO None existent method RTC_CHECK_GT, Investigate
-             * The RTC_CHECK_GT should be in one of the statisticsClass
-             */
+
             //RTC_CHECK_GT(this.sendMeanMs, 0.0f);
             return (int) (this.meanSize * 8 * 1000 / sendMeanMs);
         }
