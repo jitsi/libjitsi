@@ -137,7 +137,7 @@ public class RemoteBitrateEstimatorAbsSendTime
     }
 
     private final Object critSect = new Object();
-
+    private Collection<Integer> ssrcs = new ArrayList<Integer>();
     private final static int kTimestampGroupLengthMs = 5;
     private final static int kAbsSendTimeFraction = 18;
     private final static int kAbsSendTimeInterArrivalUpshift = 8;
@@ -521,7 +521,7 @@ public class RemoteBitrateEstimatorAbsSendTime
         if (updateEstimate)
         {
             lastUpdateMs = nowMs;
-            observer_.onReceiveBitrateChanged(null, targetBitrateBps);
+            observer_.onReceiveBitrateChanged(getSsrcs(), targetBitrateBps);
         }
     }
 
@@ -623,7 +623,16 @@ public class RemoteBitrateEstimatorAbsSendTime
 
     @Override
     public Collection<Integer> getSsrcs() {
-        return null;
+
+        synchronized (critSect)
+        {
+            for(Long ssrcValue : ssrcs_.keySet()){
+                Number value = ssrcValue;
+                ssrcs.add(value.intValue());
+            }
+            return ssrcs;
+        }
+
     }
 
 
