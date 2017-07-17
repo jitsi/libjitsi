@@ -175,7 +175,7 @@ public class AbsSendTimeEngine
         if (header != null)
         {
             //offSet is the byte index to read from
-            int offSet = 1;
+            int offSet = header.getOffset() + 1;
             if (header.getExtLength() == EXT_LENGTH) {
                 absSendTime = (header.getBuffer()[offSet] & 0xFF) << 16
                         | (header.getBuffer()[offSet + 1] & 0xFF) << 8
