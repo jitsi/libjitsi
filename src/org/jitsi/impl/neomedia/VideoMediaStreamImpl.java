@@ -462,10 +462,8 @@ public class VideoMediaStreamImpl
                                     ssrcs,
                                     bitrate);
                 }
-                //@Todo: I expect that the mediastream object can be passed to
-                //the RemoteBitrateSelector so that extensionID can be retrieved
-                //Temporary fix.
-            }, VideoMediaStreamImpl.this.getAbsSendTimeEngine());
+
+            }, VideoMediaStreamImpl.this);
 
     /**
      * The facility which aids this instance in managing a list of
