@@ -16,14 +16,11 @@
 package org.jitsi.impl.neomedia.rtp.remotebitrateestimator;
 
 
-import org.ice4j.util.RateStatistics;
-import org.jitsi.impl.neomedia.rtp.TransportCCEngine;
+import org.ice4j.util.*;
+import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.rtp.*;
-import org.jitsi.util.*;
-import org.jitsi.util.concurrent.RecurringRunnable;
-import org.jitsi.util.function.Predicate;
 
 import java.util.*;
 
@@ -33,111 +30,15 @@ import java.util.*;
  * @author Julian Chukwu
  */
 public class RemoteBitrateEstimatorAbsSendTime
-    extends SinglePacketTransformer
-    implements RemoteBitrateEstimator,
-        RecurringRunnable
+    extends SinglePacketTransformerAdapter
+    implements RemoteBitrateEstimator
 {
-    private static final Logger logger = Logger
+    //@Todo Ask for alternative to resolve import conflict between
+    //org.jitsi.util.* and org.ice4j.util.* when importing Logger
+    // and RateStatistics. For now, see below.
+    private static final org.jitsi.util.Logger logger
+            = org.jitsi.util.Logger
             .getLogger(RemoteBitrateEstimatorAbsSendTime.class);
-
-    /**
-     * Ctor.
-     * <p>
-     * XXX At some point ideally we would get rid of this ctor and all the
-     * inheritors will use the parametrized ctor. Also, we might want to move
-     * this check inside the <tt>TransformEngineChain</tt> so that we only make
-     * the check once per packet: The RTCP transformer is only supposed to
-     * (reverse) transform RTCP packets and the RTP transformer is only
-     * supposed to modify RTP packets.
-     */
-    public RemoteBitrateEstimatorAbsSendTime() {
-        super();
-    }
-
-    /**
-     * Ctor.
-     *
-     * @param packetPredicate the <tt>PacketPredicate</tt> to use to match
-     *                        packets to (reverse) transform.
-     */
-    public RemoteBitrateEstimatorAbsSendTime(Predicate<ByteArrayBuffer> packetPredicate) {
-        super(packetPredicate);
-    }
-
-    /**
-     * {@inheritDoc}
-     * <p>
-     * The (default) implementation of {@code SinglePacketTransformer} does
-     * nothing.
-     */
-    @Override
-    public void close() {
-        super.close();
-    }
-
-    /**
-     * {@inheritDoc}
-     * <p>
-     * Reverse-transforms an array of packets by calling
-     * {@link #reverseTransform(RawPacket)} on each one.
-     *
-     * @param pkts
-     */
-    @Override
-    public RawPacket[] reverseTransform(RawPacket[] pkts) {
-        return super.reverseTransform(pkts);
-    }
-
-    /**
-     * Transforms a specific packet.
-     *
-     * @param pkt the packet to be transformed.
-     * @return the transformed packet.
-     */
-    @Override
-    public RawPacket transform(RawPacket pkt) {
-        return null;
-    }
-
-    /**
-     * {@inheritDoc}
-     * <p>
-     * Transforms an array of packets by calling {@link #transform(RawPacket)}
-     * on each one.
-     *
-     * @param pkts
-     */
-    @Override
-    public RawPacket[] transform(RawPacket[] pkts) {
-        return super.transform(pkts);
-    }
-
-    /**
-     * Returns the number of milliseconds until this instance wants a worker
-     * thread to call {@link #run()}. The method is called on the same
-     * worker thread as Process will be called on.
-     *
-     * @return the number of milliseconds until this instance wants a worker
-     * thread to call {@link #run()}
-     */
-    @Override
-    public long getTimeUntilNextRun() {
-        return 0;
-    }
-
-    private enum ProbeResult
-    {
-        kBitrateUpdated(0),
-        kNoUpdate(1);
-        int value;
-        ProbeResult(int x)
-        {
-            this.value = x;
-        };
-    }
-
-    private final Object critSect = new Object();
-    private Collection<Integer> ssrcs = new ArrayList<Integer>();
     private final static int kTimestampGroupLengthMs = 5;
     private final static int kAbsSendTimeFraction = 18;
     private final static int kAbsSendTimeInterArrivalUpshift = 8;
@@ -150,6 +51,40 @@ public class RemoteBitrateEstimatorAbsSendTime
 
     private static final double kTimestampToMs = 1000.0 /
             (1 << kInterArrivalShift) ;
+
+    private final Object critSect = new Object();
+    private Collection<Integer> ssrcs = new ArrayList<Integer>();
+    private  TreeMap<Long,Long> ssrcs_ = new TreeMap<Long, Long>();
+    private  ArrayList<Probe> probes_ = new ArrayList<>();
+    private  long totalProbesReceived;
+    private  long firstPacketTimeMs;
+    private  long lastUpdateMs;
+    public RemoteBitrateObserver observer_;
+    private AimdRateControl remoteRate  = new AimdRateControl();
+    private InterArrival interArrival;
+    private OveruseEstimator estimator;
+    private OveruseDetector detector;
+    private RateStatistics incomingBitrate ;
+    boolean incomingBitrateInitialized;
+    private AbsSendTimeEngine absoluteSendTimeEngine;
+
+    public RemoteBitrateEstimatorAbsSendTime(RemoteBitrateObserver observer,
+                                           AbsSendTimeEngine absSendTimeEngine)
+    {
+        super(RTPPacketPredicate.INSTANCE);
+        this.absoluteSendTimeEngine = absSendTimeEngine;
+        this.observer_ = observer;
+        this.interArrival = new InterArrival(90 * kTimestampGroupLengthMs,
+                kTimestampToMs,true);
+        this.estimator = new OveruseEstimator(new OverUseDetectorOptions());
+        this.detector = new OveruseDetector(new OverUseDetectorOptions());
+        this.incomingBitrate = new RateStatistics(kBitrateWindowMs,8000);
+        this.incomingBitrateInitialized = false;
+        this.totalProbesReceived = 0;
+        this.firstPacketTimeMs = -1;
+        this.lastUpdateMs = -1;
+        logger.info("; RemoteBitrateEstimatorAbsSendTime: Instantiating.");
+    }
 
     private <K,V> List<K> Keys(TreeMap<K,V> _map)
     {
@@ -168,22 +103,6 @@ public class RemoteBitrateEstimatorAbsSendTime
         return time24Bits;
     }
 
-    private  TreeMap<Long,Long> ssrcs_ = new TreeMap<Long, Long>();
-    private  ArrayList<Probe> probes_ = new ArrayList<>();
-    private  long totalProbesReceived;
-    private  long firstPacketTimeMs;
-    private  long lastUpdateMs;
-    public RemoteBitrateObserver observer_;
-    private AimdRateControl remoteRate  = new AimdRateControl();
-    private InterArrival interArrival;
-    private OveruseEstimator estimator;
-    private OveruseDetector detector;
-    private OverUseDetectorOptions options;
-    private RateStatistics incomingBitrate ;
-    boolean incomingBitrateInitialized;
-    ArrayList<Integer> recentPropagationDeltaMs;
-    ArrayList<Long> recentUpdateTimeMs;
-    private AbsSendTimeEngine absoluteSendTimeEngine = new AbsSendTimeEngine();
 
     boolean IsWithinClusterBounds(long sendDeltaMs, Cluster clusterAggregate)
     {
@@ -202,22 +121,6 @@ public class RemoteBitrateEstimatorAbsSendTime
         cluster.recvMeanMs /= (double)cluster.count;
         cluster.meanSize /= cluster.count;
         clusters.add(cluster);
-    }
-
-    public RemoteBitrateEstimatorAbsSendTime(RemoteBitrateObserver observer)
-    {
-        this.observer_ = observer;
-        this.interArrival = new InterArrival(90 * kTimestampGroupLengthMs,
-                kTimestampToMs,true);
-        this.estimator = new OveruseEstimator(new OverUseDetectorOptions());
-        this.detector = new OveruseDetector(new OverUseDetectorOptions());
-        this.incomingBitrate = new RateStatistics(kBitrateWindowMs,8000);
-        this.incomingBitrateInitialized = false;
-        this.totalProbesReceived = 0;
-        this.firstPacketTimeMs = -1;
-        this.lastUpdateMs = -1;
-        logger.info("; RemoteBitrateEstimatorAbsSendTime: Instantiating.");
-
     }
 
     void computeClusters(List<Cluster> clusters)
@@ -299,9 +202,6 @@ public class RemoteBitrateEstimatorAbsSendTime
         return bestIt;
     }
 
-    @Override
-    public void run(){}
-
     ProbeResult processClusters(long nowMs)
     {
         synchronized (critSect) {
@@ -367,16 +267,11 @@ public class RemoteBitrateEstimatorAbsSendTime
     public RawPacket reverseTransform(
             RawPacket packet)
     {
-        if (absoluteSendTimeEngine
-                .hasAbsoluteSendTimeExtension(packet) == null) {
-            logger.warn( "RemoteBitrateEstimatorAbsSendTimeImpl: Incoming" +
-                    " packet is missing absolute send time extension!");
-        return null;
-    }
         logger.info("Using RemoteBitrateEstimatorAbsSendTime: Instantiating.");
+
         incomingPacketInfo(System.currentTimeMillis(), absoluteSendTimeEngine
-                        .getAbsSendTime(packet),
-            packet.getPayloadLength(), packet.getSSRC());
+                .getAbsSendTime(packet), packet.getPayloadLength(),
+                packet.getSSRC());
         return packet;
     }
 
@@ -385,11 +280,8 @@ public class RemoteBitrateEstimatorAbsSendTime
         long sendTime24bits,
         long payloadSize,
         long ssrc) {
-        /**
-         * @ToDo 1L << 24 should be 1L << 23 since we want to check if
-         * sendTime24bits is less than 24 bits
-         */
-        if (sendTime24bits < (1L << 24)){
+
+        if (sendTime24bits < 0 || sendTime24bits >= (1 << 24)){
             logger.warn("Send Time not valid");
         }
         // Shift up send time to use the full 32 bits that inter_arrival
@@ -398,7 +290,6 @@ public class RemoteBitrateEstimatorAbsSendTime
         long timestamp = sendTime24bits << kAbsSendTimeInterArrivalUpshift;
         long sendTimeMs = (long) (timestamp * kTimestampToMs);
         long nowMs = System.currentTimeMillis();
-        // TODO(holmer): SSRCs are only needed for REMB,
         // should be broken out from  here.
         // Check if incoming bitrate estimate is valid, and if it
         // needs to be reset.
@@ -426,10 +317,7 @@ public class RemoteBitrateEstimatorAbsSendTime
         boolean updateEstimate = false;
         long targetBitrateBps = 0;
         synchronized (critSect) {
-            //rtc.CritScope lock(&crit_);
             timeoutStreams(nowMs);
-            // RTC_DCHECK(interArrival.get());
-            // RTC_DCHECK(estimator.get());
             ssrcs_.put(ssrc, nowMs);
             // For now only try to detect probes while we don't have
             // a valid estimate. We currently assume that only packets
@@ -439,7 +327,6 @@ public class RemoteBitrateEstimatorAbsSendTime
                     (!remoteRate.isValidEstimate() ||
                             nowMs - firstPacketTimeMs
                                     < kInitialProbingIntervalMs)) {
-                // TODO(holmer): Use a map instead to get correct order?
                 if (totalProbesReceived < kMaxProbePackets) {
                     long sendDeltaMs = -1;
                     long recvDeltaMs = -1;
@@ -508,11 +395,6 @@ public class RemoteBitrateEstimatorAbsSendTime
                 RateControlInput input = new RateControlInput(detector
                         .getState(), incomingBitrate.getRate(arrivalTimeMs),
                         estimator.getVarNoise());
-
-                /**
-                 * @Todo remote.update returns nothing. This is fine since we
-                 * can retrieve the value from remoteRate.getLatestEstimate
-                 */
                 remoteRate.update(input, nowMs);
                 targetBitrateBps = remoteRate.getLatestEstimate();
                 updateEstimate = remoteRate.isValidEstimate();
@@ -530,12 +412,8 @@ public class RemoteBitrateEstimatorAbsSendTime
         synchronized (critSect) {
             Iterator<Map.Entry<Long, Long>> itr = ssrcs_.entrySet().iterator();
             while (itr.hasNext()) {
-                /**
-                 * @Todo ask if this is the best way to modify a treemap object
-                 * while going through
-                 */
-                Map.Entry entry = itr.next();
-                if ((nowMs - (Long) entry.getValue() > kStreamTimeOutMs)) {
+                Map.Entry<Long,Long> entry = itr.next();
+                if ((nowMs - entry.getValue() > kStreamTimeOutMs)) {
                     itr.remove();
                 }
             }
@@ -568,15 +446,15 @@ public class RemoteBitrateEstimatorAbsSendTime
         }
     }
 
-    long getlatestEstimate(List<Long> ssrcs,
-        long bitrateBps) {
+    @Override
+    public long getLatestEstimate() {
 
         synchronized (critSect)
         {
+            long bitrateBps;
             if (!remoteRate.isValidEstimate()) {
                 return -1;
             }
-            ssrcs = Keys(ssrcs_);
             if (ssrcs_.isEmpty()) {
                 bitrateBps = 0;
             } else {
@@ -612,20 +490,14 @@ public class RemoteBitrateEstimatorAbsSendTime
      *
      * @return the estimated payload bitrate in bits per seconds if a valid
      * estimate exists; otherwise, <tt>-1</tt>
-     *
-     * @// TODO: 30/06/2017 confirm if this is correct
-     * "return incomingBitrate.getRate()"
      */
-    @Override
-    public long getLatestEstimate() {
-        return incomingBitrate.getRate();
-    }
 
     @Override
     public Collection<Integer> getSsrcs() {
 
         synchronized (critSect)
         {
+            ssrcs = new ArrayList<>();
             for(Long ssrcValue : ssrcs_.keySet()){
                 Number value = ssrcValue;
                 ssrcs.add(value.intValue());
@@ -700,7 +572,6 @@ public class RemoteBitrateEstimatorAbsSendTime
            // RTC_CHECK_GT(this.recvMeanMs, 0.0f);
             return (int) (this.meanSize * 8 * 1000 / this.recvMeanMs);
         }
-        // TODO(holmer): Add some variance metric as well?
     }
 
     public class Probe
@@ -715,5 +586,16 @@ public class RemoteBitrateEstimatorAbsSendTime
             this.recvTimeMs = recv_time_ms;
             this.payloadSize = payload_size;
         }
+    }
+
+    private enum ProbeResult
+    {
+        kBitrateUpdated(0),
+        kNoUpdate(1);
+        int value;
+        ProbeResult(int x)
+        {
+            this.value = x;
+        };
     }
 }
