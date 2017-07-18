@@ -141,7 +141,7 @@ public class AbsSendTimeEngine
      * @returns the Absolute Send Time header extension if present
      */
     public HeaderExtension getAbsoluteSendTimeExtension(RawPacket packet)
-    { 
+    {
         if( packet.getExtensionBit() && packet.getHeaderExtensionType()
                         == getAbsSendTimeExtensionID() )
         {
@@ -150,12 +150,8 @@ public class AbsSendTimeEngine
         return null;
     }
 
-    /**@ Todo we set 3 manually since MediaStreamImpl#getAbsSendTimeEngine
-     *  does not set this value. Find out the how to retrieve the extension
-     *  Id from VideoMediaStream or MediaStreamImpl
-     * finally., clear this "3", **/
     public byte getAbsSendTimeExtensionID(){
-        return extensionID != -1 ? extensionID : 3  ;
+        return extensionID;
     }
 
     /**
