@@ -4089,7 +4089,8 @@ public class MediaStreamImpl
     }
 
     /**
-     * @return AbsSendTimeEngine for this media stream
+     * @return {@Link getAbsSendTimeEngine} returns the AbsSendTimeEngine
+     * for this media stream
      */
     public AbsSendTimeEngine getAbsSendTimeEngine()
     {
