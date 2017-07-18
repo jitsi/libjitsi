@@ -304,7 +304,7 @@ public class MediaUtils
             h264FormatParams.put(packetizationMode, "1");
             addMediaFormats(
                     MediaFormat.RTP_PAYLOAD_TYPE_UNKNOWN,
-                    "H264",
+                    Constants.H264,
                     MediaType.VIDEO,
                     Constants.H264_RTP,
                     h264FormatParams,
@@ -325,7 +325,7 @@ public class MediaUtils
         h264FormatParams.remove(packetizationMode);
         addMediaFormats(
                 MediaFormat.RTP_PAYLOAD_TYPE_UNKNOWN,
-                "H264",
+                Constants.H264,
                 MediaType.VIDEO,
                 Constants.H264_RTP,
                 h264FormatParams,
