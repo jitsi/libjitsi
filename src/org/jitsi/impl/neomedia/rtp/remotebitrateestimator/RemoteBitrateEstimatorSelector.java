@@ -15,6 +15,7 @@
  */
 package org.jitsi.impl.neomedia.rtp.remotebitrateestimator;
 
+import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
@@ -46,6 +47,7 @@ public class RemoteBitrateEstimatorSelector
     private AbsSendTimeEngine absSendTimeEngine;
     private long packetsSinceAbsoluteSendTime;
     private int minBitrateBps;
+    private VideoMediaStreamImpl stream;
     private SinglePacketTransformer packetTransformer;
     private final Object critSect = new Object();
     private RemoteBitrateObserver observer;
@@ -56,20 +58,16 @@ public class RemoteBitrateEstimatorSelector
      */
     private boolean enableUseOfAbsSendTime;
 
-    public RemoteBitrateEstimatorSelector(RemoteBitrateObserver observe, AbsSendTimeEngine _absSendTimeEngine)
+    public RemoteBitrateEstimatorSelector(RemoteBitrateObserver observe, VideoMediaStreamImpl stream)
     {
         this.observer = observe;
-
+        this.stream = stream;
         /**
          * RemoteBitrateEstimatorSingleStream is the Default BitrateEstimator
          */
         this.packetTransformer
                 = new RemoteBitrateEstimatorSingleStream(observe);
         this.minBitrateBps = 0;
-
-        //@Todo ask how to retrieve the absSendTimeEngine from MediaStream
-        //Temporary fix
-        this.absSendTimeEngine = _absSendTimeEngine == null ? new AbsSendTimeEngine(): _absSendTimeEngine;
         this.packetsSinceAbsoluteSendTime = 0;
         setAbsSendTimeUsageConfiguration();
     }
@@ -188,6 +186,10 @@ public class RemoteBitrateEstimatorSelector
          * @Todo Find out why having synchronized here makes sense since it
          * exists in PickEstimatorFromHeader.
          */
+        if (this.absSendTimeEngine == null){
+            this.absSendTimeEngine = stream.getAbsSendTimeEngine();
+        }
+
         synchronized (critSect)
         {
             if(enableUseOfAbsSendTime)
