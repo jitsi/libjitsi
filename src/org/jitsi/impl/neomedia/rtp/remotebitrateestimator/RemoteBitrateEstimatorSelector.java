@@ -16,6 +16,8 @@
 package org.jitsi.impl.neomedia.rtp.remotebitrateestimator;
 
 import org.jitsi.impl.neomedia.transform.*;
+import org.jitsi.service.configuration.*;
+import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.*;
@@ -28,14 +30,16 @@ import java.util.*;
  * @author Julian Chukwu on 06/07/2017.
  */
 public class RemoteBitrateEstimatorSelector
-    extends SinglePacketTransformer
+    extends SinglePacketTransformerAdapter
         implements RemoteBitrateEstimator,
                 CallStatsObserver,
                 RecurringRunnable,
                 TransformEngine
 {
-    public static final long kTimeOffsetSwitchThreshold = 30;
 
+    public final static String ENABLE_USE_OF_ABS_SEND_TIME =
+            "org.jitsi.impl.neomedia.rtp.ENABLE_ABS_SEND_TIME";;
+    public static final long kTimeOffsetSwitchThreshold = 30;
     private static final Logger logger = Logger
             .getLogger(RemoteBitrateEstimatorSelector.class);
     private boolean usingAbsoluteSendTime;
@@ -44,20 +48,34 @@ public class RemoteBitrateEstimatorSelector
     private int minBitrateBps;
     private SinglePacketTransformer packetTransformer;
     private final Object critSect = new Object();
-    private final RemoteBitrateObserver observer;
+    private RemoteBitrateObserver observer;
+    /**
+     * {@code enableUseofAbsSendTime} enables selection of
+     * RemoteBitrateEstimatorAbsSendTime if set to "true"
+     * Default is false
+     */
+    private boolean enableUseOfAbsSendTime;
 
-    public RemoteBitrateEstimatorSelector(RemoteBitrateObserver observe)
+    public RemoteBitrateEstimatorSelector(RemoteBitrateObserver observe, AbsSendTimeEngine _absSendTimeEngine)
     {
         this.observer = observe;
+
+        /**
+         * RemoteBitrateEstimatorSingleStream is the Default BitrateEstimator
+         */
         this.packetTransformer
                 = new RemoteBitrateEstimatorSingleStream(observe);
         this.minBitrateBps = 0;
-        this.absSendTimeEngine = new AbsSendTimeEngine();
+
+        //@Todo ask how to retrieve the absSendTimeEngine from MediaStream
+        //Temporary fix
+        this.absSendTimeEngine = _absSendTimeEngine == null ? new AbsSendTimeEngine(): _absSendTimeEngine;
         this.packetsSinceAbsoluteSendTime = 0;
+        setAbsSendTimeUsageConfiguration();
     }
     private void PickEstimatorFromHeader(RawPacket packet) {
         synchronized (critSect) {
-            if (absSendTimeEngine.hasAbsoluteSendTimeExtension(packet) != null)
+            if (absSendTimeEngine.getAbsoluteSendTimeExtension(packet) != null)
             {
                 // If we see AST in header, switch RBE strategy immediately.
                 if (!usingAbsoluteSendTime) {
@@ -84,6 +102,21 @@ public class RemoteBitrateEstimatorSelector
         }
     }
 
+    public void setAbsSendTimeUsageConfiguration()
+    {
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
+
+        if (cfg == null)
+        {
+            logger.warn("FORGETTING about checking AbsSendTime because "
+                    + "the configuration service was not found.");
+            return;
+        }
+        //@Todo set default value to false. Allow true for test.
+        enableUseOfAbsSendTime
+                = cfg.getBoolean(ENABLE_USE_OF_ABS_SEND_TIME, false);
+    }
+
     /**
      * Selects either to use RBE_abs_send_time or RBE_single_stream
      */
@@ -95,7 +128,7 @@ public class RemoteBitrateEstimatorSelector
             {
                 logger.info("Now Using RemoteBitrateEstimatorAbsSendTime");
                 packetTransformer
-                        = new RemoteBitrateEstimatorAbsSendTime(this.observer);
+                        = new RemoteBitrateEstimatorAbsSendTime(this.observer, this.absSendTimeEngine);
             } else {
                 logger.info("Now Using RemoteBitrateEstimatorSingleStream");
                 packetTransformer
@@ -149,28 +182,21 @@ public class RemoteBitrateEstimatorSelector
 
     @Override
     public RawPacket reverseTransform(
-            RawPacket packet) {
+            RawPacket packet)
+    {
         /**
          * @Todo Find out why having synchronized here makes sense since it
          * exists in PickEstimatorFromHeader.
          */
         synchronized (critSect)
         {
-            PickEstimatorFromHeader(packet);
+            if(enableUseOfAbsSendTime)
+            {
+                PickEstimatorFromHeader(packet);
+            }
             packetTransformer.reverseTransform(packet);
         }
         return packet;
-    }
-
-    /**
-     * Transforms a specific packet.
-     *
-     * @param pkt the packet to be transformed.
-     * @return the transformed packet.
-     */
-    @Override
-    public RawPacket transform(RawPacket pkt) {
-        return null;
     }
 
     /**
