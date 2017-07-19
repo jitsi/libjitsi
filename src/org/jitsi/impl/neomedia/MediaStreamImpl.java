@@ -1775,7 +1775,10 @@ public class MediaStreamImpl
             Collection<ReceiveStream> rtpManagerReceiveStreams
                 = rtpManager.getReceiveStreams();
 
-            receiveStreams.addAll(rtpManagerReceiveStreams);
+            if (rtpManagerReceiveStreams != null)
+            {
+                receiveStreams.addAll(rtpManagerReceiveStreams);
+            }
         }
 
         return receiveStreams;
