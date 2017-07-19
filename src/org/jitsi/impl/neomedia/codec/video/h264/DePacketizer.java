@@ -563,7 +563,7 @@ public class DePacketizer
     private static boolean parseSingleNaluForKeyFrame(byte[] buf, int off, int len)
     {
         int naluStart = off + kNalHeaderSize;
-        int naluLength = len - naluStart;
+        int naluLength = len - kNalHeaderSize;
         int nalType = buf[off] & kTypeMask;
         if (nalType == kStapA)
         {
