@@ -37,6 +37,7 @@ public class FrameDesc
 
     /**
      * The time in (millis) when the first packet of this frame was received.
+     * Currently used in stream suspension detection.
      */
     private final long receivedMs;
 
@@ -55,6 +56,15 @@ public class FrameDesc
      * (e.g. VP8 key frame).
      */
     private Boolean independent;
+
+    /**
+     * A boolean that indicates whether or not we can read the frame boundaries
+     * of a frame.
+     *
+     * FIXME this and the method isStartOfFrame and isEndOfFrame need to be
+     * in the same place.
+     */
+    private final boolean supportsFrameBoundaries;
 
     /**
      * The minimum sequence number that we've seen for this source frame.
@@ -81,15 +91,32 @@ public class FrameDesc
      *
      * @param rtpEncoding the {@link RTPEncodingDesc} that this instance belongs
      * to.
-     * @param ts the RTP timestamp for this frame.
+     * @param pkt the first {@link RawPacket} that we've seen for this frame.
      * @param receivedMs the time (in millis) when the first packet of this
      * frame was received.
      */
-    FrameDesc(RTPEncodingDesc rtpEncoding, long ts, long receivedMs)
+    FrameDesc(RTPEncodingDesc rtpEncoding, RawPacket pkt, long receivedMs)
     {
         this.rtpEncoding = rtpEncoding;
-        this.ts = ts;
+        this.ts = pkt.getTimestamp();
         this.receivedMs = receivedMs;
+
+        MediaStreamImpl stream = rtpEncoding.getMediaStreamTrack()
+            .getMediaStreamTrackReceiver().getStream();
+
+        this.supportsFrameBoundaries = stream.supportsFrameBoundaries(pkt);
+    }
+
+    /**
+     * Gets a boolean that indicates whether or not we can read the frame
+     * boundaries of this frame.
+     *
+     * @return true if we're able to read the frame boundaries of this frame,
+     * false otherwise.
+     */
+    boolean supportsFrameBoundaries()
+    {
+        return supportsFrameBoundaries;
     }
 
     /**
@@ -235,8 +262,6 @@ public class FrameDesc
         MediaStreamImpl stream = rtpEncoding.getMediaStreamTrack()
             .getMediaStreamTrackReceiver().getStream();
 
-        boolean isSOF = stream.isStartOfFrame(pkt);
-
         if (minSeen == -1 || RTPUtils.sequenceNumberDiff(minSeen, seqNum) > 0)
         {
             changed = true;
@@ -255,10 +280,18 @@ public class FrameDesc
             end = seqNum;
         }
 
+        boolean isSOF = stream.isStartOfFrame(pkt);
         if (start == -1 && isSOF)
         {
             changed = true;
             start = seqNum;
+        }
+
+        if (independent == null)
+        {
+            // XXX we check for key frame outside the above if statement
+            // because for some codecs (e.g. for H264) we can detect keyframes
+            // but we cannot detect the start of a frame.
             independent = stream.isKeyFrame(pkt);
 
             if (independent)

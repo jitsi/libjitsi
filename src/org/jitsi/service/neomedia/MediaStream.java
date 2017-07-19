@@ -19,6 +19,7 @@ import java.beans.*;
 import java.net.*;
 import java.util.*;
 
+import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.device.*;
@@ -525,6 +526,17 @@ public interface MediaStream
      * @param pkt the packet.
      */
     boolean isKeyFrame(RawPacket pkt);
+
+    /**
+     * Gets the {@link REDBlock} that contains the payload of the packet passed
+     * in as a parameter.
+     *
+     * @param baf the {@link ByteArrayBuffer} that holds the RTP payload.
+     *
+     * @return the {@link REDBlock} that contains the payload of the packet
+     * passed in as a parameter, or null if the buffer is invalid.
+     */
+    REDBlock getPayloadBlock(ByteArrayBuffer baf);
 
     /**
      * @return the {@link RetransmissionRequester} for this media stream.

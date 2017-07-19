@@ -3697,7 +3697,8 @@ public class MediaStreamImpl
         }
         else
         {
-            logger.warn("Method not implemented");
+            // XXX not implementing temporal layer detection should not break
+            // things.
             return -1;
         }
     }
@@ -3751,8 +3752,43 @@ public class MediaStreamImpl
         }
         else
         {
-            logger.warn("Method not implemented");
+            // XXX not implementing temporal layer detection should not break
+            // things.
             return -1;
+        }
+    }
+
+    /**
+     * Returns a boolean that indicates whether or not our we're able to detect
+     * the frame boundaries for the codec of the packet that is specified as an
+     * argument.
+     *
+     * @param pkt the {@link RawPacket} that holds the RTP packet.
+     *
+     * @return true if we're able to detect the frame boundaries for the codec
+     * of the packet that is specified as an argument, false otherwise.
+     */
+    public boolean supportsFrameBoundaries(RawPacket pkt)
+    {
+        if (frameMarkingsExtensionId == -1)
+        {
+            REDBlock redBlock = getPayloadBlock(pkt);
+            if (redBlock != null && redBlock.getLength() != 0)
+            {
+                final byte vp9PT = getDynamicRTPPayloadType(Constants.VP9),
+                    vp8PT = getDynamicRTPPayloadType(Constants.VP8),
+                    pt = redBlock.getPayloadType();
+
+                return vp9PT == pt || vp8PT == pt;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        else
+        {
+            return pkt.getHeaderExtension(frameMarkingsExtensionId) != null;
         }
     }
 
@@ -3775,10 +3811,6 @@ public class MediaStreamImpl
             return false;
         }
 
-        byte[] buf = pkt.getBuffer();
-        int off = pkt.getOffset();
-        int len = pkt.getLength();
-        
         if (frameMarkingsExtensionId != -1)
         {
             RawPacket.HeaderExtension fmhe
@@ -3791,8 +3823,8 @@ public class MediaStreamImpl
             // to change this behaviour in the future, because it will give
             // wrong results if the payload is encrypted.
         }
-        
-        REDBlock redBlock = getPayloadBlock(buf, off, len);
+
+        REDBlock redBlock = getPayloadBlock(pkt);
         if (redBlock == null || redBlock.getLength() == 0)
         {
             return false;
@@ -3816,7 +3848,6 @@ public class MediaStreamImpl
         }
         else
         {
-            logger.warn("Method not implemented");
             return false;
         }
     }
@@ -3840,10 +3871,6 @@ public class MediaStreamImpl
             return false;
         }
 
-        byte[] buf = pkt.getBuffer();
-        int off = pkt.getOffset();
-        int len = pkt.getLength();
-        
         if (frameMarkingsExtensionId != -1)
         {
             RawPacket.HeaderExtension fmhe
@@ -3856,8 +3883,8 @@ public class MediaStreamImpl
             // to change this behaviour in the future, because it will give
             // wrong results if the payload is encrypted.
         }
-        
-        REDBlock redBlock = getPayloadBlock(buf, off, len);
+
+        REDBlock redBlock = getPayloadBlock(pkt);
         if (redBlock == null || redBlock.getLength() == 0)
         {
             return false;
@@ -3873,7 +3900,7 @@ public class MediaStreamImpl
         }
         else
         {
-            return RawPacket.isPacketMarked(buf, off, len);
+            return RawPacket.isPacketMarked(pkt);
         }
     }
 
@@ -3974,6 +4001,16 @@ public class MediaStreamImpl
     public TransformEngineChain getTransformEngineChain()
     {
         return transformEngineChain;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public REDBlock getPayloadBlock(ByteArrayBuffer baf)
+    {
+        return getPayloadBlock(
+            baf.getBuffer(), baf.getOffset(), baf.getLength());
     }
 
     /**
