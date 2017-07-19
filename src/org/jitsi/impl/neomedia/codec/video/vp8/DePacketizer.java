@@ -507,8 +507,30 @@ public class DePacketizer
          * The size in bytes of the Payload Descriptor at offset
          * <tt>offset</tt> in <tt>input</tt>. The size is between 1 and 6.
          *
+         * @param baf the <tt>ByteArrayBuffer</tt> that holds the VP8 payload
+         * descriptor.
+         *
+         * @return The size in bytes of the Payload Descriptor at offset
+         * <tt>offset</tt> in <tt>input</tt>, or -1 if the input is not a valid
+         * VP8 Payload Descriptor. The size is between 1 and 6.
+         */
+        public static int getSize(ByteArrayBuffer baf)
+        {
+            if (baf == null)
+            {
+                return -1;
+            }
+
+            return getSize(baf.getBuffer(), baf.getOffset(), baf.getLength());
+        }
+
+        /**
+         * The size in bytes of the Payload Descriptor at offset
+         * <tt>offset</tt> in <tt>input</tt>. The size is between 1 and 6.
+         *
          * @param input input
          * @param offset offset
+         * @param length length
          * @return The size in bytes of the Payload Descriptor at offset
          * <tt>offset</tt> in <tt>input</tt>, or -1 if the input is not a valid
          * VP8 Payload Descriptor. The size is between 1 and 6.
