@@ -228,16 +228,16 @@ public class RtxTransformer
      * packet will be retransmitted as-is.
      *
      * @param pkt the packet to retransmit.
+     * @param rtxPt the RTX payload type to use for the re-transmitted packet.
      * @param after the {@code TransformEngine} in the chain of
      * {@code TransformEngine}s of the associated {@code MediaStream} after
      * which the injection of {@code pkt} is to begin
      * @return {@code true} if the packet was successfully retransmitted,
      * {@code false} otherwise.
      */
-    private boolean retransmit(RawPacket pkt, TransformEngine after)
+    private boolean retransmit(RawPacket pkt, Byte rtxPt, TransformEngine after)
     {
-        Byte rtxPt = apt2rtx.get(pkt.getPayloadType());
-        boolean destinationSupportsRtx =  rtxPt != null;
+        boolean destinationSupportsRtx = rtxPt != null;
         boolean retransmitPlain;
 
         if (destinationSupportsRtx)
@@ -477,7 +477,8 @@ public class RtxTransformer
                                 + ",send=" + send);
                     }
 
-                    if (send && retransmit(container.pkt, after))
+                    Byte rtxPt = apt2rtx.get(container.pkt.getPayloadType());
+                    if (send && retransmit(container.pkt, rtxPt, after))
                     {
                         stats.rtpPacketRetransmitted(
                             mediaSSRC, container.pkt.getLength());
@@ -604,7 +605,7 @@ public class RtxTransformer
 
                     if (bytes - len > 0 && apt != null)
                     {
-                        retransmit(container.pkt, this);
+                        retransmit(container.pkt, apt, this);
                         bytes -= len;
                     }
                     else
