@@ -743,9 +743,9 @@ public abstract class RTPConnectorInputStream<T>
 
         while (!closed)
         {
-            // http://code.google.com/p/android/issues/detail?id=24765
-            if (OSUtils.IS_ANDROID)
-                p.setLength(PACKET_RECEIVE_BUFFER_LENGTH);
+            // Reset the buffer, because the previous call to receive() might
+            // have bumped the offset or even changed the byte[].
+            p.setData(buffer, 0, buffer.length);
 
             try
             {
