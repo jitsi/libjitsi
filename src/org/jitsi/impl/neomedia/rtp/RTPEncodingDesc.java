@@ -280,55 +280,84 @@ public class RTPEncodingDesc
             int bMinSeqNum = b.getMinSeen(), aMaxSeqNum = a.getMaxSeen();
             int snDiff = (bMinSeqNum - aMaxSeqNum) & 0xFFFF;
 
-            if (bFirstSeqNum != -1 || aLastSeqNum != -1)
+            boolean guessed = false;
+
+            // We have some codecs (VPX) for which we can inspect the payload
+            // to deduce the start/end of a frame. This has an impact on the
+            // distances between the frames that allow us to guess frame
+            // boundaries.
+            boolean withFrameBoundaries =
+                a.supportsFrameBoundaries() && b.supportsFrameBoundaries();
+
+            if (withFrameBoundaries)
             {
-                if (snDiff == 2)
+                if (bFirstSeqNum != -1 || aLastSeqNum != -1)
                 {
-                    if (aLastSeqNum == -1)
+                    if (snDiff == 2 || snDiff == (-2 & 0xFFFF))
                     {
-                        aLastSeqNum = (aMaxSeqNum + 1) & 0xFFFF;
-                        if (logger.isDebugEnabled())
+                        if (aLastSeqNum == -1)
                         {
-                            logger.debug("Guessed frame end=" + aLastSeqNum);
+                            a.setEnd((aMaxSeqNum + 1) & 0xFFFF);
                         }
-                        a.setEnd(aLastSeqNum);
-                    }
-                    else
-                    {
-                        bFirstSeqNum = (bMinSeqNum - 1) & 0xFFFF;
-                        if (logger.isDebugEnabled())
+                        else
                         {
-                            logger.debug("Guessed frame start=" + bFirstSeqNum);
+                            b.setStart((bMinSeqNum - 1) & 0xFFFF);
                         }
-                        b.setStart(bFirstSeqNum);
+
+                        guessed = true;
                     }
                 }
-                else if (snDiff < 2 || snDiff > (-3 & 0xFFFF))
+                else // (bFirstSeqNum == -1 && aLastSeqNum == -1)
                 {
-                    logger.warn("Frame corruption or packets that are out of " +
-                        "order detected.");
+                    if (snDiff == 3 || snDiff == (-3 & 0xFFFF))
+                    {
+                        a.setEnd((aMaxSeqNum + 1) & 0xFFFF);
+                        b.setStart((bMinSeqNum - 1) & 0xFFFF);
+                        guessed = true;
+                    }
                 }
             }
             else
             {
-                if (snDiff == 3)
+                if (bFirstSeqNum != -1 || aLastSeqNum != -1)
                 {
-                    bFirstSeqNum = (bMinSeqNum - 1) & 0xFFFF;
-                    aLastSeqNum = (aMaxSeqNum + 1) & 0xFFFF;
-                    if (logger.isDebugEnabled())
+                    if (snDiff == 1 || snDiff == (-1 & 0xFFFF))
                     {
-                        logger.debug(
-                            "Guessed frame start=" + bFirstSeqNum
-                                + ",end=" + aLastSeqNum);
-                    }
+                        if (aLastSeqNum == -1)
+                        {
+                            a.setEnd(aMaxSeqNum & 0xFFFF);
+                        }
+                        else
+                        {
+                            b.setStart(bMinSeqNum & 0xFFFF);
+                        }
 
-                    a.setEnd(aLastSeqNum);
-                    b.setStart(bFirstSeqNum);
+                        guessed = true;
+                    }
                 }
-                else if (snDiff < 3 || snDiff > (-4 & 0xFFFF))
+                else // (bFirstSeqNum == -1 && aLastSeqNum == -1)
                 {
-                    logger.warn("Frame corruption or packets that are out of" +
-                        " order detected.");
+                    if (snDiff == 2 || snDiff == (-2 & 0xFFFF))
+                    {
+                        a.setEnd(aMaxSeqNum & 0xFFFF);
+                        b.setStart(bMinSeqNum & 0xFFFF);
+
+                        guessed = true;
+                    }
+                }
+            }
+
+            if (guessed)
+            {
+                if (logger.isDebugEnabled())
+                {
+                    logger.debug(
+                        "Guessed frame boundaries ts=" + a.getTimestamp()
+                            + ",start=" + a.getStart()
+                            + ",end=" + a.getEnd()
+                            + ",ts=" + b.getTimestamp()
+                            + ",start=" + b.getStart()
+                            + ",end=" + b.getEnd());
                 }
             }
         }
@@ -557,7 +586,8 @@ public class RTPEncodingDesc
             isPacketOfNewFrame = true;
             synchronized (base.streamFrames)
             {
-                base.streamFrames.put(ts, frame = new FrameDesc(this, ts, nowMs));
+                base.streamFrames.put(
+                    ts, frame = new FrameDesc(this, pkt, nowMs));
             }
 
             // We measure the stable bitrate on every new frame.
