@@ -53,7 +53,6 @@ public class RemoteBitrateEstimatorAbsSendTime
             (1 << kInterArrivalShift) ;
 
     private final Object critSect = new Object();
-    private Collection<Integer> ssrcs = new ArrayList<Integer>();
     private  TreeMap<Long,Long> ssrcs_ = new TreeMap<Long, Long>();
     private  ArrayList<Probe> probes_ = new ArrayList<>();
     private  long totalProbesReceived;
@@ -439,8 +438,8 @@ public class RemoteBitrateEstimatorAbsSendTime
     }
 
     @Override
-    public long getLatestEstimate() {
-
+    public long getLatestEstimate()
+    {
         synchronized (critSect)
         {
             long bitrateBps;
@@ -489,7 +488,8 @@ public class RemoteBitrateEstimatorAbsSendTime
 
         synchronized (critSect)
         {
-            ssrcs = new ArrayList<>();
+            Collection<Integer> ssrcs
+                    = new ArrayList<>();
             for(Long ssrcValue : ssrcs_.keySet()){
                 Number value = ssrcValue;
                 ssrcs.add(value.intValue());
