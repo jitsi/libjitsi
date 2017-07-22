@@ -142,8 +142,8 @@ public class AbsSendTimeEngine
      */
     public HeaderExtension getAbsoluteSendTimeExtension(RawPacket packet)
     {
-        if( packet.getExtensionBit() && packet.getHeaderExtensionType()
-                        == getAbsSendTimeExtensionID() )
+        if( packet.getExtensionBit() &&
+                        getAbsSendTimeExtensionID() != -1 )
         {
             return packet.getHeaderExtension(getAbsSendTimeExtensionID());
         }
