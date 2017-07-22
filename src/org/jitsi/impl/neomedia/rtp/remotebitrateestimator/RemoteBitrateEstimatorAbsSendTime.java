@@ -59,13 +59,13 @@ public class RemoteBitrateEstimatorAbsSendTime
     private  long totalProbesReceived;
     private  long firstPacketTimeMs;
     private  long lastUpdateMs;
-    public RemoteBitrateObserver observer_;
+    private RemoteBitrateObserver observer_;
     private AimdRateControl remoteRate  = new AimdRateControl();
     private InterArrival interArrival;
     private OveruseEstimator estimator;
     private OveruseDetector detector;
     private RateStatistics incomingBitrate ;
-    boolean incomingBitrateInitialized;
+    private boolean incomingBitrateInitialized;
     private AbsSendTimeEngine absoluteSendTimeEngine;
 
     public RemoteBitrateEstimatorAbsSendTime(RemoteBitrateObserver observer,
@@ -104,7 +104,7 @@ public class RemoteBitrateEstimatorAbsSendTime
     }
 
 
-    boolean IsWithinClusterBounds(long sendDeltaMs, Cluster clusterAggregate)
+    private boolean IsWithinClusterBounds(long sendDeltaMs, Cluster clusterAggregate)
     {
         if(clusterAggregate.count == 0)
         {
@@ -115,7 +115,7 @@ public class RemoteBitrateEstimatorAbsSendTime
         return  Math.abs((double)sendDeltaMs - clusterMean) < 2.5f;
     }
 
-    void addCluster(List<Cluster> clusters, Cluster cluster)
+    private void addCluster(List<Cluster> clusters, Cluster cluster)
     {
         cluster.sendMeanMs /= (double)cluster.count;
         cluster.recvMeanMs /= (double)cluster.count;
@@ -123,7 +123,7 @@ public class RemoteBitrateEstimatorAbsSendTime
         clusters.add(cluster);
     }
 
-    void computeClusters(List<Cluster> clusters)
+    private void computeClusters(List<Cluster> clusters)
     {
         Cluster current = new Cluster();
         long prevSendTime =  -1;
@@ -165,7 +165,7 @@ public class RemoteBitrateEstimatorAbsSendTime
      * @param clusters
      * @returns a cluster that shows the best probe
      */
-    Cluster findBestProbe(List<Cluster> clusters)
+    private Cluster findBestProbe(List<Cluster> clusters)
     {
         int highestProbeBitrateBps = 0;
         Cluster bestIt = new Cluster();
@@ -202,7 +202,7 @@ public class RemoteBitrateEstimatorAbsSendTime
         return bestIt;
     }
 
-    ProbeResult processClusters(long nowMs)
+    private ProbeResult processClusters(long nowMs)
     {
         synchronized (critSect) {
             List<Cluster> clusters = new ArrayList<Cluster>();
@@ -243,7 +243,7 @@ public class RemoteBitrateEstimatorAbsSendTime
         }
     }
 
-    boolean isBitrateImproving(int newBitrateBps)
+    private boolean isBitrateImproving(int newBitrateBps)
     {
         synchronized (critSect)
         {
@@ -271,11 +271,11 @@ public class RemoteBitrateEstimatorAbsSendTime
 
         incomingPacketInfo(System.currentTimeMillis(), absoluteSendTimeEngine
                 .getAbsSendTime(packet), packet.getPayloadLength(),
-                packet.getSSRC());
+                packet.getSSRCAsLong());
         return packet;
     }
 
-    void incomingPacketInfo(
+    private void incomingPacketInfo(
         long arrivalTimeMs,
         long sendTime24bits,
         long payloadSize,
@@ -407,7 +407,7 @@ public class RemoteBitrateEstimatorAbsSendTime
         }
     }
 
-    void timeoutStreams(long nowMs)
+    private void timeoutStreams(long nowMs)
     {
         synchronized (critSect) {
             Iterator<Map.Entry<Long, Long>> itr = ssrcs_.entrySet().iterator();
@@ -430,19 +430,11 @@ public class RemoteBitrateEstimatorAbsSendTime
         }
     }
 
-    void OnRttUpdate(long avg_rtt_ms,
+    private void OnRttUpdate(long avg_rtt_ms,
                      long max_rtt_ms)
     {
         synchronized (critSect) {
             remoteRate.setRtt(avg_rtt_ms);
-        }
-    }
-
-    void removeStream(long ssrc)
-    {
-        synchronized (critSect)
-        {
-            ssrcs_.remove(ssrc);
         }
     }
 
@@ -518,7 +510,7 @@ public class RemoteBitrateEstimatorAbsSendTime
     {
         synchronized (critSect) {
             try {
-                ssrcs_.remove(ssrc);
+                ssrcs_.remove(ssrc & 0xFFFF_FFFFL);
             }
             catch (ArrayIndexOutOfBoundsException e)
             {
@@ -540,7 +532,7 @@ public class RemoteBitrateEstimatorAbsSendTime
 
     }
 
-    public class Cluster {
+    private class Cluster {
         double sendMeanMs = 0L;
         double recvMeanMs = 0L;
         int meanSize = 0;
@@ -574,7 +566,7 @@ public class RemoteBitrateEstimatorAbsSendTime
         }
     }
 
-    public class Probe
+    private class Probe
     {
         long sendTimeMs = -1L;
         long recvTimeMs = -1L;
