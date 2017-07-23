@@ -214,7 +214,8 @@ public class FMJPlugInConfiguration
                 "net.sf.fmj.media.codec.JavaSoundCodec",
                 PlugInManager.CODEC);
 
-        List<String> customCodecs = Arrays.asList(CUSTOM_CODECS);
+        List<String> customCodecs = new LinkedList<>();
+        customCodecs.addAll(Arrays.asList(CUSTOM_CODECS));
         if (enableFfmpeg)
         {
             customCodecs.addAll(Arrays.asList(CUSTOM_CODECS_FFMPEG));
