@@ -147,6 +147,13 @@ public class AudioMixerMediaDevice
             = new HashMap<ReceiveStream, AudioLevelEventDispatcher>();
 
     /**
+     * The <tt>ReceiveStreamBufferListener</tt> which gets notified when this
+     * <tt>MediaDevice</tt> reads from the <tt>CaptureDevice</tt> to the
+     * <tt>AudioMixer</tt>
+     */
+    private ReceiveStreamBufferListener receiveStreamBufferListener;
+
+    /**
      * Initializes a new <tt>AudioMixerMediaDevice</tt> instance which is to
      * enable audio mixing on a specific <tt>AudioMediaDeviceImpl</tt>.
      *
@@ -378,6 +385,18 @@ public class AudioMixerMediaDevice
                             {
                                 streamEventDispatcher.addData(buffer);
                             }
+
+                            ReceiveStreamBufferListener receiveStreamBufferListener =
+                                AudioMixerMediaDevice.this.receiveStreamBufferListener;
+
+                            if ((receiveStreamBufferListener != null)
+                                && !buffer.isDiscard()
+                                && (buffer.getLength() > 0)
+                                && (buffer.getData() != null))
+                            {
+                                receiveStreamBufferListener.bufferReceived(
+                                    receiveStream, buffer);
+                            }
                         }
                     }
                 };
@@ -490,6 +509,17 @@ public class AudioMixerMediaDevice
             QualityPreset receivePreset)
     {
         return device.getSupportedFormats();
+    }
+
+    /**
+     * Set the listener which gets notified when this <tt>MediaDevice</tt>
+     * reads data from a <tt>ReceiveStream</tt>
+     *
+     * @param listener the <tt>ReceiveStreamBufferListener</tt> which gets notified
+     */
+    public void setReceiveStreamBufferListener(ReceiveStreamBufferListener listener)
+    {
+        this.receiveStreamBufferListener = listener;
     }
 
     /**
@@ -1432,4 +1462,5 @@ public class AudioMixerMediaDevice
     {
             return getAudioMixer().getTranscodingDataSource(inputDataSource);
     }
+
 }
