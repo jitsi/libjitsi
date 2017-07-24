@@ -43,6 +43,7 @@ public class RemoteBitrateEstimatorSelector
     public static final long kTimeOffsetSwitchThreshold = 30;
     private static final Logger logger = Logger
             .getLogger(RemoteBitrateEstimatorSelector.class);
+    private static long defaultTimeUntilNextRunMs = 500;
     private boolean usingAbsoluteSendTime;
     private AbsSendTimeEngine absSendTimeEngine;
     private long packetsSinceAbsoluteSendTime;
@@ -235,7 +236,7 @@ public class RemoteBitrateEstimatorSelector
         long timeUntilNextRun  =
                 (packetTransformer instanceof RecurringRunnable) ?
              ((RecurringRunnable) packetTransformer)
-                     .getTimeUntilNextRun() : -1;
+                     .getTimeUntilNextRun() : defaultTimeUntilNextRunMs;
         return  timeUntilNextRun;
     }
 
