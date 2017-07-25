@@ -528,15 +528,15 @@ public interface MediaStream
     boolean isKeyFrame(RawPacket pkt);
 
     /**
-     * Gets the {@link REDBlock} that contains the payload of the packet passed
-     * in as a parameter.
+     * Gets the primary {@link REDBlock} that contains the payload of the RTP
+     * packet passed in as a parameter.
      *
      * @param baf the {@link ByteArrayBuffer} that holds the RTP payload.
      *
-     * @return the {@link REDBlock} that contains the payload of the packet
-     * passed in as a parameter, or null if the buffer is invalid.
+     * @return the primary {@link REDBlock} that contains the payload of the RTP
+     * packet passed in as a parameter, or null if the buffer is invalid.
      */
-    REDBlock getPayloadBlock(ByteArrayBuffer baf);
+    REDBlock getPrimaryREDBlock(ByteArrayBuffer baf);
 
     /**
      * @return the {@link RetransmissionRequester} for this media stream.

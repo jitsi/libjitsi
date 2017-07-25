@@ -3668,7 +3668,7 @@ public class MediaStreamImpl
             // wrong results if the payload is encrypted.
         }
     
-        REDBlock redBlock = getPayloadBlock(buf, off, len);
+        REDBlock redBlock = getPrimaryREDBlock(buf, off, len);
         if (redBlock == null || redBlock.getLength() == 0)
         {
             return -1;
@@ -3733,7 +3733,7 @@ public class MediaStreamImpl
             // wrong results if the payload is encrypted.
         }
 
-        REDBlock redBlock = getPayloadBlock(buf, off, len);
+        REDBlock redBlock = getPrimaryREDBlock(buf, off, len);
         if (redBlock == null || redBlock.getLength() == 0)
         {
             return -1;
@@ -3772,7 +3772,7 @@ public class MediaStreamImpl
     {
         if (frameMarkingsExtensionId == -1)
         {
-            REDBlock redBlock = getPayloadBlock(pkt);
+            REDBlock redBlock = getPrimaryREDBlock(pkt);
             if (redBlock != null && redBlock.getLength() != 0)
             {
                 final byte vp9PT = getDynamicRTPPayloadType(Constants.VP9),
@@ -3824,7 +3824,7 @@ public class MediaStreamImpl
             // wrong results if the payload is encrypted.
         }
 
-        REDBlock redBlock = getPayloadBlock(pkt);
+        REDBlock redBlock = getPrimaryREDBlock(pkt);
         if (redBlock == null || redBlock.getLength() == 0)
         {
             return false;
@@ -3884,7 +3884,7 @@ public class MediaStreamImpl
             // wrong results if the payload is encrypted.
         }
 
-        REDBlock redBlock = getPayloadBlock(pkt);
+        REDBlock redBlock = getPrimaryREDBlock(pkt);
         if (redBlock == null || redBlock.getLength() == 0)
         {
             return false;
@@ -3942,7 +3942,7 @@ public class MediaStreamImpl
             // wrong results if the payload is encrypted.
         }
 
-        REDBlock redBlock = getPayloadBlock(buf, off, len);
+        REDBlock redBlock = getPrimaryREDBlock(buf, off, len);
         if (redBlock == null || redBlock.getLength() == 0)
         {
             return false;
@@ -4007,9 +4007,9 @@ public class MediaStreamImpl
      * {@inheritDoc}
      */
     @Override
-    public REDBlock getPayloadBlock(ByteArrayBuffer baf)
+    public REDBlock getPrimaryREDBlock(ByteArrayBuffer baf)
     {
-        return getPayloadBlock(
+        return getPrimaryREDBlock(
             baf.getBuffer(), baf.getOffset(), baf.getLength());
     }
 
@@ -4023,7 +4023,7 @@ public class MediaStreamImpl
      * @return the {@link REDBlock} that contains the payload of the packet
      * passed in as a parameter, or null if the buffer is invalid.
      */
-    public REDBlock getPayloadBlock(byte[] buf, int off, int len)
+    public REDBlock getPrimaryREDBlock(byte[] buf, int off, int len)
     {
         if (buf == null || buf.length < off + len
             || len < RawPacket.FIXED_HEADER_SIZE)
