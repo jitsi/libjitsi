@@ -249,124 +249,128 @@ public class RTPEncodingDesc
     }
 
     /**
-     * Applies frame boundaries heuristics to frames a and b, assuming a
-     * predates/is older than b.
+     * Applies frame boundaries heuristics to frames olderFrame and
+     * newerFrame, assuming olderFrame predates/is older than newerFrame.
+     * Depending on the relationship of olderFrame and newerFrame, and what
+     * we know about olderFrame and newerFrame, we may be able to deduce
+     * the last expected sequence number for olderFrame and/or the first
+     * expected sequence number of newerFrame.
      *
-     * @param a the {@link FrameDesc} that comes before b.
-     * @param b the {@link FrameDesc} that comes after a.
+     * @param olderFrame the {@link FrameDesc} that comes before newerFrame.
+     * @param newerFrame the {@link FrameDesc} that comes after olderFrame.
      */
-    private static void applyFrameBoundsHeuristics(FrameDesc a, FrameDesc b)
+    private static void applyFrameBoundsHeuristics(
+            FrameDesc olderFrame,
+            FrameDesc newerFrame)
     {
-        int aLastSeqNum = a.getEnd(), bFirstSeqNum = b.getStart();
-        if (aLastSeqNum != -1 && bFirstSeqNum != -1)
+        if (olderFrame.lastSequenceNumberKnown() && newerFrame.lastSequenceNumberKnown())
         {
-            // No need for heuristics.
+            // We already know the last sequence number of olderFrame and the first
+            // sequence number of newerFrame, no need for further heuristics.
             return;
         }
-
-        long tsDiff = (b.getTimestamp() - a.getTimestamp()) & 0xFFFFFFFFL;
-        if (tsDiff > (1L << 30) && tsDiff < (-(1L << 30) & 0xFFFFFFFFL))
+        if (!TimestampUtils.isNewerTimestamp(
+                newerFrame.getTimestamp(), olderFrame.getTimestamp()))
         {
-            // the distance (mod 2^32) between the two timestamps needs to be
-            // less than half the timestamp space.
+            // newerFrame isn't newer than olderFrame, bail
             return;
         }
-        else if (tsDiff >= (-(1L << 30) & 0xFFFFFFFFL))
+        int lowestSeenSeqNumOfNewerFrame = newerFrame.getMinSeen();
+        int highestSeenSeqNumOfOlderFrame = olderFrame.getMaxSeen();
+        int seqNumDiff =
+                RTPUtils.sequenceNumberDiff(lowestSeenSeqNumOfNewerFrame, highestSeenSeqNumOfOlderFrame);
+
+        boolean guessed = false;
+
+        // We have some codecs (VPX) for which we can inspect the payload
+        // to deduce the start/end of olderFrame frame. This has an impact on the
+        // distances between the frames that allow us to guess frame
+        // boundaries.
+        //FIXME(brian): why does this allow us to infer anything extra from the sequence number
+        // differences?  we don't leverage frame boundary markings in any way when we deduce
+        // first/last sequence numbers.  does it just mean that these frames would've already
+        // (conclusively) had the start/end seq numbers set?  if so, we wouldn't need to
+        // call this method at all for those frames, right?
+        boolean framesSupportFrameBoundaries =
+            olderFrame.supportsFrameBoundaries() && newerFrame.supportsFrameBoundaries();
+
+        if (framesSupportFrameBoundaries)
         {
-            logger.warn("Frames that are out of order detected.");
-        }
-        else
-        {
-            int bMinSeqNum = b.getMinSeen(), aMaxSeqNum = a.getMaxSeen();
-            int snDiff = (bMinSeqNum - aMaxSeqNum) & 0xFFFF;
-
-            boolean guessed = false;
-
-            // We have some codecs (VPX) for which we can inspect the payload
-            // to deduce the start/end of a frame. This has an impact on the
-            // distances between the frames that allow us to guess frame
-            // boundaries.
-            boolean withFrameBoundaries =
-                a.supportsFrameBoundaries() && b.supportsFrameBoundaries();
-
-            if (withFrameBoundaries)
+            if (olderFrame.lastSequenceNumberKnown() || newerFrame.firstSequenceNumberKnown())
             {
-                if (bFirstSeqNum != -1 || aLastSeqNum != -1)
+                // XXX(bgrozev): for VPX codecs with PictureID we could find
+                // the start/end even with diff>2 (if PictureIDDiff == 1)
+
+                // XXX(gp): we don't have the picture ID in FrameDesc and I
+                // feel it doesn't belong there. We may need to subclass it
+                // into VPXFrameDesc and H264FrameDesc and move the
+                // heuristics logic in there.
+
+                if (seqNumDiff == 2)
                 {
-                    // XXX(bgrozev): for VPX codecs with PictureID we could find
-                    // the start/end even with diff>2 (if PictureIDDiff == 1)
-
-                    // XXX(gp): we don't have the picture ID in FrameDesc and I
-                    // feel it doesn't belong there. We may need to subclass it
-                    // into VPXFrameDesc and H264FrameDesc and move the
-                    // heuristics logic in there.
-
-                    if (snDiff == 2)
+                    if (!olderFrame.lastSequenceNumberKnown())
                     {
-                        if (aLastSeqNum == -1)
-                        {
-                            a.setEnd((aMaxSeqNum + 1) & 0xFFFF);
-                        }
-                        else
-                        {
-                            b.setStart((bMinSeqNum - 1) & 0xFFFF);
-                        }
-
-                        guessed = true;
+                        olderFrame.setEnd(RTPUtils.as16Bits(highestSeenSeqNumOfOlderFrame + 1));
                     }
-                }
-                else // (bFirstSeqNum == -1 && aLastSeqNum == -1)
-                {
-                    if (snDiff == 3)
+                    else
                     {
-                        a.setEnd((aMaxSeqNum + 1) & 0xFFFF);
-                        b.setStart((bMinSeqNum - 1) & 0xFFFF);
-                        guessed = true;
+                        newerFrame.setStart(RTPUtils.as16Bits(lowestSeenSeqNumOfNewerFrame - 1));
                     }
+                    guessed = true;
                 }
             }
             else
             {
-                if (bFirstSeqNum != -1 || aLastSeqNum != -1)
+                if (seqNumDiff == 3)
                 {
-                    if (snDiff == 1)
-                    {
-                        if (aLastSeqNum == -1)
-                        {
-                            a.setEnd(aMaxSeqNum & 0xFFFF);
-                        }
-                        else
-                        {
-                            b.setStart(bMinSeqNum & 0xFFFF);
-                        }
-
-                        guessed = true;
-                    }
-                }
-                else // (bFirstSeqNum == -1 && aLastSeqNum == -1)
-                {
-                    // XXX(bgrozev): Can't do much here. If diff==2 and
-                    // (bFirstSeqNum == -1 && aLastSeqNum == -1), then there is
-                    // 1 packet between aLastSeen and bFirstSeen. And we don't
-                    // know whether this packet belongs to a or to b, or is a
-                    // separate frame of it's own (since in this if branch there
-                    // is no support for frame boundaries, which means that e.g.
-                    // aLastSeen could be the end of a even if aLastSeqNum == -1).
+                    olderFrame.setEnd(RTPUtils.as16Bits(highestSeenSeqNumOfOlderFrame + 1));
+                    newerFrame.setStart(RTPUtils.as16Bits(lowestSeenSeqNumOfNewerFrame - 1));
+                    guessed = true;
                 }
             }
-
-            if (guessed)
+        }
+        else
+        {
+            if (olderFrame.lastSequenceNumberKnown() || newerFrame.firstSequenceNumberKnown())
             {
-                if (logger.isDebugEnabled())
+                if (seqNumDiff == 1)
                 {
-                    logger.debug(
-                        "Guessed frame boundaries ts=" + a.getTimestamp()
-                            + ",start=" + a.getStart()
-                            + ",end=" + a.getEnd()
-                            + ",ts=" + b.getTimestamp()
-                            + ",start=" + b.getStart()
-                            + ",end=" + b.getEnd());
+                    if (!olderFrame.lastSequenceNumberKnown())
+                    {
+                        olderFrame.setEnd(RTPUtils.as16Bits(highestSeenSeqNumOfOlderFrame));
+                    }
+                    else
+                    {
+                        newerFrame.setStart(RTPUtils.as16Bits(lowestSeenSeqNumOfNewerFrame));
+                    }
+
+                    guessed = true;
                 }
+            }
+            else
+            {
+                // XXX(bgrozev): Can't do much here. If diff==2 and
+                // we don't know either the first sequence number of the newer frame or
+                // the last sequence number of the older frame, then there is
+                // 1 packet between olderFrameLastSeen and newerFrameFirstSeen. And we don't
+                // know whether this packet belongs to olderFrame or to newerFrame, or is olderFrame
+                // separate frame of its own (since in this if branch there
+                // is no support for frame boundaries, which means that e.g.
+                // olderFrameLastSeen could be the end of olderFrame even if lastSeqNumOfOlderFrame == -1).
+            }
+        }
+
+        if (guessed)
+        {
+            if (logger.isDebugEnabled())
+            {
+                logger.debug(
+                    "Guessed frame boundaries ts=" + olderFrame.getTimestamp()
+                        + ",start=" + olderFrame.getStart()
+                        + ",end=" + olderFrame.getEnd()
+                        + ",ts=" + newerFrame.getTimestamp()
+                        + ",start=" + newerFrame.getStart()
+                        + ",end=" + newerFrame.getEnd());
             }
         }
     }

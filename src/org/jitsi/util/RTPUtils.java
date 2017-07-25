@@ -44,6 +44,7 @@ public class RTPUtils
      * (modulo 2^16).
      * @return result of the subtraction of one RTP sequence number from another
      * (modulo 2^16).
+     * FIXME(brian): why do we have this and sequenceNumberDiff?
      */
     public static int subtractNumber(int a, int b)
     {
@@ -177,6 +178,28 @@ public class RTPUtils
         int b2 = (0xFF & (buffer[offset + 1]));
         int b3 = (0xFF & (buffer[offset + 2]));
         return b1 << 16 | b2 << 8 | b3;
+    }
+
+    /**
+     * Returns the given integer masked to 16 bits
+     * @param value the integer to mask
+     * @return the value, masked to only keep the lower
+     * 16 bits
+     */
+    public static int as16Bits(int value)
+    {
+        return value & 0xFFFF;
+    }
+
+    /**
+     * Returns the given integer masked to 32 bits
+     * @param value the integer to mask
+     * @return the value, masked to only keep the lower
+     * 32 bits
+     */
+    public static long as32Bits(long value)
+    {
+        return value & 0xFFFFFFFF;
     }
 
     /**
