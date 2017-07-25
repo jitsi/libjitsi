@@ -252,8 +252,8 @@ public class RTPEncodingDesc
      * Applies frame boundaries heuristics to frames a and b, assuming a
      * predates/is older than b.
      *
-     * @param a the old {@link FrameDesc}.
-     * @param b the new {@link FrameDesc}
+     * @param a the {@link FrameDesc} that comes before b.
+     * @param b the {@link FrameDesc} that comes after a.
      */
     private static void applyFrameBoundsHeuristics(FrameDesc a, FrameDesc b)
     {
@@ -293,7 +293,15 @@ public class RTPEncodingDesc
             {
                 if (bFirstSeqNum != -1 || aLastSeqNum != -1)
                 {
-                    if (snDiff == 2 || snDiff == (-2 & 0xFFFF))
+                    // XXX(bgrozev): for VPX codecs with PictureID we could find
+                    // the start/end even with diff>2 (if PictureIDDiff == 1)
+
+                    // XXX(gp): we don't have the picture ID in FrameDesc and I
+                    // feel it doesn't belong there. We may need to subclass it
+                    // into VPXFrameDesc and H264FrameDesc and move the
+                    // heuristics logic in there.
+
+                    if (snDiff == 2)
                     {
                         if (aLastSeqNum == -1)
                         {
@@ -309,7 +317,7 @@ public class RTPEncodingDesc
                 }
                 else // (bFirstSeqNum == -1 && aLastSeqNum == -1)
                 {
-                    if (snDiff == 3 || snDiff == (-3 & 0xFFFF))
+                    if (snDiff == 3)
                     {
                         a.setEnd((aMaxSeqNum + 1) & 0xFFFF);
                         b.setStart((bMinSeqNum - 1) & 0xFFFF);
@@ -321,7 +329,7 @@ public class RTPEncodingDesc
             {
                 if (bFirstSeqNum != -1 || aLastSeqNum != -1)
                 {
-                    if (snDiff == 1 || snDiff == (-1 & 0xFFFF))
+                    if (snDiff == 1)
                     {
                         if (aLastSeqNum == -1)
                         {
@@ -337,13 +345,13 @@ public class RTPEncodingDesc
                 }
                 else // (bFirstSeqNum == -1 && aLastSeqNum == -1)
                 {
-                    if (snDiff == 2 || snDiff == (-2 & 0xFFFF))
-                    {
-                        a.setEnd(aMaxSeqNum & 0xFFFF);
-                        b.setStart(bMinSeqNum & 0xFFFF);
-
-                        guessed = true;
-                    }
+                    // XXX(bgrozev): Can't do much here. If diff==2 and
+                    // (bFirstSeqNum == -1 && aLastSeqNum == -1), then there is
+                    // 1 packet between aLastSeen and bFirstSeen. And we don't
+                    // know whether this packet belongs to a or to b, or is a
+                    // separate frame of it's own (since in this if branch there
+                    // is no support for frame boundaries, which means that e.g.
+                    // aLastSeen could be the end of a even if aLastSeqNum == -1).
                 }
             }
 
