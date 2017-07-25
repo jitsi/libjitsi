@@ -282,7 +282,7 @@ public abstract class AbstractMediaStream
      * {@inheritDoc}
      */
     @Override
-    public REDBlock getPayloadBlock(ByteArrayBuffer baf)
+    public REDBlock getPrimaryREDBlock(ByteArrayBuffer baf)
     {
         return null;
     }
