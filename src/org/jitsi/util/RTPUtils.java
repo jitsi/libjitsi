@@ -24,8 +24,11 @@ import java.util.*;
 public class RTPUtils
 {
     /**
-     * Returns the difference between two RTP sequence numbers (modulo 2^16).
-     * @return the difference between two RTP sequence numbers (modulo 2^16).
+     * Returns the delta between two RTP sequence numbers, taking into account
+     * rollover.  This will return the 'shortest' delta between the two sequence numbers, e.g.:
+     * sequenceNumberDiff(1, 10) -> -9
+     * sequenceNumberBiff(1, 65530) -> 7
+     * @return the delta between two RTP sequence numbers (modulo 2^16).
      */
     public static int sequenceNumberDiff(int a, int b)
     {
@@ -44,11 +47,10 @@ public class RTPUtils
      * (modulo 2^16).
      * @return result of the subtraction of one RTP sequence number from another
      * (modulo 2^16).
-     * FIXME(brian): why do we have this and sequenceNumberDiff?
      */
     public static int subtractNumber(int a, int b)
     {
-        return (a - b) & 0xFFFF;
+        return as16Bits(a - b);
     }
 
     /**

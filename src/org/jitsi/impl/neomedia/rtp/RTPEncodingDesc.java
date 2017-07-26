@@ -282,15 +282,10 @@ public class RTPEncodingDesc
 
         boolean guessed = false;
 
-        // We have some codecs (VPX) for which we can inspect the payload
-        // to deduce the start/end of olderFrame frame. This has an impact on the
-        // distances between the frames that allow us to guess frame
-        // boundaries.
-        //FIXME(brian): why does this allow us to infer anything extra from the sequence number
-        // differences?  we don't leverage frame boundary markings in any way when we deduce
-        // first/last sequence numbers.  does it just mean that these frames would've already
-        // (conclusively) had the start/end seq numbers set?  if so, we wouldn't need to
-        // call this method at all for those frames, right?
+        // For a stream that supports frame marking, we will conclusively know the start and end packets of a frame
+        // via the marking.  If those packets have been received, the start/end of the frame will already be
+        // conclusively known at this point.  Because of this, we can still make a guess even when the sequence
+        // number gap is bigger (see further comments for each scenario below)
         boolean framesSupportFrameBoundaries =
             olderFrame.supportsFrameBoundaries() && newerFrame.supportsFrameBoundaries();
 
@@ -298,18 +293,13 @@ public class RTPEncodingDesc
         {
             if (olderFrame.lastSequenceNumberKnown() || newerFrame.firstSequenceNumberKnown())
             {
-                // XXX(bgrozev): for VPX codecs with PictureID we could find
-                // the start/end even with diff>2 (if PictureIDDiff == 1)
-
-                // XXX(gp): we don't have the picture ID in FrameDesc and I
-                // feel it doesn't belong there. We may need to subclass it
-                // into VPXFrameDesc and H264FrameDesc and move the
-                // heuristics logic in there.
-
                 if (seqNumDiff == 2)
                 {
                     if (!olderFrame.lastSequenceNumberKnown())
                     {
+                        // If we haven't yet seen the last sequence number of this frame, we know it must be
+                        // the packet in the 'gap' here (since, had the biggest one we've seen for that frame so
+                        // far been the last one, it would've been marked)
                         olderFrame.setEnd(RTPUtils.as16Bits(highestSeenSeqNumOfOlderFrame + 1));
                     }
                     else
@@ -321,6 +311,8 @@ public class RTPEncodingDesc
             }
             else
             {
+                // Neither the last packet of the older frame nor the first packet of the newer frame
+                // has been seen, so we know the start/end packets must be held within this gap
                 if (seqNumDiff == 3)
                 {
                     olderFrame.setEnd(RTPUtils.as16Bits(highestSeenSeqNumOfOlderFrame + 1));
