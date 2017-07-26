@@ -322,7 +322,7 @@ public class RetransmissionRequesterImpl
                     catch (TransmissionFailedException e)
                     {
                         logger.warn(
-                                "Failed to inject packet in MediaStream: " + e);
+                                "Failed to inject packet in MediaStream: ", e.getCause());
                     }
                 }
             }
