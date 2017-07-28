@@ -293,6 +293,14 @@ public class RTPEncodingDesc
         {
             if (olderFrame.lastSequenceNumberKnown() || newerFrame.firstSequenceNumberKnown())
             {
+
+                // XXX(bgrozev): for VPX codecs with PictureID we could find
+                // the start/end even with diff>2 (if PictureIDDiff == 1)
+
+                // XXX(gp): we don't have the picture ID in FrameDesc and I
+                // feel it doesn't belong there. We may need to subclass it
+                // into VPXFrameDesc and H264FrameDesc and move the
+                // heuristics logic in there.
                 if (seqNumDiff == 2)
                 {
                     if (!olderFrame.lastSequenceNumberKnown())
