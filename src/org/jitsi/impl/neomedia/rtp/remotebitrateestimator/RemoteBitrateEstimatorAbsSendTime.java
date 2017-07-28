@@ -31,7 +31,8 @@ import java.util.*;
  */
 public class RemoteBitrateEstimatorAbsSendTime
     extends SinglePacketTransformerAdapter
-    implements RemoteBitrateEstimator
+    implements RemoteBitrateEstimator,
+        CallStatsObserver
 {
     //@Todo Ask for alternative to resolve import conflict between
     //org.jitsi.util.* and org.ice4j.util.* when importing Logger
@@ -429,10 +430,12 @@ public class RemoteBitrateEstimatorAbsSendTime
         }
     }
 
-    private void OnRttUpdate(long avg_rtt_ms,
+    @Override
+    public void onRttUpdate(long avg_rtt_ms,
                      long max_rtt_ms)
     {
-        synchronized (critSect) {
+        synchronized (critSect)
+        {
             remoteRate.setRtt(avg_rtt_ms);
         }
     }
@@ -443,7 +446,8 @@ public class RemoteBitrateEstimatorAbsSendTime
         synchronized (critSect)
         {
             long bitrateBps;
-            if (!remoteRate.isValidEstimate()) {
+            if (!remoteRate.isValidEstimate())
+            {
                 return -1;
             }
             if (ssrcs_.isEmpty()) {
@@ -509,7 +513,8 @@ public class RemoteBitrateEstimatorAbsSendTime
     public void removeStream(int ssrc)
     {
         synchronized (critSect) {
-            try {
+            try
+            {
                 ssrcs_.remove(ssrc & 0xFFFF_FFFFL);
             }
             catch (ArrayIndexOutOfBoundsException e)
