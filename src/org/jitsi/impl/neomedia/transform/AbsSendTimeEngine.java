@@ -16,6 +16,7 @@
 package org.jitsi.impl.neomedia.transform;
 
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.service.neomedia.RawPacket.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
@@ -51,7 +52,7 @@ public class AbsSendTimeEngine
     /**
      * The ID of the abs-send-time RTP header extension.
      */
-    private int extensionID = -1;
+    private byte extensionID = -1;
 
     /**
      * Initializes a new {@link AbsSendTimeEngine} instance.
@@ -129,8 +130,52 @@ public class AbsSendTimeEngine
      * disable this transformer.
      * @param id the ID to set.
      */
-    public void setExtensionID(int id)
+    public void setExtensionID(byte id)
     {
         extensionID = id;
+    }
+
+    /**
+     *
+     * @param packet is the RawPacket
+     * @returns the Absolute Send Time header extension if present
+     */
+    public HeaderExtension getAbsoluteSendTimeExtension(RawPacket packet)
+    {
+        if( packet.getExtensionBit() &&
+                        getAbsSendTimeExtensionID() != -1 )
+        {
+            return packet.getHeaderExtension(getAbsSendTimeExtensionID());
+        }
+        return null;
+    }
+
+    public byte getAbsSendTimeExtensionID(){
+        return extensionID;
+    }
+
+    /**
+     *   1 2 3 4 5 6 7 8 9 10 11 12 .... 28 29 30 31 32
+     *  +-+-+-+-+-+-+-+-+-+-+--+--+-....+--+--+--+--+--+
+     *  |  ID   |  LEN  |   AbsSendTime Value          |
+     *  +-+-+-+-+-+-+-+-+-+-+--+--+-....+--+--+--+--+--+
+     * getAbsSendTime returns the AbsSendTime as a 24bit value
+     * @param pkt is a RawPacket
+     * @return
+     */
+    public long getAbsSendTime(RawPacket pkt)
+    {
+        long absSendTime = -1L;
+        HeaderExtension header  = getAbsoluteSendTimeExtension(pkt);
+        if (header != null)
+        {
+            //offSet is the byte index to read from
+            int offSet = header.getOffset() + 1;
+            if (header.getExtLength() == EXT_LENGTH) {
+                absSendTime
+                        = RTPUtils.readUint24AsInt(header.getBuffer(),offSet);
+            }
+        }
+        return absSendTime;
     }
 }

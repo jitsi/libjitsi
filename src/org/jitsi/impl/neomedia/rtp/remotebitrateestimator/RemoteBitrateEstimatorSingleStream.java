@@ -36,8 +36,7 @@ public class RemoteBitrateEstimatorSingleStream
     extends SinglePacketTransformerAdapter
     implements CallStatsObserver,
                RecurringRunnable,
-               RemoteBitrateEstimator,
-               TransformEngine
+               RemoteBitrateEstimator
 {
     static final double kTimestampToMs = 1.0 / 90.0;
 

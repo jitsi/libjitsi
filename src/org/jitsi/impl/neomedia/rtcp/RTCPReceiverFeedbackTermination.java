@@ -124,7 +124,6 @@ public class RTCPReceiverFeedbackTermination
 
         // REMB
         RTCPREMBPacket remb = makeREMB(senderSSRC);
-
         // Build the RTCP compound packet to return.
 
         RTCPPacket[] rtcpPackets;

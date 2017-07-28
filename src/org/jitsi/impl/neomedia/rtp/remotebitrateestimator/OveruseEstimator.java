@@ -157,15 +157,21 @@ class OveruseEstimator
      * @param tsDelta
      * @param sizeDelta
      * @param currentHypothesis
+     * @Param nowMs
      */
+
     public void update(
             long tDelta,
             double tsDelta,
             int sizeDelta,
             BandwidthUsage currentHypothesis)
     {
+        /**
+         * nowMs is included for logging or testing purposes.
+         */
         double minFramePeriod = updateMinFramePeriod(tsDelta);
         double tTsDelta = tDelta - tsDelta;
+
         double fsDelta = sizeDelta;
 
         ++numOfDeltas;
@@ -240,6 +246,10 @@ class OveruseEstimator
         slope = slope + K[0] * residual;
         prevOffset = offset;
         offset = offset + K[1] * residual;
+
+        /**
+         * Migrated from webrtc. Used for logging
+         */
     }
 
     private double updateMinFramePeriod(double tsDelta)

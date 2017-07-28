@@ -16,6 +16,7 @@
 package org.jitsi.service.neomedia.rtp;
 
 import org.jitsi.impl.neomedia.transform.*;
+import org.jitsi.service.neomedia.RawPacket;
 
 import java.util.*;
 
@@ -60,4 +61,5 @@ public interface RemoteBitrateEstimator
     void removeStream(int ssrc);
 
     void setMinBitrate(int minBitrateBps);
+
 }

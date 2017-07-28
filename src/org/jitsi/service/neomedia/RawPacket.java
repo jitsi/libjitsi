@@ -2042,4 +2042,15 @@ public class RawPacket
             throw new UnsupportedOperationException("remove");
         }
     }
+
+    /**
+     +     * Reads the Absolute Send Time extension which is the timestamp in RTP packets that shows the departure time
+     +     * when the packet is put on the wire.
+     +     *
+     +     * Timestamp is in seconds, 24 bit 6.18 fixed point, yielding 64s wraparound and 3.8us resolution.
+     +     *
+     +     * @See https://webrtc.org/experiments/rtp-hdrext/abs-send-time/
+     +     *
+     +     * @return abs-send-time or -1 if abs-send-time is not present.
+     +     */
 }

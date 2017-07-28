@@ -4087,4 +4087,13 @@ public class MediaStreamImpl
             transportCCEngine.addMediaStream(this);
         }
     }
+
+    /**
+     * @return {@Link getAbsSendTimeEngine} returns the AbsSendTimeEngine
+     * for this media stream
+     */
+    public AbsSendTimeEngine getAbsSendTimeEngine()
+    {
+        return absSendTimeEngine;
+    }
 }

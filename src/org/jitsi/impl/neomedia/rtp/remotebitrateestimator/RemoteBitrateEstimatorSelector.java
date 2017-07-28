@@ -43,7 +43,7 @@ public class RemoteBitrateEstimatorSelector
     public static final long kTimeOffsetSwitchThreshold = 30;
     private static final Logger logger = Logger
             .getLogger(RemoteBitrateEstimatorSelector.class);
-    private static long defaultTimeUntilNextRunMs = 500;
+    private static final long defaultTimeUntilNextRunMs = 500;
     private boolean usingAbsoluteSendTime;
     private AbsSendTimeEngine absSendTimeEngine;
     private long packetsSinceAbsoluteSendTime;
@@ -72,7 +72,13 @@ public class RemoteBitrateEstimatorSelector
         this.packetsSinceAbsoluteSendTime = 0;
         setAbsSendTimeUsageConfiguration();
     }
-    private void PickEstimatorFromHeader(RawPacket packet) {
+
+    /**
+     * Examines header to check if to use AbsSendTime or RTPTimeStamps and
+     * calls appropriate bitrate estimator.
+     * @param packet is a RawPacket.
+     */
+    private void pickEstimatorFromHeader(RawPacket packet) {
         synchronized (critSect) {
             if (absSendTimeEngine.getAbsoluteSendTimeExtension(packet) != null)
             {
@@ -81,7 +87,7 @@ public class RemoteBitrateEstimatorSelector
                     logger.warn("WrappingBitrateEstimator: Switching to" +
                             " absolute send time RBE.");
                     usingAbsoluteSendTime = true;
-                    PickEstimator();
+                    pickEstimator();
                 }
                 packetsSinceAbsoluteSendTime = 0;
             } else {
@@ -94,7 +100,7 @@ public class RemoteBitrateEstimatorSelector
                         logger.info("WrappingBitrateEstimator: Switching to " +
                                 "transmission time offset RBE.");
                         usingAbsoluteSendTime = false;
-                        PickEstimator();
+                        pickEstimator();
                     }
                 }
             }
@@ -119,7 +125,7 @@ public class RemoteBitrateEstimatorSelector
     /**
      * Selects either to use RBE_abs_send_time or RBE_single_stream
      */
-    private void PickEstimator()
+    private void pickEstimator()
     {
         synchronized (critSect)
         {
@@ -185,7 +191,7 @@ public class RemoteBitrateEstimatorSelector
     {
         /**
          * @Todo Find out why having synchronized here makes sense since it
-         * exists in PickEstimatorFromHeader.
+         * exists in pickEstimatorFromHeader.
          */
         if (this.absSendTimeEngine == null){
             this.absSendTimeEngine = stream.getAbsSendTimeEngine();
@@ -195,7 +201,7 @@ public class RemoteBitrateEstimatorSelector
         {
             if(enableUseOfAbsSendTime)
             {
-                PickEstimatorFromHeader(packet);
+                pickEstimatorFromHeader(packet);
             }
             packetTransformer.reverseTransform(packet);
         }
