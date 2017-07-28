@@ -179,7 +179,7 @@ public class TimeUtils
     /**
      * Returns the difference between two RTP timestamps.
      * @return the difference between two RTP timestamps.
-     * DEPRECATED: use RTPUtils.timeStampDiff
+     * @deprecated use {@link RTPUtils#rtpTimestampDiff(long, long)}
      */
     @Deprecated
     public static long rtpDiff(long a, long b)
