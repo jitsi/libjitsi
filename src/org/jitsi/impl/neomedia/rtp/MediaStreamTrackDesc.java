@@ -303,7 +303,7 @@ public class MediaStreamTrackDesc
             RTPEncodingDesc encoding = frameDesc.getRTPEncoding();
 
             FrameDesc lastReceivedFrame = encoding.getLastReceivedFrame();
-            if (lastReceivedFrame != null && TimeUtils.rtpDiff(
+            if (lastReceivedFrame != null && RTPUtils.rtpTimestampDiff(
                 frameDesc.getTimestamp(), lastReceivedFrame.getTimestamp()) < 0)
             {
                 // This is a late key frame header packet that we've missed.

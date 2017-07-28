@@ -602,7 +602,7 @@ public class RTPEncodingDesc
             lastStableBitrateBps = getBitrateBps(nowMs);
 
             if (lastReceivedFrame == null
-                || TimeUtils.rtpDiff(ts, lastReceivedFrame.getTimestamp()) > 0)
+                || RTPUtils.rtpTimestampDiff(ts, lastReceivedFrame.getTimestamp()) > 0)
             {
                 lastReceivedFrame = frame;
             }
