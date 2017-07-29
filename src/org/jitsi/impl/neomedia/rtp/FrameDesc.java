@@ -163,6 +163,18 @@ public class FrameDesc
     }
 
     /**
+     * Returns whether or not the last sequence number of this frame
+     * is known (conclusively)
+     *
+     * @return true if we know the last sequence number of this frame, false
+     * otherwise
+     */
+    public boolean lastSequenceNumberKnown()
+    {
+        return end != -1;
+    }
+
+    /**
      * Sets the end sequence number of this source frame.
      *
      * @param end the end sequence number of this source frame.
@@ -181,6 +193,19 @@ public class FrameDesc
     {
         return start;
     }
+
+    /**
+     * Returns whether or not the first sequence number of this frame
+     * is known (conclusively)
+     *
+     * @return true if we know the first sequence number of this frame, false
+     * otherwise
+     */
+    public boolean firstSequenceNumberKnown()
+    {
+        return start != -1;
+    }
+
 
     /**
      * Sets the start sequence number of this source frame.
