@@ -184,7 +184,7 @@ public class ResumableStreamRewriter
 
             // init or update the highest sent timestamp (if needed)
             if (highestTimestampSent == -1 ||
-                TimeUtils.rtpDiff(newTimestamp, highestTimestampSent) > 0)
+                RTPUtils.rtpTimestampDiff(newTimestamp, highestTimestampSent) > 0)
             {
                 highestTimestampSent = newTimestamp;
             }
@@ -199,7 +199,7 @@ public class ResumableStreamRewriter
                 final long newDelta
                     = (timestamp - highestTimestampSent) & 0xffffffffL;
 
-                if (TimeUtils.rtpDiff(newDelta, timestampDelta) > 0)
+                if (RTPUtils.rtpTimestampDiff(newDelta, timestampDelta) > 0)
                 {
                     timestampDelta = newDelta;
                 }

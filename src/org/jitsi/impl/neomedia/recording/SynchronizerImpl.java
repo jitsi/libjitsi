@@ -204,7 +204,7 @@ public class SynchronizerImpl
         long local0;
 
         double diff1S = ntp1 - ntp2;
-        double diff2S = ((double)TimeUtils.rtpDiff(rtp0, rtp1)) / clockRate;
+        double diff2S = ((double)RTPUtils.rtpTimestampDiff(rtp0, rtp1)) / clockRate;
 
         long diffMs = Math.round((diff1S + diff2S) * 1000);
 

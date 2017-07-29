@@ -179,17 +179,11 @@ public class TimeUtils
     /**
      * Returns the difference between two RTP timestamps.
      * @return the difference between two RTP timestamps.
-     * FIXME(brian): this method should be removed and replaced with usages
-     * of RTPUtils.sequenceNumberDiff
+     * @deprecated use {@link RTPUtils#rtpTimestampDiff(long, long)}
      */
+    @Deprecated
     public static long rtpDiff(long a, long b)
     {
-        long diff = a - b;
-        if (diff < -(1L<<31))
-            diff+= 1L<<32;
-        else if (diff > 1L<<31)
-            diff-= 1L<<32;
-
-        return diff;
+        return RTPUtils.rtpTimestampDiff(a, b);
     }
 }

@@ -242,4 +242,29 @@ public class RTPUtils
         }
     };
 
+    /**
+     * Returns the difference between two RTP timestamps.
+     * @return the difference between two RTP timestamps.
+     */
+    public static long rtpTimestampDiff(long a, long b)
+    {
+        long diff = a - b;
+        if (diff < -(1L<<31))
+            diff+= 1L<<32;
+        else if (diff > 1L<<31)
+            diff-= 1L<<32;
+
+        return diff;
+    }
+
+    /**
+     * Returns whether or not the first given timestamp is newer than the second
+     * @param a
+     * @param b
+     * @return true if a is newer than b, false otherwise
+     */
+    public static boolean isNewerTimestampThan(long a, long b)
+    {
+        return rtpTimestampDiff(a, b) > 0;
+    }
 }
