@@ -34,8 +34,8 @@ public class RemoteBitrateEstimatorSelector
     extends SinglePacketTransformerAdapter
         implements RemoteBitrateEstimator,
                 CallStatsObserver,
-                RecurringRunnable,
-                TransformEngine
+                RecurringRunnable
+
 {
 
     public final static String ENABLE_USE_OF_ABS_SEND_TIME =
