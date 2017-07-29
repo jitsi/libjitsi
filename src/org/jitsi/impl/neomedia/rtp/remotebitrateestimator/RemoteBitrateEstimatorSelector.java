@@ -59,7 +59,8 @@ public class RemoteBitrateEstimatorSelector
      */
     private boolean enableUseOfAbsSendTime;
 
-    public RemoteBitrateEstimatorSelector(RemoteBitrateObserver observe, VideoMediaStreamImpl stream)
+    public RemoteBitrateEstimatorSelector(RemoteBitrateObserver observe,
+                                          VideoMediaStreamImpl stream)
     {
         this.observer = observe;
         this.stream = stream;
@@ -78,9 +79,11 @@ public class RemoteBitrateEstimatorSelector
      * calls appropriate bitrate estimator.
      * @param packet is a RawPacket.
      */
-    private void pickEstimatorFromHeader(RawPacket packet) {
+    private void pickEstimatorFromHeader(RawPacket packet)
+    {
         synchronized (critSect) {
-            if (absSendTimeEngine.getAbsoluteSendTimeExtension(packet) != null)
+            if (absSendTimeEngine.getAbsoluteSendTimeExtension(packet)
+                != null)
             {
                 // If we see AST in header, switch RBE strategy immediately.
                 if (!usingAbsoluteSendTime) {
@@ -97,8 +100,8 @@ public class RemoteBitrateEstimatorSelector
                     ++packetsSinceAbsoluteSendTime;
                     if (packetsSinceAbsoluteSendTime
                             >= kTimeOffsetSwitchThreshold) {
-                        logger.info("WrappingBitrateEstimator: Switching to " +
-                                "transmission time offset RBE.");
+                        logger.info("WrappingBitrateEstimator: " +
+                            "Switching to transmission time offset RBE.");
                         usingAbsoluteSendTime = false;
                         pickEstimator();
                     }
@@ -133,7 +136,8 @@ public class RemoteBitrateEstimatorSelector
             {
                 logger.info("Now Using RemoteBitrateEstimatorAbsSendTime");
                 packetTransformer
-                        = new RemoteBitrateEstimatorAbsSendTime(this.observer, this.absSendTimeEngine);
+                        = new RemoteBitrateEstimatorAbsSendTime(this.observer,
+                    this.absSendTimeEngine);
             } else {
                 logger.info("Now Using RemoteBitrateEstimatorSingleStream");
                 packetTransformer
