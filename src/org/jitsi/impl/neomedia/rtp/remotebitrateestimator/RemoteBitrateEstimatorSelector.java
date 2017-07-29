@@ -130,22 +130,19 @@ public class RemoteBitrateEstimatorSelector
      */
     private void pickEstimator()
     {
-        synchronized (critSect)
+        if (usingAbsoluteSendTime)
         {
-            if (usingAbsoluteSendTime)
+            synchronized (critSect)
             {
                 logger.info("Now Using RemoteBitrateEstimatorAbsSendTime");
                 packetTransformer
-                        = new RemoteBitrateEstimatorAbsSendTime(this.observer,
+                    = new RemoteBitrateEstimatorAbsSendTime(this.observer,
                     this.absSendTimeEngine);
-            } else {
-                logger.info("Now Using RemoteBitrateEstimatorSingleStream");
-                packetTransformer
-                       = new RemoteBitrateEstimatorSingleStream(this.observer);
             }
-            ((RemoteBitrateEstimator)packetTransformer)
-                    .setMinBitrate(minBitrateBps);
         }
+        //Else we are already using RemoteBitrateEstimatorSingleStream
+        ((RemoteBitrateEstimator)packetTransformer)
+                .setMinBitrate(minBitrateBps);
     }
 
 
