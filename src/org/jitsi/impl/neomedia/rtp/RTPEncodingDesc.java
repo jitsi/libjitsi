@@ -718,6 +718,23 @@ public class RTPEncodingDesc
     }
 
     /**
+     * Finds the {@link FrameDesc} that matches the RTP packet specified
+     * in the buffer passed in as an argument.
+     *
+     * @param timestamp the timestamp of the desired {@link FrameDesc}
+     *
+     * @return the {@link FrameDesc} that matches the RTP timestamp given,
+     * or null if there is no matching frame {@link FrameDesc}.
+     */
+    FrameDesc findFrameDesc(long timestamp)
+    {
+        synchronized (base.streamFrames)
+        {
+            return base.streamFrames.get(timestamp);
+        }
+    }
+
+    /**
      * Gets the last frame from this encoding that has been received.
      * @return last frame from this encoding that has been received, otherwise
      * null.

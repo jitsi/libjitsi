@@ -16,6 +16,8 @@
 package org.jitsi.impl.neomedia.codec;
 
 import java.util.*;
+
+import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 import org.jitsi.util.function.*;
 

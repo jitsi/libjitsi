@@ -703,7 +703,6 @@ public class RawPacket
         return this.buffer;
     }
 
-
     /**
      * Returns the CSRC level at the specified index or <tt>defaultValue</tt>
      * if there was no level at that index.
