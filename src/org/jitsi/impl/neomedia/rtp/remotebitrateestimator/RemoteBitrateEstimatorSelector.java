@@ -120,7 +120,6 @@ public class RemoteBitrateEstimatorSelector
                     + "the configuration service was not found.");
             return;
         }
-        //@Todo set default value to false. Allow true for test.
         enableUseOfAbsSendTime
                 = cfg.getBoolean(ENABLE_USE_OF_ABS_SEND_TIME, false);
     }
@@ -141,8 +140,7 @@ public class RemoteBitrateEstimatorSelector
             }
         }
         //Else we are already using RemoteBitrateEstimatorSingleStream
-        ((RemoteBitrateEstimator)packetTransformer)
-                .setMinBitrate(minBitrateBps);
+        this.setMinBitrate(minBitrateBps);
     }
 
 
