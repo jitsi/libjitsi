@@ -21,7 +21,9 @@ import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.rtp.*;
+import org.jitsi.util.concurrent.*;
 
+import java.io.*;
 import java.util.*;
 
 /**
@@ -32,6 +34,7 @@ import java.util.*;
 public class RemoteBitrateEstimatorAbsSendTime
     extends SinglePacketTransformerAdapter
     implements RemoteBitrateEstimator,
+    RecurringRunnable,
         CallStatsObserver
 {
     //@Todo Ask for alternative to resolve import conflict between
@@ -267,8 +270,6 @@ public class RemoteBitrateEstimatorAbsSendTime
     public RawPacket reverseTransform(
             RawPacket packet)
     {
-        logger.info("Using RemoteBitrateEstimatorAbsSendTime: Instantiating.");
-
         incomingPacketInfo(System.currentTimeMillis(), absoluteSendTimeEngine
                 .getAbsSendTime(packet), packet.getPayloadLength(),
                 packet.getSSRCAsLong());
@@ -295,6 +296,9 @@ public class RemoteBitrateEstimatorAbsSendTime
         // needs to be reset.
         long incomingBitrate_ =
                 incomingBitrate.getRate(arrivalTimeMs);
+
+
+
         if (incomingBitrate_ != 0)
         {
             incomingBitrateInitialized = true;
@@ -396,10 +400,22 @@ public class RemoteBitrateEstimatorAbsSendTime
                         .getState(), incomingBitrate.getRate(arrivalTimeMs),
                         estimator.getVarNoise());
                 remoteRate.update(input, nowMs);
-                targetBitrateBps = remoteRate.getLatestEstimate();
+                targetBitrateBps = remoteRate.updateBandwidthEstimate(nowMs);
                 updateEstimate = remoteRate.isValidEstimate();
             }
         }
+
+        try(FileWriter fw = new FileWriter("IncomingBitrateLogsAST.txt", true);
+            BufferedWriter bw = new BufferedWriter(fw);
+            PrintWriter out = new PrintWriter(bw))
+        {
+            out.println(Long.toString(ssrc)  + " " + System.currentTimeMillis()
+                + " " + Long.toString(incomingBitrate_) + " " + Long.toString(targetBitrateBps));
+
+        } catch (IOException e) {
+            //exception handling left as an exercise for the reader
+        }
+
         if (updateEstimate)
         {
             lastUpdateMs = nowMs;
@@ -534,6 +550,38 @@ public class RemoteBitrateEstimatorAbsSendTime
         {
             remoteRate.setMinBitrate(minBitrateBps);
         }
+
+    }
+
+    /**
+     * Returns the number of milliseconds until this instance wants a worker
+     * thread to call {@link #run()}. The method is called on the same
+     * worker thread as Process will be called on.
+     *
+     * @return the number of milliseconds until this instance wants a worker
+     * thread to call {@link #run()}
+     */
+    @Override
+    public long getTimeUntilNextRun()
+    {
+        final long kDisabledModuleTime = 1000;
+        return  kDisabledModuleTime;
+    }
+
+    /**
+     * When an object implementing interface <code>Runnable</code> is used
+     * to create a thread, starting the thread causes the object's
+     * <code>run</code> method to be called in that separately executing
+     * thread.
+     * <p>
+     * The general contract of the method <code>run</code> is that it may
+     * take any action whatsoever.
+     *
+     * @see Thread#run()
+     */
+    @Override
+    public void run()
+    {
 
     }
 
