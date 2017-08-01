@@ -19,7 +19,6 @@ import net.sf.fmj.media.rtp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
-import java.io.*;
 import java.util.*;
 
 /**
@@ -470,7 +469,7 @@ public class RTCPTCCPacket
         int firstSeq = first.getKey();
         Map.Entry<Integer, Long> last = packets.lastEntry();
         int packetCount
-            = 1 + RTPUtils.sequenceNumberDiff(last.getKey(), firstSeq);
+            = 1 + RTPUtils.getSequenceNumberDelta(last.getKey(), firstSeq);
 
         // Temporary buffer to store the fixed fields (8 bytes) and the list of
         // packet status chunks (see the format above). The buffer may be longer

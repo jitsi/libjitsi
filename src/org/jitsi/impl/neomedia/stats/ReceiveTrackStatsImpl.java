@@ -88,7 +88,7 @@ public class ReceiveTrackStatsImpl
         }
 
         // Now check for lost packets.
-        int diff = RTPUtils.sequenceNumberDiff(seq, highestSeq);
+        int diff = RTPUtils.getSequenceNumberDelta(seq, highestSeq);
         if (diff <= 0)
         {
             // RFC3550 says that all packets should be counted as received.
