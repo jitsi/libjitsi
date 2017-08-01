@@ -4074,11 +4074,14 @@ public class MediaStreamImpl
         if (redPT == pktPT)
         {
 
-            return REDBlockIterator.getPrimaryBlock(pkt.getBuffer(), pkt.getOffset(), pkt.getLength());
+            return REDBlockIterator.getPrimaryBlock(
+                pkt.getBuffer(), pkt.getOffset(), pkt.getLength());
         }
         else
         {
-            return new REDBlock(pkt.getBuffer(), pkt.getPayloadOffset(), pkt.getPayloadLength(), pktPT);
+            return new REDBlock(
+                pkt.getBuffer(), pkt.getPayloadOffset(),
+                pkt.getPayloadLength(), pktPT);
         }
     }
 

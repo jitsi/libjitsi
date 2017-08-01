@@ -708,14 +708,14 @@ public class RTPEncodingDesc
      * in the buffer passed in as a parameter, or null if there is no matching
      * {@link FrameDesc}.
      */
-    FrameDesc findFrameDesc(byte[] buf, int off, int len)
-    {
-        long ts = RawPacket.getTimestamp(buf, off, len);
-        synchronized (base.streamFrames)
-        {
-            return base.streamFrames.get(ts);
-        }
-    }
+//    FrameDesc findFrameDesc(byte[] buf, int off, int len)
+//    {
+//        long ts = RawPacket.getTimestamp(buf, off, len);
+//        synchronized (base.streamFrames)
+//        {
+//            return base.streamFrames.get(ts);
+//        }
+//    }
 
     /**
      * Finds the {@link FrameDesc} that matches the RTP packet specified

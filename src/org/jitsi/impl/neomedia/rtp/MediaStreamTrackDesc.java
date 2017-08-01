@@ -418,8 +418,9 @@ public class MediaStreamTrackDesc
     @Deprecated
     public FrameDesc findFrameDesc(byte[] buf, int off, int len)
     {
-        RawPacket pkt = new RawPacket(buf, off, len);
-        return findFrameDesc(pkt.getSSRCAsLong(), pkt.getTimestamp());
+        return findFrameDesc(
+            RawPacket.getSSRCAsLong(buf, off, len),
+            RawPacket.getTimestamp(buf, off, len));
     }
 
     /**
