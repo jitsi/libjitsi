@@ -535,8 +535,22 @@ public interface MediaStream
      *
      * @return the primary {@link REDBlock} that contains the payload of the RTP
      * packet passed in as a parameter, or null if the buffer is invalid.
+     * @Deprecated use getPrimaryREDBlock(RawPacket)
      */
+    @Deprecated
     REDBlock getPrimaryREDBlock(ByteArrayBuffer baf);
+
+    /**
+     * Gets the primary {@link REDBlock} that contains the payload of the RTP
+     * packet passed in as a parameter.
+     *
+     * @param pkt the {@link RawPacket} that holds the RTP payload.
+     *
+     * @return the primary {@link REDBlock} that contains the payload of the RTP
+     * packet passed in as a parameter, or null if the buffer is invalid.
+     * @Deprecated use getPrimaryREDBlock(RawPacket)
+     */
+    REDBlock getPrimaryREDBlock(RawPacket pkt);
 
     /**
      * @return the {@link RetransmissionRequester} for this media stream.

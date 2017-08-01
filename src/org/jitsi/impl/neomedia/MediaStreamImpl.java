@@ -4061,6 +4061,7 @@ public class MediaStreamImpl
      * @return the {@link REDBlock} that contains the payload of the packet
      * passed in as a parameter, or null if the buffer is invalid.
      */
+    @Override
     public REDBlock getPrimaryREDBlock(RawPacket pkt)
     {
         if (pkt == null || pkt.getLength() < RawPacket.FIXED_HEADER_SIZE)

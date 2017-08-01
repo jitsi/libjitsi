@@ -286,4 +286,13 @@ public abstract class AbstractMediaStream
     {
         return null;
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public REDBlock getPrimaryREDBlock(RawPacket pkt)
+    {
+        return null;
+    }
 }
