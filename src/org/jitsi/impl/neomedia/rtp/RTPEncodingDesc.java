@@ -278,7 +278,7 @@ public class RTPEncodingDesc
         int lowestSeenSeqNumOfNewerFrame = newerFrame.getMinSeen();
         int highestSeenSeqNumOfOlderFrame = olderFrame.getMaxSeen();
         int seqNumDiff =
-                RTPUtils.sequenceNumberDiff(lowestSeenSeqNumOfNewerFrame, highestSeenSeqNumOfOlderFrame);
+                RTPUtils.getSequenceNumberDelta(lowestSeenSeqNumOfNewerFrame, highestSeenSeqNumOfOlderFrame);
 
         boolean guessed = false;
 

@@ -25,12 +25,13 @@ public class RTPUtils
 {
     /**
      * Returns the delta between two RTP sequence numbers, taking into account
-     * rollover.  This will return the 'shortest' delta between the two sequence numbers, e.g.:
-     * sequenceNumberDiff(1, 10) -> -9
-     * sequenceNumberBiff(1, 65530) -> 7
+     * rollover.  This will return the 'shortest' delta between the two
+     * sequence numbers in the form of the number you'd add to b to get a. e.g.:
+     * getSequenceNumberDelta(1, 10) -> -9 (10 + -9 = 1)
+     * getSequenceNumberDelta(1, 65530) -> 7 (65530 + 7 = 1)
      * @return the delta between two RTP sequence numbers (modulo 2^16).
      */
-    public static int sequenceNumberDiff(int a, int b)
+    public static int getSequenceNumberDelta(int a, int b)
     {
         int diff = a - b;
 
@@ -43,6 +44,18 @@ public class RTPUtils
     }
 
     /**
+     * Returns whether or not seqNumOne is 'older' than seqNumTwo, taking
+     * rollover into account
+     * @param seqNumOne
+     * @param seqNumTwo
+     * @return true if seqNumOne is 'older' than seqNumTwo
+     */
+    public static boolean isOlderSequenceNumberThan(int seqNumOne, int seqNumTwo)
+    {
+        return getSequenceNumberDelta(seqNumOne, seqNumTwo) < 0;
+    }
+
+    /**
      * Returns result of the subtraction of one RTP sequence number from another
      * (modulo 2^16).
      * @return result of the subtraction of one RTP sequence number from another
@@ -51,6 +64,20 @@ public class RTPUtils
     public static int subtractNumber(int a, int b)
     {
         return as16Bits(a - b);
+    }
+
+
+    /**
+     * Apply a delta to a given sequence number and return the result (taking
+     * rollover into account)
+     * @param startingSequenceNumber the starting sequence number
+     * @param delta the delta to be applied
+     * @return the sequence number result from doing
+     * startingSequenceNumber + delta
+     */
+    public static int applySequenceNumberDelta(int startingSequenceNumber, int delta)
+    {
+        return (startingSequenceNumber + delta) & 0xFFFF;
     }
 
     /**

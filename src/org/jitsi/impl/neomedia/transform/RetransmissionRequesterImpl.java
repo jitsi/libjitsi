@@ -397,7 +397,7 @@ public class RetransmissionRequesterImpl
                 return;
             }
 
-            int diff = RTPUtils.sequenceNumberDiff(seq, lastReceivedSeq);
+            int diff = RTPUtils.getSequenceNumberDelta(seq, lastReceivedSeq);
             if (diff <= 0)
             {
                 // An older packet, possibly already requested.

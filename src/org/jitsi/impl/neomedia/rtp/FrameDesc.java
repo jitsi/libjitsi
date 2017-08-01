@@ -266,8 +266,8 @@ public class FrameDesc
         }
 
         int seqNum = pkt.getSequenceNumber();
-        return RTPUtils.sequenceNumberDiff(seqNum, minSeen) >= 0
-            && RTPUtils.sequenceNumberDiff(seqNum, maxSeen) <= 0;
+        return RTPUtils.getSequenceNumberDelta(seqNum, minSeen) >= 0
+            && RTPUtils.getSequenceNumberDelta(seqNum, maxSeen) <= 0;
     }
 
 
@@ -287,13 +287,13 @@ public class FrameDesc
         MediaStreamImpl stream = rtpEncoding.getMediaStreamTrack()
             .getMediaStreamTrackReceiver().getStream();
 
-        if (minSeen == -1 || RTPUtils.sequenceNumberDiff(minSeen, seqNum) > 0)
+        if (minSeen == -1 || RTPUtils.getSequenceNumberDelta(minSeen, seqNum) > 0)
         {
             changed = true;
             minSeen = seqNum;
         }
 
-        if (maxSeen == -1 || RTPUtils.sequenceNumberDiff(maxSeen, seqNum) < 0)
+        if (maxSeen == -1 || RTPUtils.getSequenceNumberDelta(maxSeen, seqNum) < 0)
         {
             changed = true;
             maxSeen = seqNum;

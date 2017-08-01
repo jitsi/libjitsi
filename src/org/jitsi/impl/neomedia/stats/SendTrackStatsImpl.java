@@ -85,7 +85,7 @@ public class SendTrackStatsImpl
         // locally), as is the case in jitsi-videobridge, packets may be lost
         // between the sender and us, and we need to take this into account
         // when calculating packet loss to the receiver.
-        int diff = RTPUtils.sequenceNumberDiff(seq, highestSeq);
+        int diff = RTPUtils.getSequenceNumberDelta(seq, highestSeq);
         if (diff <= 0)
         {
             // An old packet, already counted as not send. Un-not-send it ;)
