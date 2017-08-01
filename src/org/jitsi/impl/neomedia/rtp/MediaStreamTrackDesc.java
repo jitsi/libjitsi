@@ -413,16 +413,32 @@ public class MediaStreamTrackDesc
      * @param len the length of the actual data
      * @return the {@link FrameDesc} that corresponds to the packet that is
      * specified in the buffer passed in as an argument, or null.
+     * @Deprecated use findFrameDesc(long, long)
      */
+    @Deprecated
     public FrameDesc findFrameDesc(byte[] buf, int off, int len)
     {
-        RTPEncodingDesc rtpEncoding = findRTPEncodingDesc(buf, off, len);
-        if (rtpEncoding == null)
-        {
-            return null;
-        }
+        return findFrameDesc(
+            RawPacket.getSSRCAsLong(buf, off, len),
+            RawPacket.getTimestamp(buf, off, len));
+    }
 
-        return rtpEncoding.findFrameDesc(buf, off, len);
+    /**
+     * Finds the {@link FrameDesc} that corresponds to the given timestamp
+     * for the given stream (identified by its ssrc)
+     * @param ssrc the ssrc of the stream to which this frame belongs
+     * @param timestamp the timestamp of the frame the caller is trying to find
+     * @return the {@link FrameDesc} that corresponds to the ssrc and timestamp
+     * given, or null
+     */
+    public FrameDesc findFrameDesc(long ssrc, long timestamp)
+    {
+        RTPEncodingDesc rtpEncoding = findRTPEncodingDesc(ssrc);
+        if (rtpEncoding != null)
+        {
+            return rtpEncoding.findFrameDesc(timestamp);
+        }
+        return null;
     }
 
     /**

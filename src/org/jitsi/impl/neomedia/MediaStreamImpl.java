@@ -3648,20 +3648,17 @@ public class MediaStreamImpl
      * Utility method that determines the temporal layer index (TID) of an RTP
      * packet.
      *
-     * @param buf the buffer that holds the RTP payload.
-     * @param off the offset in the buff where the RTP payload is found.
-     * @param len then length of the RTP payload in the buffer.
+     * @param pkt the packet from which to get the temporal layer id
      *
      * @return the TID of the packet, -1 otherwise.
      *
      * FIXME(gp) conceptually this belongs to the {@link VideoMediaStreamImpl},
      * but I don't want to be obliged to cast to use this method.
      */
-    public int getTemporalID(byte[] buf, int off, int len)
+    public int getTemporalID(RawPacket pkt)
     {
         if (frameMarkingsExtensionId != -1)
         {
-            RawPacket pkt = new RawPacket(buf, off, len);
             RawPacket.HeaderExtension fmhe
                 = pkt.getHeaderExtension(frameMarkingsExtensionId);
 
@@ -3673,8 +3670,8 @@ public class MediaStreamImpl
             // to change this behaviour in the future, because it will give
             // wrong results if the payload is encrypted.
         }
-    
-        REDBlock redBlock = getPrimaryREDBlock(buf, off, len);
+
+        REDBlock redBlock = getPrimaryREDBlock(pkt);
         if (redBlock == null || redBlock.getLength() == 0)
         {
             return -1;
@@ -3707,6 +3704,26 @@ public class MediaStreamImpl
             // things.
             return -1;
         }
+    }
+
+    /**
+     * Utility method that determines the temporal layer index (TID) of an RTP
+     * packet.
+     *
+     * @param buf the buffer that holds the RTP payload.
+     * @param off the offset in the buff where the RTP payload is found.
+     * @param len then length of the RTP payload in the buffer.
+     *
+     * @return the TID of the packet, -1 otherwise.
+     *
+     * FIXME(gp) conceptually this belongs to the {@link VideoMediaStreamImpl},
+     * but I don't want to be obliged to cast to use this method
+     * @Deprecated use getTemporalID(RawPacket)
+     */
+    @Deprecated
+    public int getTemporalID(byte[] buf, int off, int len)
+    {
+        return getTemporalID(new RawPacket(buf, off, len));
     }
 
     /**
@@ -4015,8 +4032,8 @@ public class MediaStreamImpl
     @Override
     public REDBlock getPrimaryREDBlock(ByteArrayBuffer baf)
     {
-        return getPrimaryREDBlock(
-            baf.getBuffer(), baf.getOffset(), baf.getLength());
+        return getPrimaryREDBlock(new RawPacket(
+            baf.getBuffer(), baf.getOffset(), baf.getLength()));
     }
 
     /**
@@ -4028,30 +4045,47 @@ public class MediaStreamImpl
      * @param len then length of the RTP payload in the buffer.
      * @return the {@link REDBlock} that contains the payload of the packet
      * passed in as a parameter, or null if the buffer is invalid.
+     * @Deprecated use getPrimaryREDBlock(RawPacket)
      */
+    @Deprecated
     public REDBlock getPrimaryREDBlock(byte[] buf, int off, int len)
     {
-        if (buf == null || buf.length < off + len
-            || len < RawPacket.FIXED_HEADER_SIZE)
+        return getPrimaryREDBlock(new RawPacket(buf, off, len));
+    }
+
+    /**
+     * Gets the {@link REDBlock} that contains the payload of the packet passed
+     * in as a parameter.
+     *
+     * @param pkt the packet from which we want to get the primary RED block
+     * @return the {@link REDBlock} that contains the payload of the packet
+     * passed in as a parameter, or null if the buffer is invalid.
+     */
+    @Override
+    public REDBlock getPrimaryREDBlock(RawPacket pkt)
+    {
+        if (pkt == null || pkt.getLength() < RawPacket.FIXED_HEADER_SIZE)
         {
             return null;
         }
 
         final byte redPT = getDynamicRTPPayloadType(Constants.RED),
-            pktPT = (byte) RawPacket.getPayloadType(buf, off, len);
+            pktPT = pkt.getPayloadType();
 
         if (redPT == pktPT)
         {
-            return REDBlockIterator.getPrimaryBlock(buf, off, len);
+
+            return REDBlockIterator.getPrimaryBlock(
+                pkt.getBuffer(), pkt.getOffset(), pkt.getLength());
         }
         else
         {
-            final int payloadOff = RawPacket.getPayloadOffset(buf, off, len),
-                payloadLen = RawPacket.getPayloadLength(buf, off, len, true);
-
-            return new REDBlock(buf, payloadOff, payloadLen, pktPT);
+            return new REDBlock(
+                pkt.getBuffer(), pkt.getPayloadOffset(),
+                pkt.getPayloadLength(), pktPT);
         }
     }
+
 
     /**
      * Gets the {@code RtxTransformer}, if any, used by the {@code MediaStream}.
