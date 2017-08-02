@@ -68,7 +68,7 @@ public interface RTPTranslator
     {
         public boolean accept(
                 MediaStream source,
-                byte[] buffer, int offset, int length,
+                RawPacket pkt,
                 MediaStream destination,
                 boolean data);
     }
