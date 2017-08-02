@@ -254,7 +254,7 @@ class OutputDataStreamImpl
                 write
                     = translator.willWrite(
                         /* source */ exclusion,
-                    buf, off, len,
+                    new RawPacket(buf, off, len),
                         /* destination */ streamRTPManager,
                     _data);
             }
