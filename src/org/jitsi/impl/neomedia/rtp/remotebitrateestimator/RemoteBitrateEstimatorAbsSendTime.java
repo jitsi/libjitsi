@@ -34,8 +34,8 @@ import java.util.*;
 public class RemoteBitrateEstimatorAbsSendTime
     extends SinglePacketTransformerAdapter
     implements RemoteBitrateEstimator,
-    RecurringRunnable,
-        CallStatsObserver
+        CallStatsObserver,
+        RecurringRunnable
 {
     //@Todo Ask for alternative to resolve import conflict between
     //org.jitsi.util.* and org.ice4j.util.* when importing Logger
@@ -53,12 +53,16 @@ public class RemoteBitrateEstimatorAbsSendTime
     private final static int kMaxProbePackets = 15;
     private final static int kExpectedNumberOfProbes = 3;
 
-    private static final double kTimestampToMs = 1000.0 /
-            (1 << kInterArrivalShift) ;
+    private static final double kTimestampToMs = 1.0 / 90.0;
+//    1000.0 /
+//            (1 << kInterArrivalShift) ;
 
     private final Object critSect = new Object();
+
     private  TreeMap<Long,Long> ssrcs_ = new TreeMap<Long, Long>();
     private  ArrayList<Probe> probes_ = new ArrayList<>();
+    private long processIntervalMs = kProcessIntervalMs;
+    private long lastProcessTime = -1L;
     private  long totalProbesReceived;
     private  long firstPacketTimeMs;
     private  long lastUpdateMs;
@@ -81,12 +85,12 @@ public class RemoteBitrateEstimatorAbsSendTime
                 kTimestampToMs,true);
         this.estimator = new OveruseEstimator(new OverUseDetectorOptions());
         this.detector = new OveruseDetector(new OverUseDetectorOptions());
-        this.incomingBitrate = new RateStatistics(kBitrateWindowMs,8000);
+        this.incomingBitrate = new RateStatistics(kBitrateWindowMs,8000F);
         this.incomingBitrateInitialized = false;
         this.totalProbesReceived = 0;
         this.firstPacketTimeMs = -1;
         this.lastUpdateMs = -1;
-        logger.info("; RemoteBitrateEstimatorAbsSendTime: Instantiating.");
+        logger.info("; RemoteBitrateEstimatorAbsSendTime: Calling.");
     }
 
     private <K,V> List<K> Keys(TreeMap<K,V> _map)
@@ -246,7 +250,7 @@ public class RemoteBitrateEstimatorAbsSendTime
         }
     }
 
-    private boolean isBitrateImproving(int newBitrateBps)
+    private boolean isBitrateImproving(long newBitrateBps)
     {
         synchronized (critSect)
         {
@@ -254,8 +258,8 @@ public class RemoteBitrateEstimatorAbsSendTime
                     && newBitrateBps > 0;
             boolean bitrateAboveEstimate =
                     remoteRate.isValidEstimate() &&
-                            newBitrateBps > (int) (remoteRate
-                                    .getLatestEstimate());
+                            newBitrateBps >  remoteRate
+                                    .getLatestEstimate();
             return initialProbe || bitrateAboveEstimate;
         }
     }
@@ -308,7 +312,7 @@ public class RemoteBitrateEstimatorAbsSendTime
             // enough data point are left within the current window.
             // Reset incoming bitrate estimator so that the window
             // size will only contain new data points.
-            incomingBitrate = new RateStatistics(kBitrateWindowMs,8000);
+            incomingBitrate = new RateStatistics(kBitrateWindowMs,8000F);
             incomingBitrateInitialized = false;
         }
         incomingBitrate.update((int) payloadSize, arrivalTimeMs);
@@ -346,7 +350,7 @@ public class RemoteBitrateEstimatorAbsSendTime
                             + " ms, send delta=" + sendDeltaMs
                             + " ms, recv delta=" + recvDeltaMs + " ms.");
                 }
-                probes_.add(new Probe(sendTime24bits, arrivalTimeMs,
+                probes_.add(new Probe(sendTimeMs, arrivalTimeMs,
                         payloadSize));
                 ++totalProbesReceived;
                 // Make sure that a probe which updated the bitrate immediately
@@ -360,9 +364,9 @@ public class RemoteBitrateEstimatorAbsSendTime
             if (interArrival.computeDeltas(timestamp, arrivalTimeMs,
                     (int) payloadSize, deltas, nowMs))
             {
-                double tsDeltaMs = (1000.0 * tsDelta)
+                double tsDeltaMs = (1000.0 * deltas[0])
                         / (1 << kInterArrivalShift);
-                estimator.update(tDelta, tsDeltaMs, sizeDelta,
+                estimator.update(deltas[1], tsDeltaMs, (int)deltas[2],
                         detector.getState());
                 detector.detect(estimator.getOffset(), tsDeltaMs,
                         estimator.getNumOfDeltas(), arrivalTimeMs);
@@ -402,19 +406,21 @@ public class RemoteBitrateEstimatorAbsSendTime
                 remoteRate.update(input, nowMs);
                 targetBitrateBps = remoteRate.updateBandwidthEstimate(nowMs);
                 updateEstimate = remoteRate.isValidEstimate();
+
+                try(FileWriter fw = new FileWriter("IncomingBitrateLogsAST.txt", true);
+                    BufferedWriter bw = new BufferedWriter(fw);
+                    PrintWriter out = new PrintWriter(bw))
+                {
+                    out.println(Long.toString(ssrc)  + " " + System.currentTimeMillis()
+                        + " " + Long.toString(incomingBitrate_) + " " + Long.toString(targetBitrateBps));
+
+                } catch (IOException e) {
+                    //exception handling left as an exercise for the reader
+                }
             }
         }
 
-        try(FileWriter fw = new FileWriter("IncomingBitrateLogsAST.txt", true);
-            BufferedWriter bw = new BufferedWriter(fw);
-            PrintWriter out = new PrintWriter(bw))
-        {
-            out.println(Long.toString(ssrc)  + " " + System.currentTimeMillis()
-                + " " + Long.toString(incomingBitrate_) + " " + Long.toString(targetBitrateBps));
 
-        } catch (IOException e) {
-            //exception handling left as an exercise for the reader
-        }
 
         if (updateEstimate)
         {
@@ -564,8 +570,18 @@ public class RemoteBitrateEstimatorAbsSendTime
     @Override
     public long getTimeUntilNextRun()
     {
-        final long kDisabledModuleTime = 1000;
-        return  kDisabledModuleTime;
+        //final long kDisabledModuleTime = 1000;
+        if (lastProcessTime < 0L)
+            return 0L;
+
+        synchronized (critSect)
+        {
+            return
+                lastProcessTime
+                    + processIntervalMs
+                    - System.currentTimeMillis();
+        }
+        //return  kDisabledModuleTime;
     }
 
     /**
@@ -582,7 +598,13 @@ public class RemoteBitrateEstimatorAbsSendTime
     @Override
     public void run()
     {
+        if (getTimeUntilNextRun() <= 0L)
+        {
+            long nowMs = System.currentTimeMillis();
 
+            // updateEstimate(nowMs);
+            lastProcessTime = nowMs;
+        }
     }
 
     private class Cluster {
@@ -593,6 +615,11 @@ public class RemoteBitrateEstimatorAbsSendTime
         int numAboveMinDelta = 0;
 
         public Cluster() {
+            sendMeanMs = 0L;
+            recvMeanMs = 0L;
+            meanSize = 0;
+            count = 0;
+            numAboveMinDelta = 0;
         }
 
         public Cluster(double send_mean_ms, double recv_mean_ms,
@@ -635,12 +662,12 @@ public class RemoteBitrateEstimatorAbsSendTime
 
     private enum ProbeResult
     {
-        kBitrateUpdated(0),
-        kNoUpdate(1);
-        int value;
+        kBitrateUpdated,
+        kNoUpdate
+        /*int value;
         ProbeResult(int x)
         {
             this.value = x;
-        };
+        };*/
     }
 }
