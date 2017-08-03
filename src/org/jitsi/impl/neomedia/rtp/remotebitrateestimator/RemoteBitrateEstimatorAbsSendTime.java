@@ -54,9 +54,10 @@ public class RemoteBitrateEstimatorAbsSendTime
     private final static int kMaxProbePackets = 15;
     private final static int kExpectedNumberOfProbes = 3;
 
+    //@Todo In webrtc, kTimestampToMs = 1000.0 / (1 << kInterArrivalShift);
+    //Clarify difference.
     private static final double kTimestampToMs = 1.0 / 90.0;
-//    1000.0 /
-//            (1 << kInterArrivalShift) ;
+
 
     private final Object critSect = new Object();
 
@@ -589,7 +590,10 @@ public class RemoteBitrateEstimatorAbsSendTime
     @Override
     public long getTimeUntilNextRun()
     {
+        //@Todo In webrtc, this method is implemented as commented below.
         //final long kDisabledModuleTime = 1000;
+        //return  kDisabledModuleTime;
+        //Clarify if we can leave it as implemented.
         if (lastProcessTime < 0L)
             return 0L;
 
@@ -600,7 +604,7 @@ public class RemoteBitrateEstimatorAbsSendTime
                     + processIntervalMs
                     - System.currentTimeMillis();
         }
-        //return  kDisabledModuleTime;
+
     }
 
     /**
