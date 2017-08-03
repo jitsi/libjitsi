@@ -798,8 +798,8 @@ public class AudioMediaStreamImpl
      * {@inheritDoc}
      */
     @Override
-    protected RTCPReceiverFeedbackTermination getRTCPTermination()
+    protected TransformEngine getRTCPTermination()
     {
-        return rtcpFeedbackTermination;
+        return rtcpTermination;
     }
 }
