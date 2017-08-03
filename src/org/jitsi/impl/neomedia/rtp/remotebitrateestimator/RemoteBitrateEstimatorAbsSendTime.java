@@ -23,7 +23,6 @@ import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.concurrent.*;
 
-import java.io.*;
 import java.util.*;
 
 /**
