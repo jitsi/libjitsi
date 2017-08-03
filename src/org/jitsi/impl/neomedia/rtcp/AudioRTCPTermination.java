@@ -65,12 +65,6 @@ public class AudioRTCPTermination
         @Override
         public RawPacket transform(RawPacket pkt)
         {
-            // Kill the RRs that FMJ is sending.
-            return doTransform(pkt, true);
-        }
-
-        private RawPacket doTransform(RawPacket pkt, boolean send)
-        {
             RTCPIterator it = new RTCPIterator(pkt);
             while (it.hasNext())
             {
