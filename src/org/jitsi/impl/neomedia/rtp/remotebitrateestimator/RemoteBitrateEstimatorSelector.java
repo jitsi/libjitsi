@@ -28,29 +28,31 @@ import java.util.*;
 
 /**
  * webrtc Commit: 3224906974b8205c7a29e494338428d321e02909
+ *
  * @author Julian Chukwu on 06/07/2017.
  */
 public class RemoteBitrateEstimatorSelector
     extends SinglePacketTransformerAdapter
-        implements RemoteBitrateEstimator,
-                CallStatsObserver,
-                RecurringRunnable
+    implements RemoteBitrateEstimator,
+    CallStatsObserver,
+    RecurringRunnable
 
 {
 
     public final static String ENABLE_USE_OF_ABS_SEND_TIME =
-            "org.jitsi.impl.neomedia.rtp.ENABLE_ABS_SEND_TIME";;
+        "org.jitsi.impl.neomedia.rtp.ENABLE_ABS_SEND_TIME";
+    ;
     public static final long kTimeOffsetSwitchThreshold = 30;
     private static final Logger logger = Logger
-            .getLogger(RemoteBitrateEstimatorSelector.class);
+        .getLogger(RemoteBitrateEstimatorSelector.class);
     private static final long defaultTimeUntilNextRunMs = 500;
+    private final Object critSect = new Object();
     private boolean usingAbsoluteSendTime;
     private AbsSendTimeEngine absSendTimeEngine;
     private long packetsSinceAbsoluteSendTime;
     private int minBitrateBps;
     private VideoMediaStreamImpl stream;
     private SinglePacketTransformer packetTransformer;
-    private final Object critSect = new Object();
     private RemoteBitrateObserver observer;
     /**
      * {@code enableUseofAbsSendTime} enables selection of
@@ -68,7 +70,7 @@ public class RemoteBitrateEstimatorSelector
          * RemoteBitrateEstimatorSingleStream is the Default BitrateEstimator
          */
         this.packetTransformer
-                = new RemoteBitrateEstimatorSingleStream(observe);
+            = new RemoteBitrateEstimatorSingleStream(observe);
         this.minBitrateBps = 0;
         this.packetsSinceAbsoluteSendTime = 0;
         setAbsSendTimeUsageConfiguration();
@@ -77,29 +79,36 @@ public class RemoteBitrateEstimatorSelector
     /**
      * Examines header to check if to use AbsSendTime or RTPTimeStamps and
      * calls appropriate bitrate estimator.
+     *
      * @param packet is a RawPacket.
      */
     private void pickEstimatorFromHeader(RawPacket packet)
     {
-        synchronized (critSect) {
+        synchronized (critSect)
+        {
             if (absSendTimeEngine.getAbsoluteSendTimeExtension(packet)
                 != null)
             {
                 // If we see AST in header, switch RBE strategy immediately.
-                if (!usingAbsoluteSendTime) {
+                if (!usingAbsoluteSendTime)
+                {
                     logger.warn("WrappingBitrateEstimator: Switching to" +
-                            " absolute send time RBE.");
+                        " absolute send time RBE.");
                     usingAbsoluteSendTime = true;
                     pickEstimator();
                 }
                 packetsSinceAbsoluteSendTime = 0;
-            } else {
+            }
+            else
+            {
                 // When we don't see AST, wait for a few packets before going
                 // back to TOF.
-                if (usingAbsoluteSendTime) {
+                if (usingAbsoluteSendTime)
+                {
                     ++packetsSinceAbsoluteSendTime;
                     if (packetsSinceAbsoluteSendTime
-                            >= kTimeOffsetSwitchThreshold) {
+                        >= kTimeOffsetSwitchThreshold)
+                    {
                         logger.info("WrappingBitrateEstimator: " +
                             "Switching to transmission time offset RBE.");
                         usingAbsoluteSendTime = false;
@@ -117,11 +126,11 @@ public class RemoteBitrateEstimatorSelector
         if (cfg == null)
         {
             logger.warn("FORGETTING about checking AbsSendTime because "
-                    + "the configuration service was not found.");
+                + "the configuration service was not found.");
             return;
         }
         enableUseOfAbsSendTime
-                = cfg.getBoolean(ENABLE_USE_OF_ABS_SEND_TIME, false);
+            = cfg.getBoolean(ENABLE_USE_OF_ABS_SEND_TIME, false);
     }
 
     /**
@@ -147,7 +156,7 @@ public class RemoteBitrateEstimatorSelector
     @Override
     public Collection<Integer> getSsrcs()
     {
-        return ((RemoteBitrateEstimator)packetTransformer).getSsrcs();
+        return ((RemoteBitrateEstimator) packetTransformer).getSsrcs();
     }
 
     /**
@@ -161,7 +170,7 @@ public class RemoteBitrateEstimatorSelector
     public long getLatestEstimate()
     {
 
-        return ((RemoteBitrateEstimator)packetTransformer).getLatestEstimate();
+        return ((RemoteBitrateEstimator) packetTransformer).getLatestEstimate();
     }
 
     /**
@@ -170,35 +179,38 @@ public class RemoteBitrateEstimatorSelector
      * @param ssrc
      */
     @Override
-    public void removeStream(int ssrc) {
-        ((RemoteBitrateEstimator)packetTransformer).removeStream(ssrc);
+    public void removeStream(int ssrc)
+    {
+        ((RemoteBitrateEstimator) packetTransformer).removeStream(ssrc);
     }
 
     @Override
-    public void setMinBitrate(int minBitrateBps) {
+    public void setMinBitrate(int minBitrateBps)
+    {
         synchronized (critSect)
         {
-            ((RemoteBitrateEstimator)packetTransformer)
-                    .setMinBitrate(minBitrateBps);
+            ((RemoteBitrateEstimator) packetTransformer)
+                .setMinBitrate(minBitrateBps);
             this.minBitrateBps = minBitrateBps;
         }
     }
 
     @Override
     public RawPacket reverseTransform(
-            RawPacket packet)
+        RawPacket packet)
     {
         /**
          * @Todo Find out why having synchronized here makes sense since it
          * exists in pickEstimatorFromHeader.
          */
-        if (this.absSendTimeEngine == null){
+        if (this.absSendTimeEngine == null)
+        {
             this.absSendTimeEngine = stream.getAbsSendTimeEngine();
         }
 
         synchronized (critSect)
         {
-            if(enableUseOfAbsSendTime)
+            if (enableUseOfAbsSendTime)
             {
                 pickEstimatorFromHeader(packet);
             }
@@ -213,7 +225,8 @@ public class RemoteBitrateEstimatorSelector
      * @return the <tt>PacketTransformer</tt> for RTP packets
      */
     @Override
-    public PacketTransformer getRTPTransformer() {
+    public PacketTransformer getRTPTransformer()
+    {
         return this;
     }
 
@@ -223,7 +236,8 @@ public class RemoteBitrateEstimatorSelector
      * @return the <tt>PacketTransformer</tt> for RTCP packets
      */
     @Override
-    public PacketTransformer getRTCPTransformer() {
+    public PacketTransformer getRTCPTransformer()
+    {
         return null;
     }
 
@@ -237,12 +251,13 @@ public class RemoteBitrateEstimatorSelector
      * thread to call {@link #run()}
      */
     @Override
-    public long getTimeUntilNextRun() {
-        long timeUntilNextRun  =
-                (packetTransformer instanceof RecurringRunnable) ?
-             ((RecurringRunnable) packetTransformer)
-                     .getTimeUntilNextRun() : defaultTimeUntilNextRunMs;
-        return  timeUntilNextRun;
+    public long getTimeUntilNextRun()
+    {
+        long timeUntilNextRun =
+            (packetTransformer instanceof RecurringRunnable) ?
+                ((RecurringRunnable) packetTransformer)
+                    .getTimeUntilNextRun() : defaultTimeUntilNextRunMs;
+        return timeUntilNextRun;
     }
 
     /**
@@ -257,18 +272,21 @@ public class RemoteBitrateEstimatorSelector
      * @see Thread#run()
      */
     @Override
-    public void run() {
+    public void run()
+    {
         if (packetTransformer instanceof Runnable)
         {
-            ((Runnable)packetTransformer).run();
+            ((Runnable) packetTransformer).run();
         }
     }
 
     @Override
-    public void onRttUpdate(long avgRttMs, long maxRttMs) {
-        if(packetTransformer instanceof CallStatsObserver){
-            ((CallStatsObserver)packetTransformer)
-                    .onRttUpdate(avgRttMs,maxRttMs);
+    public void onRttUpdate(long avgRttMs, long maxRttMs)
+    {
+        if (packetTransformer instanceof CallStatsObserver)
+        {
+            ((CallStatsObserver) packetTransformer)
+                .onRttUpdate(avgRttMs, maxRttMs);
         }
     }
 }
