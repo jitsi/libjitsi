@@ -633,11 +633,6 @@ public class RemoteBitrateEstimatorAbsSendTime
     {
         kBitrateUpdated,
         kNoUpdate
-        /*int value;
-        ProbeResult(int x)
-        {
-            this.value = x;
-        };*/
     }
 
     private class Cluster
