@@ -23,6 +23,7 @@ import javax.media.control.*;
 import javax.media.format.*;
 
 import org.jitsi.impl.neomedia.device.*;
+import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.impl.neomedia.transform.csrc.*;
@@ -121,6 +122,12 @@ public class AudioMediaStreamImpl
      * played back.
      */
     private VolumeControl outputVolumeControl;
+
+    /**
+     * The instance that terminates REMBs.
+     */
+    private final AudioRTCPTermination rtcpTermination
+        = new AudioRTCPTermination();
 
     /**
      * The listener which has been set on this instance to get notified of
@@ -785,5 +792,14 @@ public class AudioMediaStreamImpl
     protected DiscardTransformEngine createDiscardEngine()
     {
         return new DiscardTransformEngine(this);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected TransformEngine getRTCPTermination()
+    {
+        return rtcpTermination;
     }
 }

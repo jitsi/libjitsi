@@ -1365,7 +1365,7 @@ public class VideoMediaStreamImpl
      * {@inheritDoc}
      */
     @Override
-    protected RTCPReceiverFeedbackTermination getRTCPTermination()
+    protected TransformEngine getRTCPTermination()
     {
         return rtcpFeedbackTermination;
     }
