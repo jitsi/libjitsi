@@ -24,6 +24,7 @@ import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.rtp.*;
+import org.jitsi.util.Logger;
 
 /**
  * webrtc/modules/remote_bitrate_estimator/remote_bitrate_estimator_single_stream.cc
@@ -38,6 +39,14 @@ public class RemoteBitrateEstimatorSingleStream
                RemoteBitrateEstimator,
                TransformEngine
 {
+    /**
+     * The <tt>Logger</tt> used by the
+     * <tt>RemoteBitrateEstimatorSingleStream</tt> class and its instances for
+     * logging output.
+     */
+    private static final Logger logger
+        = Logger.getLogger(RemoteBitrateEstimatorSingleStream.class);
+
     static final double kTimestampToMs = 1.0 / 90.0;
 
     private final Object critSect = new Object();
@@ -211,6 +220,16 @@ public class RemoteBitrateEstimatorSingleStream
                     timestampDeltaMs,
                     estimator.estimator.getNumOfDeltas(),
                     nowMs);
+
+            if (logger.isTraceEnabled())
+            {
+                logger.trace("rbess_delay_estimated" +
+                    "," + nowMs +
+                    "," + (deltas[1] - timestampDeltaMs) +
+                    "," + estimator.estimator.getOffset() +
+                    "," + estimator.detector.getState() +
+                    "," + observer.hashCode());
+            }
         }
 
         boolean updateEstimate = false;
@@ -240,6 +259,14 @@ public class RemoteBitrateEstimatorSingleStream
         {
             updateEstimate(nowMs);
             lastProcessTime = nowMs;
+
+            if (logger.isTraceEnabled())
+            {
+                logger.trace("rbess_bitrate_estimated" +
+                    "," + nowMs +
+                    "," + getLatestEstimate() +
+                    "," + observer.hashCode());
+            }
         }
         } // synchronized (critSect)
 
