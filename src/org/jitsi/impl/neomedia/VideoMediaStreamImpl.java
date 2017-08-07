@@ -520,17 +520,6 @@ public class VideoMediaStreamImpl
     {
         super(connector, device, srtpControl);
 
-        // Register the RemoteBitrateEstimator with the
-        // RecurringRunnableExecutor.
-        RemoteBitrateEstimator remoteBitrateEstimator
-            = getRemoteBitrateEstimator();
-
-        if (remoteBitrateEstimator instanceof RecurringRunnable)
-        {
-            recurringRunnableExecutor.registerRecurringRunnable(
-                    (RecurringRunnable) remoteBitrateEstimator);
-        }
-
         recurringRunnableExecutor.registerRecurringRunnable(rtcpFeedbackTermination);
     }
 
@@ -625,17 +614,6 @@ public class VideoMediaStreamImpl
         }
         finally
         {
-            // Deregister the RemoteBitrateEstimator with the
-            // RecurringRunnableExecutor.
-            RemoteBitrateEstimator remoteBitrateEstimator
-                = getRemoteBitrateEstimator();
-
-            if (remoteBitrateEstimator instanceof RecurringRunnable)
-            {
-                recurringRunnableExecutor.deRegisterRecurringRunnable(
-                        (RecurringRunnable) remoteBitrateEstimator);
-            }
-
             if (cachingTransformer != null)
             {
                 recurringRunnableExecutor.deRegisterRecurringRunnable(

@@ -20,10 +20,10 @@ import java.util.*;
 import net.sf.fmj.media.rtp.util.*;
 
 import org.ice4j.util.*;
+import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.rtp.*;
-import org.jitsi.util.concurrent.*;
 
 /**
  * webrtc/modules/remote_bitrate_estimator/remote_bitrate_estimator_single_stream.cc
@@ -35,7 +35,6 @@ import org.jitsi.util.concurrent.*;
 public class RemoteBitrateEstimatorSingleStream
     extends SinglePacketTransformerAdapter
     implements CallStatsObserver,
-               RecurringRunnable,
                RemoteBitrateEstimator,
                TransformEngine
 {
@@ -155,24 +154,6 @@ public class RemoteBitrateEstimatorSingleStream
      * {@inheritDoc}
      */
     @Override
-    public long getTimeUntilNextRun()
-    {
-        if (lastProcessTime < 0L)
-            return 0L;
-
-        synchronized (critSect)
-        {
-            return
-                lastProcessTime
-                    + processIntervalMs
-                    - System.currentTimeMillis();
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     public RawPacket reverseTransform(RawPacket pkt)
     {
         Integer ssrc_ = pkt.getSSRC();
@@ -231,7 +212,14 @@ public class RemoteBitrateEstimatorSingleStream
                     estimator.estimator.getNumOfDeltas(),
                     nowMs);
         }
-        if (estimator.detector.getState() == BandwidthUsage.kBwOverusing)
+
+        boolean updateEstimate = false;
+        if (lastProcessTime < 0L
+            || lastProcessTime + processIntervalMs - nowMs <= 0L)
+        {
+            updateEstimate = true;
+        }
+        else if (estimator.detector.getState() == BandwidthUsage.kBwOverusing)
         {
             long incomingBitrateBps = this.incomingBitrate.getRate(nowMs);
 
@@ -244,8 +232,14 @@ public class RemoteBitrateEstimatorSingleStream
                 // We also have to update the estimate immediately if we are
                 // overusing and the target bitrate is too high compared to what
                 // we are receiving.
-                updateEstimate(nowMs);
+                updateEstimate = true;
             }
+        }
+
+        if (updateEstimate)
+        {
+            updateEstimate(nowMs);
+            lastProcessTime = nowMs;
         }
         } // synchronized (critSect)
 
@@ -261,23 +255,6 @@ public class RemoteBitrateEstimatorSingleStream
         synchronized (critSect)
         {
             remoteRate.setRtt(avgRttMs);
-        }
-    }
-
-    /**
-     * Triggers a new estimate calculation.
-     *
-     * @return
-     */
-    @Override
-    public void run()
-    {
-        if (getTimeUntilNextRun() <= 0L)
-        {
-            long nowMs = System.currentTimeMillis();
-
-            updateEstimate(nowMs);
-            lastProcessTime = nowMs;
         }
     }
 
