@@ -21,7 +21,6 @@ import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.rtp.*;
-import org.jitsi.util.concurrent.*;
 
 import java.util.*;
 
@@ -34,8 +33,8 @@ import java.util.*;
 public class RemoteBitrateEstimatorAbsSendTime
     extends SinglePacketTransformerAdapter
     implements RemoteBitrateEstimator,
-    CallStatsObserver,
-    RecurringRunnable
+    CallStatsObserver
+
 {
     //@Todo Ask for alternative to resolve import conflict between
     //org.jitsi.util.* and org.ice4j.util.* when importing Logger
@@ -62,8 +61,6 @@ public class RemoteBitrateEstimatorAbsSendTime
 
     private TreeMap<Long, Long> ssrcs_ = new TreeMap<Long, Long>();
     private ArrayList<Probe> probes_ = new ArrayList<>();
-    private long processIntervalMs = kProcessIntervalMs;
-    private long lastProcessTime = -1L;
     private long totalProbesReceived;
     private long firstPacketTimeMs;
     private long lastUpdateMs;
@@ -91,7 +88,10 @@ public class RemoteBitrateEstimatorAbsSendTime
         this.totalProbesReceived = 0;
         this.firstPacketTimeMs = -1;
         this.lastUpdateMs = -1;
-        logger.info("; RemoteBitrateEstimatorAbsSendTime: Calling.");
+        if (logger.isDebugEnabled())
+        {
+            logger.debug("RemoteBitrateEstimatorAbsSendTime: Active.");
+        }
     }
 
     private <K, V> List<K> Keys(TreeMap<K, V> _map)
@@ -182,7 +182,7 @@ public class RemoteBitrateEstimatorAbsSendTime
             if (cluster.sendMeanMs == 0 || cluster.recvMeanMs == 0)
                 continue;
             if (cluster.numAboveMinDelta > cluster.count / 2 &&
-                (cluster.recvMeanMs - cluster.sendMeanMs <= 2.0f &&
+                (-2.0f <= cluster.sendMeanMs - cluster.recvMeanMs &&
                     cluster.sendMeanMs - cluster.recvMeanMs <= 5.0f))
             {
                 int probeBitrateBps =
@@ -284,7 +284,7 @@ public class RemoteBitrateEstimatorAbsSendTime
         return packet;
     }
 
-    private void incomingPacketInfo(
+    public void incomingPacketInfo(
         long arrivalTimeMs,
         long sendTime24bits,
         long payloadSize,
@@ -578,57 +578,6 @@ public class RemoteBitrateEstimatorAbsSendTime
 
     }
 
-    /**
-     * Returns the number of milliseconds until this instance wants a worker
-     * thread to call {@link #run()}. The method is called on the same
-     * worker thread as Process will be called on.
-     *
-     * @return the number of milliseconds until this instance wants a worker
-     * thread to call {@link #run()}
-     */
-    @Override
-    public long getTimeUntilNextRun()
-    {
-        //@Todo In webrtc, this method is implemented as commented below.
-        //final long kDisabledModuleTime = 1000;
-        //return  kDisabledModuleTime;
-        //Clarify if we can leave it as implemented.
-        if (lastProcessTime < 0L)
-            return 0L;
-
-        synchronized (critSect)
-        {
-            return
-                lastProcessTime
-                    + processIntervalMs
-                    - System.currentTimeMillis();
-        }
-
-    }
-
-    /**
-     * When an object implementing interface <code>Runnable</code> is used
-     * to create a thread, starting the thread causes the object's
-     * <code>run</code> method to be called in that separately executing
-     * thread.
-     * <p>
-     * The general contract of the method <code>run</code> is that it may
-     * take any action whatsoever.
-     *
-     * @see Thread#run()
-     */
-    @Override
-    public void run()
-    {
-        if (getTimeUntilNextRun() <= 0L)
-        {
-            long nowMs = System.currentTimeMillis();
-
-            // updateEstimate(nowMs);
-            lastProcessTime = nowMs;
-        }
-    }
-
     private enum ProbeResult
     {
         kBitrateUpdated,
@@ -666,14 +615,17 @@ public class RemoteBitrateEstimatorAbsSendTime
 
         public int getSendBitrateBps()
         {
-
-            //RTC_CHECK_GT(this.sendMeanMs, 0.0f);
+            if(this.sendMeanMs < 0f){
+                return 0;
+            }
             return (int) (this.meanSize * 8 * 1000 / sendMeanMs);
         }
 
         public int getRecvBitrateBps()
         {
-            // RTC_CHECK_GT(this.recvMeanMs, 0.0f);
+            if(this.recvMeanMs < 0f){
+                return 0;
+            }
             return (int) (this.meanSize * 8 * 1000 / this.recvMeanMs);
         }
     }
