@@ -18,7 +18,6 @@ package org.jitsi.impl.neomedia.rtcp;
 import java.io.*;
 import net.sf.fmj.media.rtp.*;
 import net.sf.fmj.media.rtp.util.*;
-import org.jitsi.impl.neomedia.rtp.translator.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.event.*;
 import org.jitsi.service.neomedia.rtp.*;
@@ -293,7 +292,7 @@ public class RTCPPacketParserEx
 
                     for (int i = 0, end = fcilen - 8; i < end; i += 8)
                     {
-                        int ssrc = RTPTranslatorImpl.readInt(fb.fci, i);
+                        int ssrc = RTPUtils.readInt(fb.fci, i);
                         byte b4 = fb.fci[i + 4];
                         int mxTbrExp /* 6 bits */ = (b4 & 0xFC) >>> 2;
                         byte b6 = fb.fci[i + 6];

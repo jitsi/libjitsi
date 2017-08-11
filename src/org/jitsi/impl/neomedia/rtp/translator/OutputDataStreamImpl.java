@@ -25,8 +25,6 @@ import net.sf.fmj.media.rtp.RTPHeader;
 
 import org.ice4j.util.*;
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.impl.neomedia.rtcp.*;
-import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
@@ -311,7 +309,7 @@ class OutputDataStreamImpl
                     if (xBegin + xLen < end)
                     {
                         xLen
-                            += RTPTranslatorImpl.readUnsignedShort(
+                            += RTPUtils.readUint16AsInt(
                                     buf,
                                     xBegin + 2 /* defined by profile */)
                                 * 4;
@@ -500,7 +498,7 @@ class OutputDataStreamImpl
                 {
                     // Verify the length field.
                     int rtcpLength
-                        = (RTPTranslatorImpl.readUnsignedShort(
+                        = (RTPUtils.readUint16AsInt(
                                     buffer,
                                     offset + 2)
                                 + 1)
@@ -522,15 +520,13 @@ class OutputDataStreamImpl
                                 // source' field, use the SSRC from the first
                                 // FCI entry instead
                                 ssrcOfMediaSource
-                                    = RTPTranslatorImpl.readInt(
-                                            buffer,
-                                            offset + 12);
+                                    = RTPUtils.readInt(buffer, offset + 12);
                             }
                         }
                         else
                         {
                             ssrcOfMediaSource
-                                = RTPTranslatorImpl.readInt(buffer, offset + 8);
+                                = RTPUtils.readInt(buffer, offset + 8);
                         }
 
                         if (destination.containsReceiveSSRC(
@@ -539,9 +535,7 @@ class OutputDataStreamImpl
                             if (logger.isTraceEnabled())
                             {
                                 int ssrcOfPacketSender
-                                    = RTPTranslatorImpl.readInt(
-                                            buffer,
-                                            offset + 4);
+                                    = RTPUtils.readInt(buffer, offset + 4);
                                 String message
                                     = getClass().getName()
                                         + ".willWriteControl: FMT " + fmt

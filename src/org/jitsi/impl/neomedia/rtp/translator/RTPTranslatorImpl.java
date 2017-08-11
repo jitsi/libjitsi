@@ -17,7 +17,6 @@ package org.jitsi.impl.neomedia.rtp.translator;
 
 import java.io.*;
 import java.util.*;
-import java.util.concurrent.*;
 import java.util.concurrent.locks.*;
 
 import javax.media.*;
@@ -32,7 +31,6 @@ import net.sf.fmj.media.rtp.RTPHeader;
 import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
-import org.jitsi.util.concurrent.*;
 
 /**
  * Implements <tt>RTPTranslator</tt> which represents an RTP translator which
@@ -50,75 +48,6 @@ public class RTPTranslatorImpl
      */
     private static final Logger LOGGER
         = Logger.getLogger(RTPTranslatorImpl.class);
-
-    public static long getPayloadLengthAndOffsetIfRTP(
-            byte[] buf,
-            int off,
-            int len)
-    {
-        final long PAYLOAD_LENGTH_AND_OFFSET_IF_NOT_RTP = -1L;
-
-        if (len < RTPHeader.SIZE)
-            return PAYLOAD_LENGTH_AND_OFFSET_IF_NOT_RTP;
-
-        byte b0 = buf[off];
-
-        if (/* version (V) */ ((b0 & 0xC0) >>> 6) != RTPHeader.VERSION)
-            return PAYLOAD_LENGTH_AND_OFFSET_IF_NOT_RTP;
-
-        int cc = b0 & 0x0F; // CSRC count (CC)
-        int payloadLen = len - RTPHeader.SIZE;
-        int payloadOff = off + RTPHeader.SIZE;
-
-        if (cc < 0)
-        {
-            return PAYLOAD_LENGTH_AND_OFFSET_IF_NOT_RTP;
-        }
-        else
-        {
-            cc *= 4;
-            payloadLen -= cc;
-            if (payloadLen < 0)
-                return PAYLOAD_LENGTH_AND_OFFSET_IF_NOT_RTP;
-            else
-                payloadOff += cc;
-        }
-
-        if (/* padding (P) */ (b0 & 0x20) != 0)
-        {
-            int padding = 0xFF & buf[off + len - 1];
-
-            payloadLen -= padding;
-            if (payloadLen < 0)
-                return PAYLOAD_LENGTH_AND_OFFSET_IF_NOT_RTP;
-        }
-
-        if (/* extension (X) */ (b0 & 0x10) != 0)
-        {
-            if (payloadLen < /* defined by profile */ 2 + /* length */ 2)
-            {
-                return PAYLOAD_LENGTH_AND_OFFSET_IF_NOT_RTP;
-            }
-            else
-            {
-                int extensionLen
-                    = readUnsignedShort(buf, payloadOff + 2);
-
-                extensionLen = (extensionLen + 1) * 4;
-                payloadLen -= extensionLen;
-                if (payloadLen < 0)
-                    return PAYLOAD_LENGTH_AND_OFFSET_IF_NOT_RTP;
-                else
-                    payloadOff += extensionLen;
-            }
-        }
-
-        long r = payloadLen;
-
-        r <<= 32;
-        r |= payloadOff;
-        return r;
-    }
 
     /**
      * Logs information about an RTCP packet using {@link #LOGGER} for debugging
@@ -153,7 +82,8 @@ public class RTPTranslatorImpl
                 if (pt == 203 /* BYE */)
                 {
                     // Verify the length field.
-                    int rtcpLength = (readUnsignedShort(buf, off + 2) + 1) * 4;
+                    int rtcpLength
+                        = (RTPUtils.readUint16AsInt(buf, off + 2) + 1) * 4;
 
                     if (rtcpLength <= len)
                     {
@@ -164,7 +94,7 @@ public class RTPTranslatorImpl
                                 i < sc && o + 4 <= end;
                                 ++i, o += 4)
                         {
-                            int ssrc = readInt(buf, o);
+                            int ssrc = RTPUtils.readInt(buf, o);
 
                             LOGGER.trace(
                                     obj.getClass().getName() + '.' + methodName
@@ -175,41 +105,6 @@ public class RTPTranslatorImpl
                 }
             }
         }
-    }
-
-    /**
-     * Reads an <tt>int</tt> from a specific <tt>byte</tt> buffer starting at a
-     * specific offset. The implementation is the same as
-     * {@link DataInputStream#readInt()}.
-     *
-     * @param buf the <tt>byte</tt> buffer to read an <tt>int</tt> from
-     * @param off the zero-based offset in <tt>buf</tt> to start reading an
-     * <tt>int</tt> from
-     * @return an <tt>int</tt> read from the specified <tt>buf</tt> starting at
-     * the specified <tt>off</tt>
-     */
-    public static int readInt(byte[] buf, int off)
-    {
-        return
-            ((buf[off++] & 0xff) << 24)
-                | ((buf[off++] & 0xff) << 16)
-                | ((buf[off++] & 0xff) << 8)
-                | (buf[off] & 0xff);
-    }
-
-    /**
-     * Reads a 16-bit unsigned value from a specific <tt>byte</tt> buffer
-     * starting at a specific offset and returns it as an <tt>int</tt>.
-     *
-     * @param buf the <tt>byte</tt> buffer to read a 16-bit unsigned value from
-     * @param off the zero-based offset in <tt>buf</tt> to start reading a
-     * 16-bit unsigned value from
-     * @return an <tt>int</tt> read from the specified <tt>buf</tt> as a 16-bit
-     * unsigned value starting at the specified <tt>off</tt>
-     */
-    public static int readUnsignedShort(byte[] buf, int off)
-    {
-        return ((buf[off++] & 0xff) << 8) | (buf[off] & 0xff);
     }
 
     /**
@@ -567,7 +462,7 @@ public class RTPTranslatorImpl
             if ((len >= RTPHeader.SIZE)
                     && (/* v */ ((buf[off] & 0xc0) >>> 6) == RTPHeader.VERSION))
             {
-                int ssrc = readInt(buf, off + 8);
+                int ssrc = RTPUtils.readInt(buf, off + 8);
 
                 if (!streamRTPManager.containsReceiveSSRC(ssrc))
                 {
