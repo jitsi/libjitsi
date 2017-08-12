@@ -104,7 +104,7 @@ public class RemoteBitrateEstimatorAbsSendTime
         return keys;
     }
 
-    private long ConvertMsTo24Bits(long timeMs)
+    public long ConvertMsTo24Bits(long timeMs)
     {
         long time24Bits = (long) (((timeMs << kAbsSendTimeFraction) + 500) /
             1000) & 0x00FFFFFF;
