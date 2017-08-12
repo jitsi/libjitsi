@@ -119,6 +119,10 @@ public class RemoteBitrateEstimatorSelector
         }
     }
 
+    /**
+     * <tt>setAbsSendTimeUsageConfiguration</tt> checks if the abs_send_time is
+     * enabled in the logging.properties file.
+     */
     public void setAbsSendTimeUsageConfiguration()
     {
         ConfigurationService cfg = LibJitsi.getConfigurationService();
