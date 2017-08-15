@@ -24,10 +24,14 @@ import java.util.*;
 public class RTPUtils
 {
     /**
-     * Returns the difference between two RTP sequence numbers (modulo 2^16).
-     * @return the difference between two RTP sequence numbers (modulo 2^16).
+     * Returns the delta between two RTP sequence numbers, taking into account
+     * rollover.  This will return the 'shortest' delta between the two
+     * sequence numbers in the form of the number you'd add to b to get a. e.g.:
+     * getSequenceNumberDelta(1, 10) -> -9 (10 + -9 = 1)
+     * getSequenceNumberDelta(1, 65530) -> 7 (65530 + 7 = 1)
+     * @return the delta between two RTP sequence numbers (modulo 2^16).
      */
-    public static int sequenceNumberDiff(int a, int b)
+    public static int getSequenceNumberDelta(int a, int b)
     {
         int diff = a - b;
 
@@ -40,6 +44,18 @@ public class RTPUtils
     }
 
     /**
+     * Returns whether or not seqNumOne is 'older' than seqNumTwo, taking
+     * rollover into account
+     * @param seqNumOne
+     * @param seqNumTwo
+     * @return true if seqNumOne is 'older' than seqNumTwo
+     */
+    public static boolean isOlderSequenceNumberThan(int seqNumOne, int seqNumTwo)
+    {
+        return getSequenceNumberDelta(seqNumOne, seqNumTwo) < 0;
+    }
+
+    /**
      * Returns result of the subtraction of one RTP sequence number from another
      * (modulo 2^16).
      * @return result of the subtraction of one RTP sequence number from another
@@ -47,7 +63,21 @@ public class RTPUtils
      */
     public static int subtractNumber(int a, int b)
     {
-        return (a - b) & 0xFFFF;
+        return as16Bits(a - b);
+    }
+
+
+    /**
+     * Apply a delta to a given sequence number and return the result (taking
+     * rollover into account)
+     * @param startingSequenceNumber the starting sequence number
+     * @param delta the delta to be applied
+     * @return the sequence number result from doing
+     * startingSequenceNumber + delta
+     */
+    public static int applySequenceNumberDelta(int startingSequenceNumber, int delta)
+    {
+        return (startingSequenceNumber + delta) & 0xFFFF;
     }
 
     /**
@@ -180,17 +210,25 @@ public class RTPUtils
     }
 
     /**
-     * Converts rtp timestamps to 24bit timestamp equivalence
-     * @param timeMs is the RTP timestamp e.g System.currentTimeMillis().
-     * @param kAbsSendTimeFraction a constant value in
-     * RemoteBitrateEstimatorAbsEndTime.
-     * @return time stamp representation in 24 bit representation.
+     * Returns the given integer masked to 16 bits
+     * @param value the integer to mask
+     * @return the value, masked to only keep the lower
+     * 16 bits
      */
-    public static long convertMsTo24Bits(long timeMs, long kAbsSendTimeFraction)
+    public static int as16Bits(int value)
     {
-        long time24Bits = (long) (((timeMs << kAbsSendTimeFraction) + 500) /
-            1000) & 0x00FFFFFF;
-        return time24Bits;
+        return value & 0xFFFF;
+    }
+
+    /**
+     * Returns the given integer masked to 32 bits
+     * @param value the integer to mask
+     * @return the value, masked to only keep the lower
+     * 32 bits
+     */
+    public static long as32Bits(long value)
+    {
+        return value & 0xFFFFFFFF;
     }
 
     /**
@@ -231,4 +269,43 @@ public class RTPUtils
         }
     };
 
+    /**
+     * Returns the difference between two RTP timestamps.
+     * @return the difference between two RTP timestamps.
+     */
+    public static long rtpTimestampDiff(long a, long b)
+    {
+        long diff = a - b;
+        if (diff < -(1L<<31))
+            diff+= 1L<<32;
+        else if (diff > 1L<<31)
+            diff-= 1L<<32;
+
+        return diff;
+    }
+
+    /**
+     * Returns whether or not the first given timestamp is newer than the second
+     * @param a
+     * @param b
+     * @return true if a is newer than b, false otherwise
+     */
+    public static boolean isNewerTimestampThan(long a, long b)
+    {
+        return rtpTimestampDiff(a, b) > 0;
+    }
+
+    /**
+     * Converts rtp timestamps to 24bit timestamp equivalence
+     * @param timeMs is the RTP timestamp e.g System.currentTimeMillis().
+     * @param kAbsSendTimeFraction a constant value in
+     * RemoteBitrateEstimatorAbsEndTime.
+     * @return time stamp representation in 24 bit representation.
+     */
+    public static long convertMsTo24Bits(long timeMs, long kAbsSendTimeFraction)
+    {
+        long time24Bits = (long) (((timeMs << kAbsSendTimeFraction) + 500) /
+            1000) & 0x00FFFFFF;
+        return time24Bits;
+    }
 }
