@@ -43,7 +43,7 @@ public class RemoteBitrateEstimatorAbsSendTime
         = org.jitsi.util.Logger
         .getLogger(RemoteBitrateEstimatorAbsSendTime.class);
     private final static int kTimestampGroupLengthMs = 5;
-    private final static int kAbsSendTimeFraction = 18;
+    public final static int kAbsSendTimeFraction = 18;
     private final static int kAbsSendTimeInterArrivalUpshift = 8;
     private final static int kInterArrivalShift
         = kAbsSendTimeFraction + kAbsSendTimeInterArrivalUpshift;
@@ -103,14 +103,6 @@ public class RemoteBitrateEstimatorAbsSendTime
         }
         return keys;
     }
-
-    public long ConvertMsTo24Bits(long timeMs)
-    {
-        long time24Bits = (long) (((timeMs << kAbsSendTimeFraction) + 500) /
-            1000) & 0x00FFFFFF;
-        return time24Bits;
-    }
-
 
     private boolean IsWithinClusterBounds(long sendDeltaMs, Cluster clusterAggregate)
     {
@@ -278,13 +270,13 @@ public class RemoteBitrateEstimatorAbsSendTime
     public RawPacket reverseTransform(
         RawPacket packet)
     {
-        incomingPacketInfo(System.currentTimeMillis(), absoluteSendTimeEngine
+        processIncomingPacketInfo(System.currentTimeMillis(), absoluteSendTimeEngine
                 .getAbsSendTime(packet), packet.getPayloadLength(),
             packet.getSSRCAsLong());
         return packet;
     }
 
-    public void incomingPacketInfo(
+    public void processIncomingPacketInfo(
         long arrivalTimeMs,
         long sendTime24bits,
         long payloadSize,
