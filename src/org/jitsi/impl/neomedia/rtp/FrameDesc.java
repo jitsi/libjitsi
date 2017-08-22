@@ -130,6 +130,11 @@ public class FrameDesc
         return rtpEncoding;
     }
 
+    public RTPEncodingDesc[] getTrackRTPEncodings()
+    {
+        return getRTPEncoding().getMediaStreamTrack().getRTPEncodings();
+    }
+
     /**
      * Gets the RTP timestamp for this frame.
      *
@@ -182,6 +187,10 @@ public class FrameDesc
     void setEnd(int end)
     {
         this.end = end;
+        if (this.end > this.maxSeen)
+        {
+            this.maxSeen = this.end;
+        }
     }
 
     /**
@@ -215,6 +224,10 @@ public class FrameDesc
     void setStart(int start)
     {
         this.start = start;
+        if (this.start < this.minSeen)
+        {
+            this.minSeen = this.start;
+        }
     }
 
     /**
