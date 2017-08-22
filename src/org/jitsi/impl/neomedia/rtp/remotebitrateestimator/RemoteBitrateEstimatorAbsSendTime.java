@@ -59,8 +59,8 @@ public class RemoteBitrateEstimatorAbsSendTime
 
     private final Object critSect = new Object();
 
-    private TreeMap<Long, Long> ssrcs_ = new TreeMap<Long, Long>();
-    private ArrayList<Probe> probes_ = new ArrayList<>();
+    private TreeMap<Long, Long> ssrcs = new TreeMap<Long, Long>();
+    private ArrayList<Probe> probes = new ArrayList<>();
     private long totalProbesReceived;
     private long firstPacketTimeMs;
     private long lastUpdateMs;
@@ -128,7 +128,7 @@ public class RemoteBitrateEstimatorAbsSendTime
         Cluster current = new Cluster();
         long prevSendTime = -1;
         long prevRecvTime = -1;
-        for (Probe probe : probes_)
+        for (Probe probe : probes)
         {
             if (prevSendTime >= 0)
             {
@@ -214,8 +214,8 @@ public class RemoteBitrateEstimatorAbsSendTime
                 // If we reach the max number of probe packets and still
                 // have no clusters,
                 // we will remove the oldest one.
-                if (probes_.size() >= kMaxProbePackets)
-                    probes_.remove(0);
+                if (probes.size() >= kMaxProbePackets)
+                    probes.remove(0);
                 return ProbeResult.kNoUpdate;
             }
 
@@ -241,7 +241,7 @@ public class RemoteBitrateEstimatorAbsSendTime
             // Not probing and received non-probe packet,
             // or finished with current set  of probes.
             if (clusters.size() >= kExpectedNumberOfProbes)
-                probes_.clear();
+                probes.clear();
             return ProbeResult.kNoUpdate;
         }
     }
@@ -326,7 +326,7 @@ public class RemoteBitrateEstimatorAbsSendTime
         synchronized (critSect)
         {
             timeoutStreams(nowMs);
-            ssrcs_.put(ssrc, nowMs);
+            ssrcs.put(ssrc, nowMs);
             // For now only try to detect probes while we don't have
             // a valid estimate. We currently assume that only packets
             // larger than 200 bytes are paced by  the sender.
@@ -340,12 +340,12 @@ public class RemoteBitrateEstimatorAbsSendTime
                 {
                     long sendDeltaMs = -1;
                     long recvDeltaMs = -1;
-                    if (!probes_.isEmpty())
+                    if (!probes.isEmpty())
                     {
-                        sendDeltaMs = sendTimeMs - probes_
-                            .get(probes_.size() - 1).sendTimeMs;
-                        recvDeltaMs = arrivalTimeMs - probes_
-                            .get(probes_.size() - 1).sendTimeMs;
+                        sendDeltaMs = sendTimeMs - probes
+                            .get(probes.size() - 1).sendTimeMs;
+                        recvDeltaMs = arrivalTimeMs - probes
+                            .get(probes.size() - 1).sendTimeMs;
                     }
                     logger.warn("Probe packet received: send time="
                         + sendTimeMs
@@ -353,7 +353,7 @@ public class RemoteBitrateEstimatorAbsSendTime
                         + " ms, send delta=" + sendDeltaMs
                         + " ms, recv delta=" + recvDeltaMs + " ms.");
                 }
-                probes_.add(new Probe(sendTimeMs, arrivalTimeMs,
+                probes.add(new Probe(sendTimeMs, arrivalTimeMs,
                     payloadSize));
                 ++totalProbesReceived;
                 // Make sure that a probe which updated the bitrate immediately
@@ -432,7 +432,7 @@ public class RemoteBitrateEstimatorAbsSendTime
     {
         synchronized (critSect)
         {
-            Iterator<Map.Entry<Long, Long>> itr = ssrcs_.entrySet().iterator();
+            Iterator<Map.Entry<Long, Long>> itr = ssrcs.entrySet().iterator();
             while (itr.hasNext())
             {
                 Map.Entry<Long, Long> entry = itr.next();
@@ -441,7 +441,7 @@ public class RemoteBitrateEstimatorAbsSendTime
                     itr.remove();
                 }
             }
-            if (ssrcs_.isEmpty())
+            if (ssrcs.isEmpty())
             {
                 // We can't update the estimate if we don't have any active streams.
                 interArrival = new InterArrival((kTimestampGroupLengthMs
@@ -475,7 +475,7 @@ public class RemoteBitrateEstimatorAbsSendTime
             {
                 return -1;
             }
-            if (ssrcs_.isEmpty())
+            if (ssrcs.isEmpty())
             {
                 bitrateBps = 0;
             }
@@ -523,14 +523,14 @@ public class RemoteBitrateEstimatorAbsSendTime
 
         synchronized (critSect)
         {
-            Collection<Integer> ssrcs
+            Collection<Integer> ssrcValue
                 = new ArrayList<>();
-            for (Long ssrcValue : ssrcs_.keySet())
+            for (Long ssrc : ssrcs.keySet())
             {
-                Number value = ssrcValue;
-                ssrcs.add(value.intValue());
+                Number value = ssrc;
+                ssrcValue.add(value.intValue());
             }
-            return ssrcs;
+            return ssrcValue;
         }
 
     }
@@ -548,7 +548,7 @@ public class RemoteBitrateEstimatorAbsSendTime
         {
             try
             {
-                ssrcs_.remove(ssrc & 0xFFFF_FFFFL);
+                ssrcs.remove(ssrc & 0xFFFF_FFFFL);
             }
             catch (ArrayIndexOutOfBoundsException e)
             {
