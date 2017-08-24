@@ -15,6 +15,7 @@
  */
 package org.jitsi.service.neomedia;
 
+import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.util.*;
 
 import java.util.*;
@@ -1200,7 +1201,7 @@ public class RawPacket
      */
     public int getRTCPPacketType()
     {
-        return 0xff & buffer[offset + 1];
+        return RTCPHeaderUtils.getPacketType(this);
     }
 
     /**
