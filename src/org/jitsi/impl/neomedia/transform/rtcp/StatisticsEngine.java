@@ -985,9 +985,7 @@ public class StatisticsEngine
 
             case RTCPPacket.SR:
                 streamStats.srReceived((NewRTCPSRPacket) rtcp);
-                //FIXME(brian): this break wasn't here before, was that
-                //intentional?
-                break;
+                // Intentional fall-through
             case RTCPPacket.RR:
                 {
                 RTCPReport report;
