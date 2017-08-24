@@ -891,7 +891,10 @@ public class StatisticsEngine
             // First we'll use the new libjitsi parser (which will incrementally
             // handle more and more rtcp types).
             RTCPPacket[] newParserPackets = NewRTCPPacketParser.parse(pkt);
+            updateReceivedMediaStreamStats(newParserPackets);
 
+            // Now we'll do the rest of the parsing/updates using the old
+            // parse flow
             try
             {
                 compound
@@ -921,8 +924,6 @@ public class StatisticsEngine
                     ex);
                 return pkt;
             }
-
-            updateReceivedMediaStreamStats(newParserPackets);
 
             try
             {
