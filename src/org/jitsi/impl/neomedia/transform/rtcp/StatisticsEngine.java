@@ -888,6 +888,10 @@ public class StatisticsEngine
             RTCPCompoundPacket compound;
             Exception ex;
 
+            // First we'll use the new libjitsi parser (which will incrementally
+            // handle more and more rtcp types).
+            RTCPPacket[] newParserPackets = NewRTCPPacketParser.parse(pkt);
+
             try
             {
                 compound
@@ -917,6 +921,8 @@ public class StatisticsEngine
                     ex);
                 return pkt;
             }
+
+            updateReceivedMediaStreamStats(newParserPackets);
 
             try
             {
@@ -977,10 +983,10 @@ public class StatisticsEngine
                 break;
 
             case RTCPPacket.SR:
-                if (rtcp instanceof RTCPSRPacket)
-                {
-                    streamStats.srReceived((RTCPSRPacket) rtcp);
-                }
+                streamStats.srReceived((NewRTCPSRPacket) rtcp);
+                //FIXME(brian): this break wasn't here before, was that
+                //intentional?
+                break;
             case RTCPPacket.RR:
                 {
                 RTCPReport report;
