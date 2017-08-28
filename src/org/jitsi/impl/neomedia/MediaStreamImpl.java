@@ -35,6 +35,7 @@ import org.jitsi.impl.neomedia.format.*;
 import org.jitsi.impl.neomedia.protocol.*;
 import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.impl.neomedia.rtp.*;
+import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.*;
 import org.jitsi.impl.neomedia.rtp.translator.*;
 import org.jitsi.impl.neomedia.stats.*;
 import org.jitsi.impl.neomedia.transform.*;
@@ -676,6 +677,15 @@ public class MediaStreamImpl
             {
                 absSendTimeEngine.setExtensionID(effectiveId);
             }
+
+            RemoteBitrateEstimatorWrapper remoteBitrateEstimatorWrapper
+                = getRemoteBitrateEstimator();
+
+            if (remoteBitrateEstimatorWrapper != null)
+            {
+                remoteBitrateEstimatorWrapper
+                    .setExtensionID(RTPUtils.as16Bits(effectiveId));
+            }
         }
         else if (RTPExtension.FRAME_MARKING_URN.equals(uri))
         {
@@ -1103,7 +1113,7 @@ public class MediaStreamImpl
 
         // TODO RTCP termination should end up here.
 
-        RemoteBitrateEstimator
+        RemoteBitrateEstimatorWrapper
             remoteBitrateEstimator = getRemoteBitrateEstimator();
         if (remoteBitrateEstimator != null)
         {
@@ -4130,7 +4140,7 @@ public class MediaStreamImpl
      * @return the <tt>RemoteBitrateEstimator</tt> of this
      * <tt>VideoMediaStream</tt> if any; otherwise, <tt>null</tt>
      */
-    public RemoteBitrateEstimator getRemoteBitrateEstimator()
+    public RemoteBitrateEstimatorWrapper getRemoteBitrateEstimator()
     {
         return null;
     }
@@ -4163,14 +4173,5 @@ public class MediaStreamImpl
         {
             transportCCEngine.addMediaStream(this);
         }
-    }
-
-    /**
-     * @return {@Link getAbsSendTimeEngine} returns the AbsSendTimeEngine
-     * for this media stream
-     */
-    public AbsSendTimeEngine getAbsSendTimeEngine()
-    {
-        return absSendTimeEngine;
     }
 }

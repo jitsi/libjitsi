@@ -20,8 +20,6 @@ import java.util.*;
 import net.sf.fmj.media.rtp.util.*;
 
 import org.ice4j.util.*;
-import org.jitsi.impl.neomedia.*;
-import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.Logger;
@@ -34,10 +32,7 @@ import org.jitsi.util.Logger;
  * @author George Politis
  */
 public class RemoteBitrateEstimatorSingleStream
-    extends SinglePacketTransformerAdapter
-    implements CallStatsObserver,
-               RemoteBitrateEstimator,
-               TransformEngine
+    implements RemoteBitrateEstimator
 {
     /**
      * The <tt>Logger</tt> used by the
@@ -105,24 +100,6 @@ public class RemoteBitrateEstimatorSingleStream
      * {@inheritDoc}
      */
     @Override
-    public PacketTransformer getRTPTransformer()
-    {
-        return this;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public PacketTransformer getRTCPTransformer()
-    {
-        return null;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     public long getLatestEstimate()
     {
         long bitrateBps;
@@ -163,7 +140,7 @@ public class RemoteBitrateEstimatorSingleStream
      * {@inheritDoc}
      */
     @Override
-    public RawPacket reverseTransform(RawPacket pkt)
+    public void incomingPacket(RawPacket pkt)
     {
         Integer ssrc_ = pkt.getSSRC();
         long nowMs = System.currentTimeMillis();
@@ -269,8 +246,6 @@ public class RemoteBitrateEstimatorSingleStream
             }
         }
         } // synchronized (critSect)
-
-        return pkt;
     }
 
     /**
