@@ -294,4 +294,18 @@ public class RTPUtils
     {
         return rtpTimestampDiff(a, b) > 0;
     }
+
+    /**
+     * Converts rtp timestamps to 24bit timestamp equivalence
+     * @param timeMs is the RTP timestamp e.g System.currentTimeMillis().
+     * @param kAbsSendTimeFraction a constant value in
+     * RemoteBitrateEstimatorAbsEndTime.
+     * @return time stamp representation in 24 bit representation.
+     */
+    public static long convertMsTo24Bits(long timeMs, long kAbsSendTimeFraction)
+    {
+        long time24Bits = (long) (((timeMs << kAbsSendTimeFraction) + 500) /
+            1000) & 0x00FFFFFF;
+        return time24Bits;
+    }
 }
