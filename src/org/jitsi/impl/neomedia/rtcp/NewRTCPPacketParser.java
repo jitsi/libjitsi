@@ -42,16 +42,6 @@ public class NewRTCPPacketParser
                         {
                             parsedPackets.add(srPacket);
                         }
-                        // We remove here because, for now, this parser is only
-                        // parsing a subset of types, so this compound packet
-                        // will later be passed to the old parser as well.
-                        // We'll remove the ones that we handle here and combine
-                        // all the parsed packets at the call site.  In an
-                        // effort to not mask problems with the new code, we'll
-                        // remove it even if we failed to parse it for some reason
-                        // (since, when detecting an sr packet, we should have
-                        // parsed it successfully)
-                        rtcpIterator.remove();
                         break;
                     default:
                 }
