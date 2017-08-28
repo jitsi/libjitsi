@@ -17,6 +17,7 @@ package org.jitsi.impl.neomedia.rtp;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.rtcp.*;
+import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
@@ -34,7 +35,9 @@ import java.util.concurrent.atomic.*;
  * @author Boris Grozev
  */
 public class TransportCCEngine
-    implements TransformEngine
+    extends RTCPPacketListenerAdapter
+    implements TransformEngine,
+    RemoteBitrateObserver
 {
     /**
      * The maximum number of received packets and their timestamps to save.
@@ -57,7 +60,15 @@ public class TransportCCEngine
      * The transformer which handles RTCP packets for this instance.
      */
     private final RTCPTransformer rtcpTransformer = new RTCPTransformer();
-
+    /**
+     * The list of {@link MediaStream} that are using this
+     * {@link TransportCCEngine}.
+     */
+    private final List<MediaStream> mediaStreams = new LinkedList<>();
+    /**
+     * Used to synchronize access to {@link #incomingPackets}.
+     */
+    private final Object incomingPacketsSyncRoot = new Object();
     /**
      * The ID of the transport-cc RTP header extension, or -1 if one is not
      * configured.
@@ -75,21 +86,10 @@ public class TransportCCEngine
     private AtomicInteger outgoingFbPacketCount = new AtomicInteger();
 
     /**
-     * The list of {@link MediaStream} that are using this
-     * {@link TransportCCEngine}.
-     */
-    private final List<MediaStream> mediaStreams = new LinkedList<>();
-
-    /**
      * Incoming transport-wide sequence numbers mapped to the timestamp of their
      * reception (in milliseconds since the epoch).
      */
     private RTCPTCCPacket.PacketMap incomingPackets;
-
-    /**
-     * Used to synchronize access to {@link #incomingPackets}.
-     */
-    private final Object incomingPacketsSyncRoot = new Object();
 
     /**
      * The time (in milliseconds since the epoch) at which the first received
@@ -100,8 +100,24 @@ public class TransportCCEngine
     private long firstIncomingTs = -1;
 
     /**
+     * {@Link #sentPacketFields} holds a key value pair of the packet sequence
+     * number and an object made up of the packet send time and the packet
+     * size.
+     */
+    private Map<Integer, PacketDetail> sentPacketFields = new HashMap<Integer, PacketDetail>();
+
+
+    /**
+     *{@Link bitrateEstimatorAbsSendTime} used for estimating the bitrate from
+     * RTCPTCC feedback packets
+     */
+    private RemoteBitrateEstimatorAbsSendTime  bitrateEstimatorAbsSendTime = new RemoteBitrateEstimatorAbsSendTime( this , new AbsSendTimeEngine());
+
+
+    /**
      * Notifies this instance that a data packet with a specific transport-wide
      * sequence number was received on this transport channel.
+     *
      * @param seq the transport-wide sequence number of the packet.
      * @param marked whether the RTP packet had the "marked" bit set.
      */
@@ -165,7 +181,7 @@ public class TransportCCEngine
             // 2. If we see the end of a frame, and 20ms have passed, or
             // 3. If we have at least 100 packets.
             // The exact values and logic here are to be improved.
-            if ( delta > 100
+            if (delta > 100
                 || (delta > 20 && marked)
                 || incomingPackets.size() > 100)
             {
@@ -189,11 +205,11 @@ public class TransportCCEngine
                 // TODO: use the correct SSRCs
                 RTCPTCCPacket rtcpPacket
                     = new RTCPTCCPacket(
-                        -1, -1,
-                        packets,
-                        (byte) (outgoingFbPacketCount.getAndIncrement() & 0xff));
+                    -1, -1,
+                    packets,
+                    (byte) (outgoingFbPacketCount.getAndIncrement() & 0xff));
                 stream.injectPacket(rtcpPacket.toRawPacket(), false /* rtcp */,
-                                    null);
+                    null);
             }
             catch (IllegalArgumentException iae)
             {
@@ -242,6 +258,172 @@ public class TransportCCEngine
     }
 
     /**
+     * Called when a receive channel group has a new bitrate estimate for the
+     * incoming streams.
+     *
+     * @param ssrcs
+     * @param bitrate
+     */
+    @Override
+    public void onReceiveBitrateChanged(Collection<Integer> ssrcs, long bitrate)
+    {
+
+    }
+
+    /**
+     * Adds a {@link MediaStream} to the list of {@link MediaStream}s which
+     * use this {@link TransportCCEngine}.
+     *
+     * @param mediaStream the stream to add.
+     */
+    public void addMediaStream(MediaStream mediaStream)
+    {
+        synchronized (mediaStreams)
+        {
+            mediaStream.getMediaStreamStats().addRTCPPacketListener(this);
+            mediaStreams.add(mediaStream);
+        }
+    }
+
+    /**
+     * Removes a {@link MediaStream} from the list of {@link MediaStream}s which
+     * use this {@link TransportCCEngine}.
+     *
+     * @param mediaStream the stream to remove.
+     */
+    public void removeMediaStream(MediaStream mediaStream)
+    {
+        synchronized (mediaStreams)
+        {
+            while (mediaStreams.remove(mediaStream))
+            {
+                mediaStream.getMediaStreamStats().removeRTCPPacketListener(this);
+                // we loop in order to remove all instances.
+            }
+        }
+    }
+
+    /**
+     * @return one of the {@link MediaStream} instances which use this
+     * {@link TransportCCEngine}, or null.
+     */
+    private MediaStream getMediaStream()
+    {
+        synchronized (mediaStreams)
+        {
+            return mediaStreams.isEmpty() ? null : mediaStreams.get(0);
+        }
+    }
+
+    /**
+     * Calls the bitrate estimator with receiver and sender parameters.
+     *
+     * @param rtcpTccPacket
+     * @note the bridge is the sender.
+     */
+    @Override
+    public void tccReceived(RTCPTCCPacket rtcpTccPacket)
+    {
+
+        for (MediaStream stream : mediaStreams)
+        {
+            if (stream instanceof VideoMediaStream)
+            {
+                //packetMapEntry is a map of sequence no to timestamp.
+                for (Map.Entry<Integer, Long> receivedRtcpTccEntry : rtcpTccPacket.getPackets().entrySet())
+                {
+
+                    if (sentPacketFields.containsKey(receivedRtcpTccEntry.getKey()))
+                    {
+                        PacketDetail retrievedRtpPacketDetail = sentPacketFields
+                            .get(receivedRtcpTccEntry.getKey());
+                        if (retrievedRtpPacketDetail != null)
+                        {
+                            //Calculate the sending bitrate
+
+                            //Convert from 250us format to Milli-seconds
+                            //timeStampToMs is the arrival time sent by the receiver.
+                            long timeStampToMs = (long) (receivedRtcpTccEntry.getValue() * 0.25);
+
+                            bitrateEstimatorAbsSendTime.processIncomingPacketInfo(
+                                timeStampToMs,  //arrival timestamp in 250us format
+                                RTPUtils.convertMsTo24Bits(retrievedRtpPacketDetail.packetSendTimeMs,
+                                    bitrateEstimatorAbsSendTime.kAbsSendTimeFraction),
+                                (long) retrievedRtpPacketDetail.packetLength,
+                                rtcpTccPacket.getSourceSSRC());
+
+                            /**
+                             * Intuition: First Version in "Congestion Control
+                             * for RTCWEB" internet draft where
+                             * the Delay based controller and the loss based
+                             * controller live on the send side.
+                             *
+                             * The loss based controller is fed with RTCPReport
+                             * packet and called through the statistics engine.
+                             * The delay based bitrate estimate is calculate
+                             * here using the RBEAbsSendTime, afterwards, we
+                             * make an REMBPacket with calculated bitrate
+                             * estimate and feed it in to the sendside bandwidth
+                             * estimator. The send side bandwidth estimator
+                             * takes the estimated bitrate from the REMBPacket
+                             * and the loss based estimate from the RTCPReport
+                             * to estimate the target sending "bitrate" also
+                             * referred to as "bandwidth".
+                             * Note, The loss based controller estimate is
+                             * in the sendSideBandwidthEstimation class.
+                             * See new comments in
+                             * SendSideBandwidthEstimation.java
+                             */
+
+                            //@Todo Delete comments below. Choice of REMBPAckets
+                            //Note: The updateReceiverEstimate() method is
+                            //private and accessed through RTCPPacketListener#rembReceived.
+                            //This is a long way, perhaps tccPacketListener
+                            //should implement a direct call to UpdateReceiverEstimate()
+                            //The stream object has no direct reference to the
+                            //updateReceiverEstimate method of the SendSideBandwidthEstimation class.
+                            //1st option is make it public and pass the bitrate Estimate directly.
+                            //the first option is a quick hack. I ll prefer to
+                            //to stay consistent with existing code,
+                            //thus Create new RTCPREMB packet to updateReceiverEstimate.
+
+                            ((MediaStreamStatsImpl)
+                                (stream.getMediaStreamStats()))
+                                .rembReceived(new RTCPREMBPacket(
+                                    rtcpTccPacket.senderSSRC,
+                                    rtcpTccPacket.getSourceSSRC(),
+                                    bitrateEstimatorAbsSendTime
+                                        .getLatestEstimate(), null));
+
+                            /**
+                             * We shouldn't keep the sent <tt>PacketDetails</tt>
+                             * once we are done with
+                             * them. Hence, we should remove them
+                             */
+                            sentPacketFields.remove(receivedRtcpTccEntry.getKey());
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Handles RTCP packets for this {@link TransportCCEngine}.
+     */
+    private static class RTCPTransformer
+        extends SinglePacketTransformerAdapter
+    {
+        /**
+         * Initializes a new {@link RTPTransformer} instance.
+         */
+        private RTCPTransformer()
+        {
+            super(RTCPPacketPredicate.INSTANCE);
+        }
+    }
+
+    /**
      * Handles RTP packets for this {@link TransportCCEngine}.
      */
     private class RTPTransformer
@@ -279,6 +461,7 @@ public class TransportCCEngine
                     ext.getBuffer(),
                     ext.getOffset() + 1,
                     (short) seq);
+                sentPacketFields.put(seq, new PacketDetail(pkt.getLength(), System.currentTimeMillis()));
             }
             return pkt;
         }
@@ -297,7 +480,7 @@ public class TransportCCEngine
                 {
                     int seq
                         = RTPUtils.readUint16AsInt(
-                            he.getBuffer(), he.getOffset() + 1);
+                        he.getBuffer(), he.getOffset() + 1);
                     packetReceived(seq, pkt.isPacketMarked());
                 }
             }
@@ -306,60 +489,20 @@ public class TransportCCEngine
     }
 
     /**
-     * Adds a {@link MediaStream} to the list of {@link MediaStream}s which
-     * use this {@link TransportCCEngine}.
-     * @param mediaStream the stream to add.
+     * {@Link packetDetail} is an object that holds the
+     * length(size) of the packet in {@Link packetLength}
+     * and the time stamps of the outgoing packet
+     * in {@Link packetSendTimeMs}
      */
-    public void addMediaStream(MediaStream mediaStream)
+    private class PacketDetail
     {
-        synchronized (mediaStreams)
+        int packetLength;
+        long packetSendTimeMs;
+
+        PacketDetail(int length, long time)
         {
-            mediaStreams.add(mediaStream);
+            packetLength = length;
+            packetSendTimeMs = time;
         }
     }
-
-    /**
-     * Removes a {@link MediaStream} from the list of {@link MediaStream}s which
-     * use this {@link TransportCCEngine}.
-     * @param mediaStream the stream to remove.
-     */
-    public void removeMediaStream(MediaStream mediaStream)
-    {
-        synchronized (mediaStreams)
-        {
-            while(mediaStreams.remove(mediaStream))
-            {
-                // we loop in order to remove all instances.
-            }
-        }
-    }
-
-    /**
-     * @return one of the {@link MediaStream} instances which use this
-     * {@link TransportCCEngine}, or null.
-     */
-    private MediaStream getMediaStream()
-    {
-        synchronized (mediaStreams)
-        {
-            return mediaStreams.isEmpty() ? null : mediaStreams.get(0);
-        }
-    }
-
-    /**
-     * Handles RTCP packets for this {@link TransportCCEngine}.
-     */
-    private static class RTCPTransformer
-        extends SinglePacketTransformerAdapter
-    {
-        /**
-         * Initializes a new {@link RTPTransformer} instance.
-         */
-        private RTCPTransformer()
-        {
-            super(RTCPPacketPredicate.INSTANCE);
-        }
-    }
-
-
 }

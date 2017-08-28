@@ -121,11 +121,13 @@ class SendSideBandwidthEstimation
 
     /**
      * send_side_bandwidth_estimation.h
+     * @param is the incoming bwe_estimate <tt>A_r</tt> in paper GCC Analysis
      */
     private long bwe_incoming_ = 0;
 
     /**
      * send_side_bandwidth_estimation.h
+     * @param is the sendingBitrate <tt>A</tt> in the paper GCC Analysis
      */
     private long bitrate_;
 
@@ -159,6 +161,16 @@ class SendSideBandwidthEstimation
 
     /**
      * int SendSideBandwidthEstimation::CapBitrateToThresholds
+     * {@Link capBitrateToThresholds} corresponds to evaluating the sending
+     * bitrate <tt>A</tt> i.e A = min(A_r, A_s) after obtaining
+     * delay based bitrate estimate <tt>A_r</tt> and the loss based bitrate
+     * estimate <tt>A_s</tt> According to GCC Analysis.
+     * @param bitrate corresponds to the loss based bitrate estimate <tt>A_s</tt>
+     * if it exists or the delay based estimate when <tt>A_s</tt> is absent. i.e
+     * A = min(A_r(t), A_r(t-1))
+     * Also note, As with the paper on GCC analysis, min/max bounds are used.
+     * Note: the loss based bitrate is never saved or stored. What we only store
+     * is the sendingBitrate which is "bitrate_"
      */
     private synchronized long capBitrateToThresholds(long bitrate)
     {
@@ -179,6 +191,8 @@ class SendSideBandwidthEstimation
 
     /**
      * void SendSideBandwidthEstimation::UpdateEstimate(int64_t now_ms)
+     * Note: the loss based bitrate estimate is temporarily held in variable
+     * "bitrate" when it exists, otherwise the sendingBitrate is re-used.
      */
     protected synchronized void updateEstimate(long now)
     {
@@ -263,11 +277,18 @@ class SendSideBandwidthEstimation
                 }
             }
         }
+        //The local primitive variable "bitrate" corresponds to the loss based
+        //bitrate from Congestion Control for RTCWEB. Perhaps we should have a
+        //property specifically called "lossBasedBitrate" and another called
+        //"targetBitrate". Then targetBitrate can be set or returned in
+        //<tt>capBitrateToThresholds<tt> method. This will hopefully make the
+        //code clearer.
         setBitrate(capBitrateToThresholds(bitrate));
     }
 
     /**
      * void SendSideBandwidthEstimation::UpdateReceiverBlock
+     * part of the loss base controller
      */
     synchronized void updateReceiverBlock(
             long fraction_lost, long number_of_packets, long now)
@@ -332,6 +353,10 @@ class SendSideBandwidthEstimation
 
     /**
      * void SendSideBandwidthEstimation::UpdateReceiverEstimate
+     * This is the entry/update point for the estimated bitrate in the
+     * REMBPacket or a Delay Based Controller estimated bitrate when the
+     * Delay based controller and the loss based controller lives on the
+     * send side. see internet draft on "Congestion Control for RTCWEB"
      */
     private synchronized void updateReceiverEstimate(long bandwidth)
     {
@@ -364,6 +389,7 @@ class SendSideBandwidthEstimation
     /**
      * Sets the value of {@link #bitrate_}.
      * @param newValue the value to set
+     * @Todo perhaps we should rename bitrate_ to sendingBitrate.
      */
     private synchronized void setBitrate(long newValue)
     {
@@ -377,6 +403,8 @@ class SendSideBandwidthEstimation
 
     /**
      * {@inheritDoc}
+     * @Todo we should have another variable called sendingBitrate in place of
+     * bitrate_.
      */
     @Override
     public long getLatestEstimate()
@@ -395,6 +423,8 @@ class SendSideBandwidthEstimation
 
     /**
      * {@inheritDoc}
+     * @Todo I think we should have getLatestLossBitrate too that returns
+     * bitrate estimate <tt>A_s</tt> based on the last_fraction_loss.
      */
     @Override
     public int getLatestFractionLoss()
