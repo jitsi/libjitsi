@@ -166,7 +166,6 @@ class OveruseEstimator
     {
         double minFramePeriod = updateMinFramePeriod(tsDelta);
         double tTsDelta = tDelta - tsDelta;
-        double fsDelta = sizeDelta;
 
         ++numOfDeltas;
         if (numOfDeltas > kDeltaCounterMax)
@@ -187,7 +186,7 @@ class OveruseEstimator
         double[] h = this.h;
         double[] Eh = this.Eh;
 
-        h[0] = fsDelta;
+        h[0] = sizeDelta;
         h[1] = 1D;
         Eh[0] = E[0][0] * h[0] + E[0][1] * h[1];
         Eh[1] = E[1][0] * h[0] + E[1][1] * h[1];
