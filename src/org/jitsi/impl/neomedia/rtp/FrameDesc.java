@@ -187,10 +187,6 @@ public class FrameDesc
     void setEnd(int end)
     {
         this.end = end;
-        if (this.end > this.maxSeen)
-        {
-            this.maxSeen = this.end;
-        }
     }
 
     /**
@@ -224,10 +220,6 @@ public class FrameDesc
     void setStart(int start)
     {
         this.start = start;
-        if (this.start < this.minSeen)
-        {
-            this.minSeen = this.start;
-        }
     }
 
     /**
@@ -248,6 +240,10 @@ public class FrameDesc
      */
     public int getMinSeen()
     {
+        if (firstSequenceNumberKnown())
+        {
+            return getStart();
+        }
         return minSeen;
     }
 
@@ -259,6 +255,10 @@ public class FrameDesc
      */
     public int getMaxSeen()
     {
+        if (lastSequenceNumberKnown())
+        {
+            return getEnd();
+        }
         return maxSeen;
     }
 
