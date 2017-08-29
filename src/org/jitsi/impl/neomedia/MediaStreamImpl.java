@@ -33,7 +33,6 @@ import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.format.*;
 import org.jitsi.impl.neomedia.protocol.*;
-import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.*;
 import org.jitsi.impl.neomedia.rtp.translator.*;
@@ -50,7 +49,6 @@ import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.control.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
-import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.*;
 
 /**
@@ -644,6 +642,44 @@ public class MediaStreamImpl
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void clearRTPExtensions()
+    {
+        synchronized (activeRTPExtensions)
+        {
+            activeRTPExtensions.clear();
+
+            frameMarkingsExtensionId = -1;
+
+            if (transportCCEngine != null)
+            {
+                transportCCEngine.setExtensionID(-1);
+            }
+
+            if (ohbEngine != null)
+            {
+                ohbEngine.setExtensionID((byte) -1);
+            }
+
+            RemoteBitrateEstimatorWrapper remoteBitrateEstimatorWrapper
+                = getRemoteBitrateEstimator();
+
+            if (remoteBitrateEstimatorWrapper != null)
+            {
+                remoteBitrateEstimatorWrapper.setAstExtensionID(-1);
+                remoteBitrateEstimatorWrapper.setTccExtensionID(-1);
+            }
+
+            if (absSendTimeEngine != null)
+            {
+                absSendTimeEngine.setExtensionID(-1);
+            }
+        }
+    }
+
+    /**
      * Enables all RTP extensions configured for this {@link MediaStream}.
      */
     private void enableRTPExtensions()
@@ -684,7 +720,7 @@ public class MediaStreamImpl
             if (remoteBitrateEstimatorWrapper != null)
             {
                 remoteBitrateEstimatorWrapper
-                    .setExtensionID(effectiveId);
+                    .setAstExtensionID(effectiveId);
             }
         }
         else if (RTPExtension.FRAME_MARKING_URN.equals(uri))
@@ -698,6 +734,13 @@ public class MediaStreamImpl
         else if (RTPExtension.TRANSPORT_CC_URN.equals(uri))
         {
             transportCCEngine.setExtensionID(effectiveId);
+            RemoteBitrateEstimatorWrapper remoteBitrateEstimatorWrapper
+                = getRemoteBitrateEstimator();
+
+            if (remoteBitrateEstimatorWrapper != null)
+            {
+                remoteBitrateEstimatorWrapper.setTccExtensionID(effectiveId);
+            }
         }
     }
 
