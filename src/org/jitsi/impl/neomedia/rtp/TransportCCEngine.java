@@ -86,7 +86,7 @@ public class TransportCCEngine
      * The ID of the transport-cc RTP header extension, or -1 if one is not
      * configured.
      */
-    private byte extensionId = -1;
+    private int extensionId = -1;
 
     /**
      * The next sequence number to use for outgoing data packets.
@@ -284,7 +284,7 @@ public class TransportCCEngine
      * disable.
      * @param id the ID to set.
      */
-    public void setExtensionID(byte id)
+    public void setExtensionID(int id)
     {
         extensionId = id;
     }
@@ -404,10 +404,10 @@ public class TransportCCEngine
             if (extensionId != -1)
             {
                 RawPacket.HeaderExtension ext
-                    = pkt.getHeaderExtension(extensionId);
+                    = pkt.getHeaderExtension((byte) extensionId);
                 if (ext == null)
                 {
-                    ext = pkt.addExtension(extensionId, 2);
+                    ext = pkt.addExtension((byte) extensionId, 2);
                 }
 
                 int seq = outgoingSeq.getAndIncrement() & 0xffff;
@@ -429,7 +429,7 @@ public class TransportCCEngine
             if (extensionId != -1)
             {
                 RawPacket.HeaderExtension he
-                    = pkt.getHeaderExtension(extensionId);
+                    = pkt.getHeaderExtension((byte) extensionId);
                 if (he != null && he.getExtLength() == 2)
                 {
                     int seq
