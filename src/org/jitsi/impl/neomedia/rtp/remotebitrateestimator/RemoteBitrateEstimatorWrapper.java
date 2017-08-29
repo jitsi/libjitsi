@@ -110,13 +110,13 @@ public class RemoteBitrateEstimatorWrapper
     }
 
     @Override
-    public Collection<Integer> getSsrcs()
+    public Collection<Long> getSsrcs()
     {
         return rbe.getSsrcs();
     }
 
     @Override
-    public void removeStream(int ssrc)
+    public void removeStream(long ssrc)
     {
         rbe.removeStream(ssrc);
     }

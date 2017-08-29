@@ -33,6 +33,8 @@ public interface RemoteBitrateEstimator
      */
     int kBitrateWindowMs = 1000;
 
+    int kBitrateScale = 8000;
+
     int kDefaultMinBitrateBps = 30000;
 
     int kProcessIntervalMs = 500;
@@ -50,14 +52,21 @@ public interface RemoteBitrateEstimator
      */
     long getLatestEstimate();
 
-    Collection<Integer> getSsrcs();
+    /**
+     * Returns the estimated payload bitrate in bits per second if a valid
+     * estimate exists; otherwise, <tt>-1</tt>.
+     *
+     * @return the estimated payload bitrate in bits per seconds if a valid
+     * estimate exists; otherwise, <tt>-1</tt>
+     */
+    Collection<Long> getSsrcs();
 
     /**
      * Removes all data for <tt>ssrc</tt>.
      *
      * @param ssrc
      */
-    void removeStream(int ssrc);
+    void removeStream(long ssrc);
 
     /**
      * Sets the minimum bitrate for this instance.

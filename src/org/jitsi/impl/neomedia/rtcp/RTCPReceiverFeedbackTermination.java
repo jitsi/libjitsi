@@ -307,7 +307,7 @@ public class RTCPReceiverFeedbackTermination
         RemoteBitrateEstimator remoteBitrateEstimator
             = stream.getRemoteBitrateEstimator();
 
-        Collection<Integer> ssrcs = remoteBitrateEstimator.getSsrcs();
+        Collection<Long> ssrcs = remoteBitrateEstimator.getSsrcs();
 
         // TODO(gp) intersect with SSRCs from signaled simulcast layers
         // NOTE(gp) The Google Congestion Control algorithm (sender side)
@@ -315,8 +315,8 @@ public class RTCPReceiverFeedbackTermination
         long[] dest = new long[ssrcs.size()];
         int i = 0;
 
-        for (Integer ssrc : ssrcs)
-            dest[i++] = ssrc & 0xFFFFFFFFL;
+        for (Long ssrc : ssrcs)
+            dest[i++] = ssrc;
 
         // Exp & mantissa
         long bitrate = remoteBitrateEstimator.getLatestEstimate();
