@@ -155,7 +155,7 @@ class InterArrival
             long arrivalTimeMs,
             int packetSize,
             long[] deltas,
-            long systemTimeMs )
+            long systemTimeMs)
     {
         if (deltas == null)
             throw new NullPointerException("deltas");

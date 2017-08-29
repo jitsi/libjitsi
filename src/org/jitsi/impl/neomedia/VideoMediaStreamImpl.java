@@ -454,7 +454,7 @@ public class VideoMediaStreamImpl
                 {
                     @Override
                     public void onReceiveBitrateChanged(
-                            Collection<Integer> ssrcs,
+                            Collection<Long> ssrcs,
                             long bitrate)
                     {
                         VideoMediaStreamImpl.this
@@ -1200,7 +1200,7 @@ public class VideoMediaStreamImpl
      * @param bitrate
      */
     private void remoteBitrateEstimatorOnReceiveBitrateChanged(
-            Collection<Integer> ssrcs,
+            Collection<Long> ssrcs,
             long bitrate)
     {
         // TODO Auto-generated method stub

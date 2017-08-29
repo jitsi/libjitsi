@@ -120,7 +120,7 @@ public class RemoteBitrateEstimatorWrapper
      * {@inheritDoc}
      */
     @Override
-    public Collection<Integer> getSsrcs()
+    public Collection<Long> getSsrcs()
     {
         return rbe.getSsrcs();
     }
@@ -129,7 +129,7 @@ public class RemoteBitrateEstimatorWrapper
      * {@inheritDoc}
      */
     @Override
-    public void removeStream(int ssrc)
+    public void removeStream(long ssrc)
     {
         rbe.removeStream(ssrc);
     }
