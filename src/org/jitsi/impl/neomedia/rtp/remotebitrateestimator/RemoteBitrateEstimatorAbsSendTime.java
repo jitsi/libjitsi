@@ -77,10 +77,11 @@ public class RemoteBitrateEstimatorAbsSendTime
         = (kTimestampGroupLengthMs << kInterArrivalShift) / 1000;
 
     /**
-     * Defines the expanded AST (32 bits) to millis conversion rate.
+     * Defines the expanded AST (32 bits) to millis conversion rate. Units are
+     * ms per timestamp
      */
     private static final double
-        kTimestampToMs = 1000.0 / (1 << kInterArrivalShift);
+        kTimestampToMs = (double) 1000 / (1 << kInterArrivalShift);
 
     /**
      *  Defines the maximum distance between the send time delta (of a probe
@@ -161,9 +162,9 @@ public class RemoteBitrateEstimatorAbsSendTime
     private long lastUpdateMs;
 
     /**
-     *
+     * The observer to notify on bitrate estimation changes.
      */
-    private RemoteBitrateObserver observer_;
+    private RemoteBitrateObserver observer;
 
     /**
      * The rate control implementation based on additive increases of bitrate
@@ -205,11 +206,11 @@ public class RemoteBitrateEstimatorAbsSendTime
     /**
      * Ctor.
      *
-     * @param observer
+     * @param observer the observer to notify on bitrate estimation changes.
      */
-    RemoteBitrateEstimatorAbsSendTime(RemoteBitrateObserver observer)
+    public RemoteBitrateEstimatorAbsSendTime(RemoteBitrateObserver observer)
     {
-        this.observer_ = observer;
+        this.observer = observer;
         this.interArrival = new InterArrival(
             kTimestampGroupLengthTicks, kTimestampToMs, true);
 
@@ -454,11 +455,12 @@ public class RemoteBitrateEstimatorAbsSendTime
      * Notifies this instance of an incoming packet.
      *
      * @param arrivalTimeMs the arrival time of the packet in millis.
-     * @param sendTime24bits the send time of the packet in millis.
+     * @param sendTime24bits the send time of the packet in AST format
+     * (24 bits, 6.18 fixed point).
      * @param payloadSize the payload size of the packet.
      * @param ssrc the SSRC of the packet.
      */
-    private void incomingPacketInfo(
+    public void incomingPacketInfo(
         long arrivalTimeMs,
         long sendTime24bits,
         int payloadSize,
@@ -562,6 +564,16 @@ public class RemoteBitrateEstimatorAbsSendTime
 
                 detector.detect(estimator.getOffset(), tsDeltaMs,
                     estimator.getNumOfDeltas(), arrivalTimeMs);
+
+                if (logger.isTraceEnabled())
+                {
+                    logger.trace("rbeast_delay_estimated" +
+                        "," + nowMs +
+                        "," + (deltas[1] - tsDeltaMs) +
+                        "," + estimator.getOffset() +
+                        "," + detector.getState() +
+                        "," + observer.hashCode());
+                }
             }
 
             if (!updateEstimate)
@@ -596,13 +608,24 @@ public class RemoteBitrateEstimatorAbsSendTime
                 remoteRate.update(input, nowMs);
                 targetBitrateBps = remoteRate.updateBandwidthEstimate(nowMs);
                 updateEstimate = remoteRate.isValidEstimate();
+
+                if (logger.isTraceEnabled())
+                {
+                    logger.trace("rbeast_bitrate_estimated" +
+                        "," + nowMs +
+                        "," + targetBitrateBps +
+                        "," + observer.hashCode());
+                }
             }
         }
 
         if (updateEstimate)
         {
             lastUpdateMs = nowMs;
-            observer_.onReceiveBitrateChanged(getSsrcs(), targetBitrateBps);
+            if (observer != null)
+            {
+                observer.onReceiveBitrateChanged(getSsrcs(), targetBitrateBps);
+            }
         }
     }
 
@@ -763,5 +786,15 @@ public class RemoteBitrateEstimatorAbsSendTime
             this.recvTimeMs = recvTimeMs;
             this.payloadSize = payloadSize;
         }
+    }
+
+    /**
+     * Converts rtp timestamps to 24bit timestamp equivalence
+     * @param timeMs is the RTP timestamp e.g System.currentTimeMillis().
+     * @return time stamp representation in 24 bit representation.
+     */
+    public static long convertMsTo24Bits(long timeMs)
+    {
+        return (((timeMs << kAbsSendTimeFraction) + 500) / 1000) & 0x00FFFFFF;
     }
 }
