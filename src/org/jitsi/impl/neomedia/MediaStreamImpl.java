@@ -344,7 +344,7 @@ public class MediaStreamImpl
      * The ID of the frame markings RTP header extension. We use this field as
      * a cache, in order to not access {@link #activeRTPExtensions} every time.
      */
-    private byte frameMarkingsExtensionId = -1;
+    private int frameMarkingsExtensionId = -1;
 
     /**
      * The {@link TransportCCEngine} instance, if any, for this
@@ -668,7 +668,7 @@ public class MediaStreamImpl
         boolean active
             = !MediaDirection.INACTIVE.equals(rtpExtension.getDirection());
 
-        byte effectiveId = active ? extensionID : -1;
+        int effectiveId = active ? RTPUtils.as16Bits(extensionID) : -1;
 
         String uri = rtpExtension.getURI().toString();
         if (RTPExtension.ABS_SEND_TIME_URN.equals(uri))
@@ -684,7 +684,7 @@ public class MediaStreamImpl
             if (remoteBitrateEstimatorWrapper != null)
             {
                 remoteBitrateEstimatorWrapper
-                    .setExtensionID(RTPUtils.as16Bits(effectiveId));
+                    .setExtensionID(effectiveId);
             }
         }
         else if (RTPExtension.FRAME_MARKING_URN.equals(uri))
@@ -3670,7 +3670,7 @@ public class MediaStreamImpl
         if (frameMarkingsExtensionId != -1)
         {
             RawPacket.HeaderExtension fmhe
-                = pkt.getHeaderExtension(frameMarkingsExtensionId);
+                = pkt.getHeaderExtension((byte) frameMarkingsExtensionId);
 
             if (fmhe != null)
             {
@@ -3756,7 +3756,7 @@ public class MediaStreamImpl
             RawPacket pkt = new RawPacket(buf, off, len);
 	    String encoding = getFormat(pkt.getPayloadType()).getEncoding();
             RawPacket.HeaderExtension fmhe
-                = pkt.getHeaderExtension(frameMarkingsExtensionId);
+                = pkt.getHeaderExtension((byte) frameMarkingsExtensionId);
             if (fmhe != null)
             {
                 return FrameMarkingHeaderExtension.getSpatialID(fmhe,encoding);
@@ -3821,7 +3821,7 @@ public class MediaStreamImpl
         }
         else
         {
-            return pkt.getHeaderExtension(frameMarkingsExtensionId) != null;
+            return pkt.getHeaderExtension((byte) frameMarkingsExtensionId) != null;
         }
     }
 
@@ -3847,7 +3847,7 @@ public class MediaStreamImpl
         if (frameMarkingsExtensionId != -1)
         {
             RawPacket.HeaderExtension fmhe
-                = pkt.getHeaderExtension(frameMarkingsExtensionId);
+                = pkt.getHeaderExtension((byte) frameMarkingsExtensionId);
             if (fmhe != null)
             {
                 return FrameMarkingHeaderExtension.isStartOfFrame(fmhe);
@@ -3907,7 +3907,7 @@ public class MediaStreamImpl
         if (frameMarkingsExtensionId != -1)
         {
             RawPacket.HeaderExtension fmhe
-                = pkt.getHeaderExtension(frameMarkingsExtensionId);
+                = pkt.getHeaderExtension((byte) frameMarkingsExtensionId);
             if (fmhe != null)
             {
                 return FrameMarkingHeaderExtension.isEndOfFrame(fmhe);
@@ -3965,7 +3965,7 @@ public class MediaStreamImpl
         if (frameMarkingsExtensionId != -1)
         {
             RawPacket.HeaderExtension fmhe
-                = pkt.getHeaderExtension(frameMarkingsExtensionId);
+                = pkt.getHeaderExtension((byte) frameMarkingsExtensionId);
             if (fmhe != null)
             {
                 return FrameMarkingHeaderExtension.isKeyframe(fmhe);
