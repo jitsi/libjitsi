@@ -331,10 +331,9 @@ class SendSideBandwidthEstimation
     }
 
     /**
-     * {@inheritDoc}
+     * void SendSideBandwidthEstimation::UpdateReceiverEstimate
      */
-    @Override
-    public synchronized void updateReceiverEstimate(long bandwidth)
+    private synchronized void updateReceiverEstimate(long bandwidth)
     {
         bwe_incoming_ = bandwidth;
         if (logger.isDebugEnabled())

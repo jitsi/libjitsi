@@ -17,7 +17,6 @@ package org.jitsi.impl.neomedia.rtp;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.rtcp.*;
-import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
@@ -33,31 +32,14 @@ import java.util.concurrent.atomic.*;
  * See https://tools.ietf.org/html/draft-holmer-rmcat-transport-wide-cc-extensions-01
  *
  * @author Boris Grozev
- * @author Julian Chukwu
- * @author George Politis
  */
 public class TransportCCEngine
-    extends RTCPPacketListenerAdapter
-    implements TransformEngine,
-    RemoteBitrateObserver
+    implements TransformEngine
 {
     /**
      * The maximum number of received packets and their timestamps to save.
      */
     private static final int MAX_INCOMING_PACKETS_HISTORY = 200;
-
-    /**
-     * The maximum number of received packets and their timestamps to save.
-     *
-     * XXX this is an uninformed value.
-     */
-    private static final int MAX_OUTGOING_PACKETS_HISTORY = 1000;
-
-    /**
-     * Defines the micros to millis conversion rate. Units are millis per
-     * 250 micros.
-     */
-    private static final double K_250_MICROS_TO_MILIS = 0.25;
 
     /**
      * The {@link Logger} used by the {@link TransportCCEngine} class and its
@@ -70,6 +52,11 @@ public class TransportCCEngine
      * The transformer which handles RTP packets for this instance.
      */
     private final RTPTransformer rtpTransformer = new RTPTransformer();
+
+    /**
+     * The transformer which handles RTCP packets for this instance.
+     */
+    private final RTCPTransformer rtcpTransformer = new RTCPTransformer();
 
     /**
      * The ID of the transport-cc RTP header extension, or -1 if one is not
@@ -113,22 +100,8 @@ public class TransportCCEngine
     private long firstIncomingTs = -1;
 
     /**
-     * Holds a key value pair of the packet sequence number and an object made
-     * up of the packet send time and the packet size.
-     */
-    private Map<Integer, PacketDetail> sentPacketDetails
-        = new LRUCache<>(MAX_OUTGOING_PACKETS_HISTORY);
-
-    /**
-     * Used for estimating the bitrate from RTCP TCC feedback packets
-     */
-    private RemoteBitrateEstimatorAbsSendTime bitrateEstimatorAbsSendTime
-        = new RemoteBitrateEstimatorAbsSendTime(this);
-
-    /**
      * Notifies this instance that a data packet with a specific transport-wide
      * sequence number was received on this transport channel.
-     *
      * @param seq the transport-wide sequence number of the packet.
      * @param marked whether the RTP packet had the "marked" bit set.
      */
@@ -192,7 +165,7 @@ public class TransportCCEngine
             // 2. If we see the end of a frame, and 20ms have passed, or
             // 3. If we have at least 100 packets.
             // The exact values and logic here are to be improved.
-            if (delta > 100
+            if ( delta > 100
                 || (delta > 20 && marked)
                 || incomingPackets.size() > 100)
             {
@@ -216,11 +189,11 @@ public class TransportCCEngine
                 // TODO: use the correct SSRCs
                 RTCPTCCPacket rtcpPacket
                     = new RTCPTCCPacket(
-                    -1, -1,
-                    packets,
-                    (byte) (outgoingFbPacketCount.getAndIncrement() & 0xff));
+                        -1, -1,
+                        packets,
+                        (byte) (outgoingFbPacketCount.getAndIncrement() & 0xff));
                 stream.injectPacket(rtcpPacket.toRawPacket(), false /* rtcp */,
-                    null);
+                                    null);
             }
             catch (IllegalArgumentException iae)
             {
@@ -255,7 +228,7 @@ public class TransportCCEngine
     @Override
     public PacketTransformer getRTCPTransformer()
     {
-        return null;
+        return rtcpTransformer;
     }
 
     /**
@@ -266,70 +239,6 @@ public class TransportCCEngine
     public void setExtensionID(byte id)
     {
         extensionId = id;
-    }
-
-    /**
-     * Called when a receive channel group has a new bitrate estimate for the
-     * incoming streams.
-     *
-     * @param ssrcs
-     * @param bitrate
-     */
-    @Override
-    public void onReceiveBitrateChanged(Collection<Long> ssrcs, long bitrate)
-    {
-        VideoMediaStream videoStream = null;
-        for (MediaStream stream : mediaStreams)
-        {
-            if (stream instanceof VideoMediaStream)
-            {
-                videoStream = (VideoMediaStream) stream;
-                videoStream.getOrCreateBandwidthEstimator()
-                    .updateReceiverEstimate(bitrate);
-                break;
-            }
-        }
-    }
-
-    /**
-     * Calls the bitrate estimator with receiver and sender parameters.
-     *
-     * @param tccPacket the received TCC packet.
-     */
-    @Override
-    public void tccReceived(RTCPTCCPacket tccPacket)
-    {
-        MediaStream videoStream = null;
-        for (MediaStream stream : mediaStreams)
-        {
-            if (stream instanceof VideoMediaStream)
-            {
-                videoStream = stream;
-                break;
-            }
-        }
-
-        for (Map.Entry<Integer, Long> entries
-            : tccPacket.getPackets().entrySet())
-        {
-            PacketDetail packetDetail
-                = sentPacketDetails.remove(entries.getKey());
-
-            if (packetDetail != null && videoStream != null)
-            {
-                long arrivalTimeMs
-                    = (long) (entries.getValue() * K_250_MICROS_TO_MILIS);
-
-                long sendTime24bits = RemoteBitrateEstimatorAbsSendTime
-                    .convertMsTo24Bits(packetDetail.packetSendTimeMs);
-
-                bitrateEstimatorAbsSendTime.incomingPacketInfo(
-                    arrivalTimeMs,
-                    sendTime24bits,
-                    packetDetail.packetLength,
-                    tccPacket.getSourceSSRC());
-            }
-        }
     }
 
     /**
@@ -370,7 +279,6 @@ public class TransportCCEngine
                     ext.getBuffer(),
                     ext.getOffset() + 1,
                     (short) seq);
-                sentPacketDetails.put(seq, new PacketDetail(pkt.getLength(), System.currentTimeMillis()));
             }
             return pkt;
         }
@@ -389,7 +297,7 @@ public class TransportCCEngine
                 {
                     int seq
                         = RTPUtils.readUint16AsInt(
-                        he.getBuffer(), he.getOffset() + 1);
+                            he.getBuffer(), he.getOffset() + 1);
                     packetReceived(seq, pkt.isPacketMarked());
                 }
             }
@@ -407,10 +315,6 @@ public class TransportCCEngine
         synchronized (mediaStreams)
         {
             mediaStreams.add(mediaStream);
-
-            // Hook us up to receive TCCs.
-            MediaStreamStats stats = mediaStream.getMediaStreamStats();
-            stats.addRTCPPacketListener(this);
         }
     }
 
@@ -427,10 +331,6 @@ public class TransportCCEngine
             {
                 // we loop in order to remove all instances.
             }
-
-            // Hook us up to receive TCCs.
-            MediaStreamStats stats = mediaStream.getMediaStreamStats();
-            stats.removeRTCPPacketListener(this);
         }
     }
 
@@ -447,20 +347,19 @@ public class TransportCCEngine
     }
 
     /**
-     * {@Link packetDetail} is an object that holds the
-     * length(size) of the packet in {@Link packetLength}
-     * and the time stamps of the outgoing packet
-     * in {@Link packetSendTimeMs}
+     * Handles RTCP packets for this {@link TransportCCEngine}.
      */
-    private class PacketDetail
+    private static class RTCPTransformer
+        extends SinglePacketTransformerAdapter
     {
-        int packetLength;
-        long packetSendTimeMs;
-
-        PacketDetail(int length, long time)
+        /**
+         * Initializes a new {@link RTPTransformer} instance.
+         */
+        private RTCPTransformer()
         {
-            packetLength = length;
-            packetSendTimeMs = time;
+            super(RTCPPacketPredicate.INSTANCE);
         }
     }
+
+
 }
