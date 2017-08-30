@@ -31,6 +31,7 @@ import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.impl.neomedia.rtp.*;
+import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.*;
 import org.jitsi.impl.neomedia.stats.*;
 import org.jitsi.impl.neomedia.transform.rtcp.*;
 import org.jitsi.service.neomedia.*;
@@ -1227,9 +1228,13 @@ public class MediaStreamStatsImpl
                     RemoteBitrateEstimator remoteBitrateEstimator
                         = mediaStream.getRemoteBitrateEstimator();
 
-                    remoteBitrateEstimator.onRttUpdate(
-                        /* avgRttMs */ rttMs,
-                        /* maxRttMs*/ rttMs);
+                    if (remoteBitrateEstimator instanceof CallStatsObserver)
+                    {
+                        ((CallStatsObserver) remoteBitrateEstimator)
+                            .onRttUpdate(
+                                    /* avgRttMs */ rttMs,
+                                    /* maxRttMs*/ rttMs);
+                    }
                 }
             }
         }

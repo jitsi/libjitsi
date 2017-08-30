@@ -15,7 +15,7 @@
  */
 package org.jitsi.service.neomedia.rtp;
 
-import org.jitsi.service.neomedia.*;
+import org.jitsi.impl.neomedia.transform.*;
 
 import java.util.*;
 
@@ -26,7 +26,7 @@ import java.util.*;
  * @author Lyubomir Marinov
  */
 public interface RemoteBitrateEstimator
-    extends CallStatsObserver
+    extends TransformEngine
 {
     /**
      * webrtc/modules/remote_bitrate_estimator/include/bwe_defines.h
@@ -59,17 +59,5 @@ public interface RemoteBitrateEstimator
      */
     void removeStream(int ssrc);
 
-    /**
-     * Sets the minimum bitrate for this instance.
-     *
-     * @param minBitrateBps the minimum bitrate in bps.
-     */
     void setMinBitrate(int minBitrateBps);
-
-    /**
-     * Notifies this instance of an incoming packet.
-     *
-     * @param pkt the RTP packet.
-     */
-    void incomingPacket(RawPacket pkt);
 }

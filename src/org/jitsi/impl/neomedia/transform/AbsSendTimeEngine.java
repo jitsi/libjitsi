@@ -133,33 +133,4 @@ public class AbsSendTimeEngine
     {
         extensionID = id;
     }
-
-    /**
-     *   1 2 3 4 5 6 7 8 9 10 11 12 .... 28 29 30 31 32
-     *  +-+-+-+-+-+-+-+-+-+-+--+--+-....+--+--+--+--+--+
-     *  |  ID   |  LEN  |   AbsSendTime Value          |
-     *  +-+-+-+-+-+-+-+-+-+-+--+--+-....+--+--+--+--+--+
-     * getAbsSendTime returns the AbsSendTime as a 24bit value
-     * @param pkt is a RawPacket
-     * @return
-     */
-    public static long getAbsSendTime(RawPacket pkt, byte extensionID)
-    {
-        long absSendTime = -1L;
-
-        RawPacket.HeaderExtension header = pkt.getHeaderExtension(extensionID);
-
-        if (header != null)
-        {
-            //offSet is the byte index to read from
-            int offSet = header.getOffset() + 1;
-            if (header.getExtLength() == EXT_LENGTH)
-            {
-                absSendTime
-                    = RTPUtils.readUint24AsInt(header.getBuffer(), offSet);
-            }
-        }
-
-        return absSendTime;
-    }
 }

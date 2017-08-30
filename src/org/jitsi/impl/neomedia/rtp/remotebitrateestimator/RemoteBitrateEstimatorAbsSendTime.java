@@ -17,6 +17,7 @@ package org.jitsi.impl.neomedia.rtp.remotebitrateestimator;
 
 
 import org.ice4j.util.*;
+import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.rtp.*;
@@ -29,6 +30,7 @@ import java.util.*;
  * @author Julian Chukwu
  */
 public class RemoteBitrateEstimatorAbsSendTime
+    extends SinglePacketTransformerAdapter
     implements RemoteBitrateEstimator
 {
     //@Todo Ask for alternative to resolve import conflict between
@@ -63,10 +65,13 @@ public class RemoteBitrateEstimatorAbsSendTime
     private OveruseDetector detector;
     private RateStatistics incomingBitrate ;
     private boolean incomingBitrateInitialized;
-    private int extensionID;
+    private AbsSendTimeEngine absoluteSendTimeEngine;
 
-    public RemoteBitrateEstimatorAbsSendTime(RemoteBitrateObserver observer)
+    public RemoteBitrateEstimatorAbsSendTime(RemoteBitrateObserver observer,
+                                           AbsSendTimeEngine absSendTimeEngine)
     {
+        super(RTPPacketPredicate.INSTANCE);
+        this.absoluteSendTimeEngine = absSendTimeEngine;
         this.observer_ = observer;
         this.interArrival = new InterArrival(90 * kTimestampGroupLengthMs,
                 kTimestampToMs,true);
@@ -258,20 +263,15 @@ public class RemoteBitrateEstimatorAbsSendTime
      * @return the restored packet.
      */
     @Override
-    public void incomingPacket(RawPacket packet)
+    public RawPacket reverseTransform(
+            RawPacket packet)
     {
-        int extensionID = this.extensionID;
-        if (extensionID != -1)
-        {
-            long ast =
-                AbsSendTimeEngine.getAbsSendTime(packet, (byte) extensionID);
+        logger.info("Using RemoteBitrateEstimatorAbsSendTime: Instantiating.");
 
-            if (ast != -1)
-            {
-                incomingPacketInfo(System.currentTimeMillis(), ast,
-                    packet.getPayloadLength(), packet.getSSRCAsLong());
-            }
-        }
+        incomingPacketInfo(System.currentTimeMillis(), absoluteSendTimeEngine
+                .getAbsSendTime(packet), packet.getPayloadLength(),
+                packet.getSSRCAsLong());
+        return packet;
     }
 
     private void incomingPacketInfo(
@@ -429,8 +429,7 @@ public class RemoteBitrateEstimatorAbsSendTime
         }
     }
 
-    @Override
-    public void onRttUpdate(long avg_rtt_ms,
+    private void OnRttUpdate(long avg_rtt_ms,
                      long max_rtt_ms)
     {
         synchronized (critSect) {
@@ -454,6 +453,26 @@ public class RemoteBitrateEstimatorAbsSendTime
             }
             return bitrateBps;
         }
+    }
+
+    /**
+     * Gets the <tt>PacketTransformer</tt> for RTP packets.
+     *
+     * @return the <tt>PacketTransformer</tt> for RTP packets
+     */
+    @Override
+    public PacketTransformer getRTPTransformer() {
+        return this;
+    }
+
+    /**
+     * Gets the <tt>PacketTransformer</tt> for RTCP packets.
+     *
+     * @return the <tt>PacketTransformer</tt> for RTCP packets
+     */
+    @Override
+    public PacketTransformer getRTCPTransformer() {
+        return null;
     }
 
     /**
@@ -511,11 +530,6 @@ public class RemoteBitrateEstimatorAbsSendTime
             remoteRate.setMinBitrate(minBitrateBps);
         }
 
-    }
-
-    public void setExtensionID(int extensionID)
-    {
-        this.extensionID = extensionID;
     }
 
     private class Cluster {

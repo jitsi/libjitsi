@@ -448,8 +448,8 @@ public class VideoMediaStreamImpl
      * The <tt>RemoteBitrateEstimator</tt> which computes bitrate estimates for
      * the incoming RTP streams.
      */
-    private final RemoteBitrateEstimatorWrapper remoteBitrateEstimator
-        = new RemoteBitrateEstimatorWrapper(
+    private final RemoteBitrateEstimator remoteBitrateEstimator
+        = new RemoteBitrateEstimatorSingleStream(
                 new RemoteBitrateObserver()
                 {
                     @Override
@@ -928,7 +928,7 @@ public class VideoMediaStreamImpl
      * {@inheritDoc}
      */
     @Override
-    public RemoteBitrateEstimatorWrapper getRemoteBitrateEstimator()
+    public RemoteBitrateEstimator getRemoteBitrateEstimator()
     {
         return remoteBitrateEstimator;
     }

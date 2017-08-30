@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jitsi.service.neomedia.rtp;
+package org.jitsi.impl.neomedia.rtp.remotebitrateestimator;
 
 /**
  * webrtc/modules/include/module_common_types.h

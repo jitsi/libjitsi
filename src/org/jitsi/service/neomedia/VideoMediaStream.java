@@ -80,6 +80,15 @@ public interface VideoMediaStream
     public QualityControl getQualityControl();
 
     /**
+     * Gets the <tt>RemoteBitrateEstimator</tt> of this
+     * <tt>VideoMediaStream</tt>.
+     *
+     * @return the <tt>RemoteBitrateEstimator</tt> of this
+     * <tt>VideoMediaStream</tt> if any; otherwise, <tt>null</tt>
+     */
+    RemoteBitrateEstimator getRemoteBitrateEstimator();
+
+    /**
      * Gets the visual <tt>Component</tt> where video from the remote peer is
      * being rendered or <tt>null</tt> if no video is currently being rendered.
      *
