@@ -34,5 +34,5 @@ public interface RemoteBitrateObserver
      * @param ssrcs
      * @param bitrate
      */
-    void onReceiveBitrateChanged(Collection<Long> ssrcs, long bitrate);
+    void onReceiveBitrateChanged(Collection<Integer> ssrcs, long bitrate);
 }

@@ -70,7 +70,7 @@ public class RemoteBitrateEstimatorSingleStream
 
     private final RemoteBitrateObserver observer;
 
-    private final Map<Long,Detector> overuseDetectors = new HashMap<>();
+    private final Map<Integer,Detector> overuseDetectors = new HashMap<>();
 
     private long processIntervalMs = kProcessIntervalMs;
 
@@ -83,7 +83,7 @@ public class RemoteBitrateEstimatorSingleStream
      * the purposes of reducing the number of allocations and the effects of
      * garbage collection.
      */
-    private Collection<Long> ssrcs;
+    private Collection<Integer> ssrcs;
 
     public RemoteBitrateEstimatorSingleStream(RemoteBitrateObserver observer)
     {
@@ -122,7 +122,7 @@ public class RemoteBitrateEstimatorSingleStream
     }
 
     @Override
-    public Collection<Long> getSsrcs()
+    public Collection<Integer> getSsrcs()
     {
         synchronized (critSect)
         {
@@ -142,7 +142,7 @@ public class RemoteBitrateEstimatorSingleStream
     @Override
     public void incomingPacket(RawPacket pkt)
     {
-        Long ssrc_ = pkt.getSSRCAsLong();
+        Integer ssrc_ = pkt.getSSRC();
         long nowMs = System.currentTimeMillis();
 
         synchronized (critSect)
@@ -264,7 +264,7 @@ public class RemoteBitrateEstimatorSingleStream
      * {@inheritDoc}
      */
     @Override
-    public void removeStream(long ssrc)
+    public void removeStream(int ssrc)
     {
         synchronized (critSect)
         {

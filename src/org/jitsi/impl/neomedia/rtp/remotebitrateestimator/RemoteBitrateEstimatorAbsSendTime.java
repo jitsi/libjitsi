@@ -29,7 +29,6 @@ import java.util.*;
  * commit ID: 23fbd2aa2c81d065b84d17b09b747e75672e1159
  *
  * @author Julian Chukwu
- * @author George Politis
  */
 public class RemoteBitrateEstimatorAbsSendTime
     implements RemoteBitrateEstimator
@@ -43,238 +42,122 @@ public class RemoteBitrateEstimatorAbsSendTime
         = Logger.getLogger(RemoteBitrateEstimatorAbsSendTime.class);
 
     /**
-     * Defines the number of digits in the AST representation (24 bits, 6.18
-     * fixed point) after the radix.
-     */
-    private final static int kAbsSendTimeFraction = 18;
-
-    /**
-     * Defines the upshift (left bit-shift) to apply to AST (24 bits, 6.18 fixed
-     * point) to make it inter-arrival compatible (expanded AST, 32 bits, 6.26
-     * fixed point).
-     */
-    private final static int kAbsSendTimeInterArrivalUpshift = 8;
-
-    /**
-     * This is used with the {@link #interArrival}. In this estimator a
-     * timestamp group is defined as all packets with a timestamp which are at
-     * most 5ms older than the first timestamp in that group.
+     *
      */
     private final static int kTimestampGroupLengthMs = 5;
 
     /**
-     * Defines the number of digits in the expanded AST representation (32 bits,
-     * 6.26 fixed point) after the radix.
+     *
+     */
+    private final static int kAbsSendTimeFraction = 18;
+
+    /**
+     *
+     */
+    private final static int kAbsSendTimeInterArrivalUpshift = 8;
+
+    /**
+     *
      */
     private final static int kInterArrivalShift
         = kAbsSendTimeFraction + kAbsSendTimeInterArrivalUpshift;
 
     /**
-     * Converts the {@link #kTimestampGroupLengthMs} into "ticks" for use with
-     * the {@link #interArrival}.
-     */
-    private static final long kTimestampGroupLengthTicks
-        = (kTimestampGroupLengthMs << kInterArrivalShift) / 1000;
-
-    /**
-     * Defines the expanded AST (32 bits) to millis conversion rate.
-     */
-    private static final double
-        kTimestampToMs = 1000.0 / (1 << kInterArrivalShift);
-
-    /**
-     *  Defines the maximum distance between the send time delta (of a probe
-     *  packet from the previous probe packet) and the cluster mean send time
-     *  delta above which the probe is no longer considered part of the cluster.
-     */
-    private final static float kMaxSendTimeDeltaMsDistance = 2.5f;
-
-    /**
-     * Defines the minimum size of a packet to be considered a probe. We
-     * currently assume that only packets larger than 200 bytes are paced by the
-     * sender.
-     */
-    private final static long kMinProbePacketSize = 200;
-
-    /**
-     * Defines the initial probing period (in millis) after the first packet is
-     * received.
+     *
      */
     private final static int kInitialProbingIntervalMs = 2000;
 
     /**
-     * Defines the minimum cluster size for the cluster to be considered valid.
+     *
      */
     private final static int kMinClusterSize = 4;
 
     /**
-     * Defines the maximum number of probe packets.
+     *
      */
     private final static int kMaxProbePackets = 15;
 
     /**
-     * Defines the expected number of probe packets.
+     *
      */
     private final static int kExpectedNumberOfProbes = 3;
 
-    /**
-     * Reduces the effects of allocations and garbage collection of the method
-     * {@code incomingPacket}.
-     */
-    private final long[] deltas = new long[3];
+    private static final double kTimestampToMs = 1000.0 /
+        (1 << kInterArrivalShift);
 
-    /**
-     * The set of synchronization source identifiers (SSRCs) currently being
-     * received. Represents an unmodifiable copy/snapshot of the current keys of
-     * {@link #ssrcsMap} suitable for public access and introduced for
-     * the purposes of reducing the number of allocations and the effects of
-     * garbage collection.
-     */
-    private Collection<Long> ssrcs
-        = Collections.unmodifiableList(Collections.EMPTY_LIST);
-
-    /**
-     * A map of SSRCs -> time first seen (in millis).
-     */
-    private Map<Long, Long> ssrcsMap = new TreeMap<>();
-
-    /**
-     * The list of probes that this instance has received.
-     */
-    private List<Probe> probes = new ArrayList<>();
-
-    /**
-     * The total number of probing packets we've seen so far.
-     */
+    private final Object critSect = new Object();
+    private TreeMap<Long, Long> ssrcs_ = new TreeMap<>();
+    private ArrayList<Probe> probes_ = new ArrayList<>();
     private long totalProbesReceived;
-
-    /**
-     * The time (in millis) when we saw the first packet. Useful to determine
-     * the probing period.
-     */
     private long firstPacketTimeMs;
-
-    /**
-     * Keeps track of the last time (in millis) that we updated the bitrate
-     * estimate.
-     */
     private long lastUpdateMs;
-
-    /**
-     *
-     */
     private RemoteBitrateObserver observer_;
-
-    /**
-     * The rate control implementation based on additive increases of bitrate
-     * when no over-use is detected and multiplicative decreases when over-uses
-     * are detected.
-     */
-    private final AimdRateControl remoteRate = new AimdRateControl();
-
-    /**
-     * Computes the send-time and recv-time deltas to feed to the estimator.
-     */
+    private AimdRateControl remoteRate = new AimdRateControl();
     private InterArrival interArrival;
-
-    /**
-     * The Kalman filter implementation that estimates the jitter.
-     */
     private OveruseEstimator estimator;
-
-    /**
-     * The overuse detector that compares the jitter to an adaptive threshold.
-     */
-    private final OveruseDetector detector;
-
-    /**
-     * Keeps track of how much data we're receiving.
-     */
+    private OveruseDetector detector;
     private RateStatistics incomingBitrate;
-
-    /**
-     * Determines whether or not the incoming bitrate is initialized or not.
-     */
     private boolean incomingBitrateInitialized;
-
-    /**
-     * The RTP header extension ID for the AST header extension.
-     */
     private int extensionID;
 
-    /**
-     * Ctor.
-     *
-     * @param observer
-     */
-    RemoteBitrateEstimatorAbsSendTime(RemoteBitrateObserver observer)
+    public RemoteBitrateEstimatorAbsSendTime(RemoteBitrateObserver observer)
     {
         this.observer_ = observer;
-        this.interArrival = new InterArrival(
-            kTimestampGroupLengthTicks, kTimestampToMs, true);
-
+        this.interArrival = new InterArrival(90 * kTimestampGroupLengthMs,
+            kTimestampToMs, true);
         this.estimator = new OveruseEstimator(new OverUseDetectorOptions());
         this.detector = new OveruseDetector(new OverUseDetectorOptions());
-        this.incomingBitrate = new RateStatistics(kBitrateWindowMs, kBitrateScale);
+        this.incomingBitrate = new RateStatistics(kBitrateWindowMs, 8000);
         this.incomingBitrateInitialized = false;
         this.totalProbesReceived = 0;
         this.firstPacketTimeMs = -1;
         this.lastUpdateMs = -1;
+        logger.info("; RemoteBitrateEstimatorAbsSendTime: Instantiating.");
     }
 
-    /**
-     * Determines whether a {@link Probe} belongs to a cluster or not, by
-     * examining its send time delta distance from the cluster mean.
-     *
-     * @param sendDeltaMs the send time delta of the probe we examine (probe
-     * send time - previous probe send time).
-     * @param clusterAggregate the {@link Cluster} that aggregates the probes.
-     *
-     * @return true if the probe is within the cluster bounds, false otherwise.
-     */
-    private static boolean isWithinClusterBounds(
-        long sendDeltaMs, Cluster clusterAggregate)
+    private <K, V> List<K> Keys(TreeMap<K, V> _map)
+    {
+        ArrayList<K> keys = new ArrayList<K>();
+        for (Map.Entry<K, V> entry : _map.entrySet())
+        {
+            keys.add(entry.getKey());
+        }
+        return keys;
+    }
+
+    private long ConvertMsTo24Bits(long timeMs)
+    {
+        long time24Bits = (long) (((timeMs << kAbsSendTimeFraction) + 500) /
+            1000) & 0x00FFFFFF;
+        return time24Bits;
+    }
+
+
+    private boolean IsWithinClusterBounds(long sendDeltaMs, Cluster clusterAggregate)
     {
         if (clusterAggregate.count == 0)
         {
             return true;
         }
-        double clusterMean = clusterAggregate.meanSendDeltaMs /
+        double clusterMean = clusterAggregate.sendMeanMs /
             (double) clusterAggregate.count;
-        
-        return Math.abs(
-            (double) sendDeltaMs - clusterMean) < kMaxSendTimeDeltaMsDistance;
+        return Math.abs((double) sendDeltaMs - clusterMean) < 2.5f;
     }
 
-    /**
-     * Finalizes the cluster (computes the means from the sums) and adds it to
-     * the clusters list.
-     *
-     * @param clusters the clusters list to add the cluster.
-     * @param cluster the cluster to finalize and add to the clusters list.
-     */
-    private static void addCluster(List<Cluster> clusters, Cluster cluster)
+    private void addCluster(List<Cluster> clusters, Cluster cluster)
     {
-        cluster.meanSendDeltaMs /= (double) cluster.count;
-        cluster.meanRecvDeltaMs /= (double) cluster.count;
+        cluster.sendMeanMs /= (double) cluster.count;
+        cluster.recvMeanMs /= (double) cluster.count;
         cluster.meanSize /= cluster.count;
         clusters.add(cluster);
     }
 
-    /**
-     * Computes the list of clusters from the list of probes.
-     *
-     * @param probes the list of probes
-     * @return the computed list of clusters.
-     */
-    private static List<Cluster> computeClusters(List<Probe> probes)
+    private void computeClusters(List<Cluster> clusters)
     {
-        List<Cluster> clusters = new ArrayList<>();
-
         Cluster current = new Cluster();
         long prevSendTime = -1;
         long prevRecvTime = -1;
-        for (Probe probe : probes)
+        for (Probe probe : probes_)
         {
             if (prevSendTime >= 0)
             {
@@ -286,7 +169,7 @@ public class RemoteBitrateEstimatorAbsSendTime
                     ++current.numAboveMinDelta;
                 }
 
-                if (!isWithinClusterBounds(sendDeltaMs, current))
+                if (!IsWithinClusterBounds(sendDeltaMs, current))
                 {
                     if (current.count >= kMinClusterSize)
                     {
@@ -294,8 +177,8 @@ public class RemoteBitrateEstimatorAbsSendTime
                     }
                     current = new Cluster();
                 }
-                current.meanSendDeltaMs += sendDeltaMs;
-                current.meanRecvDeltaMs += recvDeltaMs;
+                current.sendMeanMs += sendDeltaMs;
+                current.recvMeanMs += recvDeltaMs;
                 current.meanSize += probe.payloadSize;
                 ++current.count;
             }
@@ -303,36 +186,29 @@ public class RemoteBitrateEstimatorAbsSendTime
             prevSendTime = probe.sendTimeMs;
             prevRecvTime = probe.recvTimeMs;
         }
-
         if (current.count >= kMinClusterSize)
-        {
             addCluster(clusters, current);
-        }
-
-        return clusters;
     }
 
     /**
-     * Finds the probe cluster with the highest bitrate.
-     *
-     * @param clusters the list of clusters
-     * @return the cluster with the highest bitrate
+     * @param clusters
+     * @returns a cluster that shows the best probe
      */
-    private static Cluster findBestProbe(List<Cluster> clusters)
+    private Cluster findBestProbe(List<Cluster> clusters)
     {
-        long highestProbeBitrateBps = 0;
+        int highestProbeBitrateBps = 0;
         Cluster bestIt = new Cluster();
         for (Cluster cluster : clusters)
         {
-            if (cluster.meanSendDeltaMs == 0 || cluster.meanRecvDeltaMs == 0)
+            if (cluster.sendMeanMs == 0 || cluster.recvMeanMs == 0)
                 continue;
             if (cluster.numAboveMinDelta > cluster.count / 2 &&
-                (cluster.meanRecvDeltaMs - cluster.meanSendDeltaMs <= 2.0f &&
-                    cluster.meanSendDeltaMs - cluster.meanRecvDeltaMs <= 5.0f))
+                (cluster.recvMeanMs - cluster.sendMeanMs <= 2.0f &&
+                    cluster.sendMeanMs - cluster.recvMeanMs <= 5.0f))
             {
-                long probeBitrateBps = Math.min(
-                    cluster.getSendBitrateBps(), cluster.getRecvBitrateBps());
-
+                int probeBitrateBps =
+                    Math.min(cluster.getSendBitrateBps(), cluster
+                        .getRecvBitrateBps());
                 if (probeBitrateBps > highestProbeBitrateBps)
                 {
                     highestProbeBitrateBps = probeBitrateBps;
@@ -342,13 +218,13 @@ public class RemoteBitrateEstimatorAbsSendTime
             else
             {
                 double sendBitrateBps = cluster.meanSize * 8 * 1000
-                    / cluster.meanSendDeltaMs;
+                    / cluster.sendMeanMs;
                 double recvBitrateBps = cluster.meanSize * 8 * 1000
-                    / cluster.meanRecvDeltaMs;
+                    / cluster.recvMeanMs;
                 logger.warn("Probe failed, sent at " + sendBitrateBps
                     + " bps, received at " + recvBitrateBps
-                    + " bps. Mean send delta: " + cluster.meanSendDeltaMs
-                    + " ms, mean recv delta: " + cluster.meanRecvDeltaMs
+                    + " bps. Mean send delta: " + cluster.sendMeanMs
+                    + " ms, mean recv delta: " + cluster.recvMeanMs
                     + " ms, num probes: " + cluster.count);
                 break;
             }
@@ -356,130 +232,108 @@ public class RemoteBitrateEstimatorAbsSendTime
         return bestIt;
     }
 
-    /**
-     * Processes the received clusters and maybe updates the remote bitrate.
-     * It returns the processing result.
-     *
-     * @param nowMs the current time in millis.
-     *
-     * @return true if the remote bitrate was updated, false otherwise.
-     */
-    private synchronized boolean processClusters(long nowMs)
+    private ProbeResult processClusters(long nowMs)
     {
-        List<Cluster> clusters = computeClusters(probes);
-        if (clusters.isEmpty())
+        synchronized (critSect)
         {
-            // If we reach the max number of probe packets and still
-            // have no clusters, we will remove the oldest one.
-            if (probes.size() >= kMaxProbePackets)
+            List<Cluster> clusters = new ArrayList<Cluster>();
+            computeClusters(clusters);
+            if (clusters.isEmpty())
             {
-                probes.remove(0);
+                // If we reach the max number of probe packets and still
+                // have no clusters,
+                // we will remove the oldest one.
+                if (probes_.size() >= kMaxProbePackets)
+                    probes_.remove(0);
+                return ProbeResult.kNoUpdate;
             }
-            return false;
+
+            Cluster bestProbe = findBestProbe(clusters);
+            int probeBitrateBps =
+                Math.min(bestProbe.getSendBitrateBps(), bestProbe
+                    .getRecvBitrateBps());
+            // Make sure that a probe sent on a lower bitrate
+            // than our estimate can't
+            // reduce the estimate.
+            if (isBitrateImproving(probeBitrateBps))
+            {
+                logger.warn("Probe successful, sent at "
+                    + bestProbe.getSendBitrateBps() +
+                    " bps, received at "
+                    + bestProbe.getRecvBitrateBps()
+                    + " bps. Mean send delta: " + bestProbe.sendMeanMs
+                    + " ms, mean recv delta: " + bestProbe.recvMeanMs
+                    + " ms, num probes: " + bestProbe.count);
+                remoteRate.setEstimate(probeBitrateBps, nowMs);
+                return ProbeResult.kBitrateUpdated;
+            }
+            // Not probing and received non-probe packet,
+            // or finished with current set  of probes.
+            if (clusters.size() >= kExpectedNumberOfProbes)
+                probes_.clear();
+            return ProbeResult.kNoUpdate;
         }
-
-        Cluster bestProbe = findBestProbe(clusters);
-        long probeBitrateBps = Math.min(
-            bestProbe.getSendBitrateBps(), bestProbe.getRecvBitrateBps());
-
-        // Make sure that a probe sent on a lower bitrate than our estimate
-        // can't reduce the estimate.
-
-        if (isBitrateImproving(probeBitrateBps))
-        {
-            logger.warn("Probe successful, sent at "
-                + bestProbe.getSendBitrateBps() +
-                " bps, received at "
-                + bestProbe.getRecvBitrateBps()
-                + " bps. Mean send delta: " + bestProbe.meanSendDeltaMs
-                + " ms, mean recv delta: " + bestProbe.meanRecvDeltaMs
-                + " ms, num probes: " + bestProbe.count);
-            remoteRate.setEstimate(probeBitrateBps, nowMs);
-            return true;
-        }
-
-        // Not probing and received non-probe packet, or finished with current
-        // set of probes.
-
-        if (clusters.size() >= kExpectedNumberOfProbes)
-        {
-            probes.clear();
-        }
-
-        return false;
     }
 
-    /**
-     * Determines whether or not the specified bitrate is an improvement over
-     * our current estimate.
-     *
-     * @param newBitrateBps the new bitrate to compare with our estimate.
-     *
-     * @return true if the bitrate is improving, false otherwise.
-     */
-    private synchronized boolean isBitrateImproving(long newBitrateBps)
+    private boolean isBitrateImproving(int newBitrateBps)
     {
-        boolean initialProbe
-            = !remoteRate.isValidEstimate() && newBitrateBps > 0;
-
-        boolean bitrateAboveEstimate = remoteRate.isValidEstimate()
-            && newBitrateBps > remoteRate.getLatestEstimate();
-
-        return initialProbe || bitrateAboveEstimate;
+        synchronized (critSect)
+        {
+            boolean initialProbe = !remoteRate.isValidEstimate()
+                && newBitrateBps > 0;
+            boolean bitrateAboveEstimate =
+                remoteRate.isValidEstimate() &&
+                    newBitrateBps > (int) (remoteRate
+                        .getLatestEstimate());
+            return initialProbe || bitrateAboveEstimate;
+        }
     }
 
     /**
-     * {@inheritDoc}
+     * Reverse-transforms a specific packet.
+     *
+     * @param packet the transformed packet to be restored.
+     * @return the restored packet.
      */
     @Override
     public void incomingPacket(RawPacket packet)
     {
         int extensionID = this.extensionID;
-        if (extensionID == -1)
+        if (extensionID != -1)
         {
-            return;
-        }
+            long ast =
+                AbsSendTimeEngine.getAbsSendTime(packet, (byte) extensionID);
 
-        long sendTime24bits
-            = AbsSendTimeEngine.getAbsSendTime(packet, (byte) extensionID);
-
-        if (sendTime24bits != -1)
-        {
-            incomingPacketInfo(System.currentTimeMillis(), sendTime24bits,
-                packet.getPayloadLength(), packet.getSSRCAsLong());
+            if (ast != -1)
+            {
+                incomingPacketInfo(System.currentTimeMillis(), ast,
+                    packet.getPayloadLength(), packet.getSSRCAsLong());
+            }
         }
     }
 
-    /**
-     * Notifies this instance of an incoming packet.
-     *
-     * @param arrivalTimeMs the arrival time of the packet in millis.
-     * @param sendTime24bits the send time of the packet in millis.
-     * @param payloadSize the payload size of the packet.
-     * @param ssrc the SSRC of the packet.
-     */
     private void incomingPacketInfo(
         long arrivalTimeMs,
         long sendTime24bits,
-        int payloadSize,
+        long payloadSize,
         long ssrc)
     {
+
+        if (sendTime24bits < 0 || sendTime24bits >= (1 << 24))
+        {
+            logger.warn("Send Time not valid");
+        }
         // Shift up send time to use the full 32 bits that inter_arrival
-        // works with, so wrapping works properly.
+        // works with,
+        // so wrapping works properly.
         long timestamp = sendTime24bits << kAbsSendTimeInterArrivalUpshift;
-
-        // Convert the expanded AST (32 bits, 6.26 fixed point) to millis.
         long sendTimeMs = (long) (timestamp * kTimestampToMs);
-
-        // XXX The arrival time should be the earliest we've seen this packet,
-        // not now. In our code however, we don't have access to the arrival
-        // time.
         long nowMs = System.currentTimeMillis();
-
         // should be broken out from  here.
         // Check if incoming bitrate estimate is valid, and if it
         // needs to be reset.
-        long incomingBitrate_ = incomingBitrate.getRate(arrivalTimeMs);
+        long incomingBitrate_ =
+            incomingBitrate.getRate(arrivalTimeMs);
         if (incomingBitrate_ != 0)
         {
             incomingBitrateInitialized = true;
@@ -490,29 +344,27 @@ public class RemoteBitrateEstimatorAbsSendTime
             // enough data point are left within the current window.
             // Reset incoming bitrate estimator so that the window
             // size will only contain new data points.
-            incomingBitrate = new RateStatistics(kBitrateWindowMs, kBitrateScale);
+            incomingBitrate = new RateStatistics(kBitrateWindowMs, 8000);
             incomingBitrateInitialized = false;
         }
-
-        incomingBitrate.update(payloadSize, arrivalTimeMs);
-
+        incomingBitrate.update((int) payloadSize, arrivalTimeMs);
         if (firstPacketTimeMs == -1)
         {
             firstPacketTimeMs = nowMs;
         }
-
+        long tsDelta = 0;
+        long tDelta = 0;
+        int sizeDelta = 0;
         boolean updateEstimate = false;
         long targetBitrateBps = 0;
-
-        synchronized (this)
+        synchronized (critSect)
         {
             timeoutStreams(nowMs);
-            ssrcsMap.put(ssrc, nowMs);
-            ssrcs = Collections
-                .unmodifiableCollection(new ArrayList<>(ssrcsMap.keySet()));
-
-            // For now only try to detect probes while we don't have a valid
-            // estimate.
+            ssrcs_.put(ssrc, nowMs);
+            // For now only try to detect probes while we don't have
+            // a valid estimate. We currently assume that only packets
+            // larger than 200 bytes are paced by  the sender.
+            long kMinProbePacketSize = 200;
             if (payloadSize > kMinProbePacketSize &&
                 (!remoteRate.isValidEstimate() ||
                     nowMs - firstPacketTimeMs < kInitialProbingIntervalMs))
@@ -521,12 +373,12 @@ public class RemoteBitrateEstimatorAbsSendTime
                 {
                     long sendDeltaMs = -1;
                     long recvDeltaMs = -1;
-                    if (!probes.isEmpty())
+                    if (!probes_.isEmpty())
                     {
-                        sendDeltaMs = sendTimeMs - probes
-                            .get(probes.size() - 1).sendTimeMs;
-                        recvDeltaMs = arrivalTimeMs - probes
-                            .get(probes.size() - 1).sendTimeMs;
+                        sendDeltaMs = sendTimeMs - probes_
+                            .get(probes_.size() - 1).sendTimeMs;
+                        recvDeltaMs = arrivalTimeMs - probes_
+                            .get(probes_.size() - 1).sendTimeMs;
                     }
                     logger.warn("Probe packet received: send time="
                         + sendTimeMs
@@ -534,32 +386,24 @@ public class RemoteBitrateEstimatorAbsSendTime
                         + " ms, send delta=" + sendDeltaMs
                         + " ms, recv delta=" + recvDeltaMs + " ms.");
                 }
-                probes.add(
-                    new Probe(sendTimeMs, arrivalTimeMs, payloadSize));
-
+                probes_.add(new Probe(sendTime24bits, arrivalTimeMs,
+                    payloadSize));
                 ++totalProbesReceived;
                 // Make sure that a probe which updated the bitrate immediately
                 // has an effect by calling the
                 // OnReceiveBitrateChanged callback.
-                if (processClusters(nowMs))
-                {
+                if (processClusters(nowMs) == ProbeResult.kBitrateUpdated)
                     updateEstimate = true;
-                }
             }
 
-            long[] deltas = this.deltas;
-
-            /* long timestampDelta */ deltas[0] = 0;
-            /* long timeDelta */ deltas[1] = 0;
-            /* int sizeDelta */ deltas[2] = 0;
-
-            if (interArrival.computeDeltas(
-                timestamp, arrivalTimeMs, payloadSize, deltas, nowMs))
+            long[] deltas = new long[]{tsDelta, tDelta, sizeDelta};
+            if (interArrival.computeDeltas(timestamp, arrivalTimeMs,
+                (int) payloadSize, deltas, nowMs))
             {
-                double tsDeltaMs = deltas[0] * kTimestampToMs;
-                estimator.update(
-                    deltas[1], tsDeltaMs, (int) deltas[2], detector.getState());
-
+                double tsDeltaMs = (1000.0 * tsDelta)
+                    / (1 << kInterArrivalShift);
+                estimator.update(tDelta, tsDeltaMs, sizeDelta,
+                    detector.getState());
                 detector.detect(estimator.getOffset(), tsDeltaMs,
                     estimator.getNumOfDeltas(), arrivalTimeMs);
             }
@@ -568,17 +412,19 @@ public class RemoteBitrateEstimatorAbsSendTime
             {
                 // Check if it's time for a periodic update or if we
                 // should update because of an over-use.
-                if (lastUpdateMs == -1
-                    || nowMs - lastUpdateMs > remoteRate.getFeedBackInterval())
+                if (lastUpdateMs == -1 ||
+                    nowMs - lastUpdateMs > remoteRate
+                        .getFeedBackInterval())
                 {
                     updateEstimate = true;
                 }
                 else if (detector.getState() == BandwidthUsage.kBwOverusing)
                 {
-                    long incomingRate_ = incomingBitrate.getRate(arrivalTimeMs);
-
-                    if (incomingRate_ > 0 && remoteRate
-                        .isTimeToReduceFurther(nowMs, incomingBitrate_))
+                    long incomingRate_ =
+                        incomingBitrate.getRate(arrivalTimeMs);
+                    if (incomingRate_ > 0 &&
+                        remoteRate.isTimeToReduceFurther(nowMs,
+                            incomingBitrate_))
                     {
                         updateEstimate = true;
                     }
@@ -594,11 +440,10 @@ public class RemoteBitrateEstimatorAbsSendTime
                     .getState(), incomingBitrate.getRate(arrivalTimeMs),
                     estimator.getVarNoise());
                 remoteRate.update(input, nowMs);
-                targetBitrateBps = remoteRate.updateBandwidthEstimate(nowMs);
+                targetBitrateBps = remoteRate.getLatestEstimate();
                 updateEstimate = remoteRate.isValidEstimate();
             }
         }
-
         if (updateEstimate)
         {
             lastUpdateMs = nowMs;
@@ -606,162 +451,190 @@ public class RemoteBitrateEstimatorAbsSendTime
         }
     }
 
-    /**
-     * Timeouts SSRCs that have not received any data for
-     * kTimestampGroupLengthMs millis.
-     *
-     * @param nowMs the current time in millis.
-     */
-    private synchronized void timeoutStreams(long nowMs)
+    private void timeoutStreams(long nowMs)
     {
-        boolean removed = false;
-        Iterator<Map.Entry<Long, Long>> itr = ssrcsMap.entrySet().iterator();
-        while (itr.hasNext())
+        synchronized (critSect)
         {
-            Map.Entry<Long, Long> entry = itr.next();
-            if ((nowMs - entry.getValue() > kStreamTimeOutMs))
+            Iterator<Map.Entry<Long, Long>> itr = ssrcs_.entrySet().iterator();
+            while (itr.hasNext())
             {
-                removed = true;
-                itr.remove();
+                Map.Entry<Long, Long> entry = itr.next();
+                if ((nowMs - entry.getValue() > kStreamTimeOutMs))
+                {
+                    itr.remove();
+                }
+            }
+            if (ssrcs_.isEmpty())
+            {
+                // We can't update the estimate if we don't have any active streams.
+                interArrival = new InterArrival((kTimestampGroupLengthMs
+                    << kInterArrivalShift) / 1000,
+                    kTimestampToMs, true);
+                estimator = new OveruseEstimator(new OverUseDetectorOptions());
+                // We deliberately don't reset the first_packet_time_ms_
+                // here for now since we only probe for bandwidth in the
+                // beginning of a call right now.
             }
         }
-
-        if (removed)
-        {
-            ssrcs = Collections
-                .unmodifiableCollection(new ArrayList<>(ssrcsMap.keySet()));
-        }
-
-        if (ssrcsMap.isEmpty())
-        {
-            // We can't update the estimate if we don't have any active streams.
-            interArrival = new InterArrival(
-                kTimestampGroupLengthTicks,
-                kTimestampToMs /* timestampToMsCoeff */,
-                true /* enableBurstGrouping */);
-
-            estimator = new OveruseEstimator(new OverUseDetectorOptions());
-            // We deliberately don't reset the first_packet_time_ms_
-            // here for now since we only probe for bandwidth in the
-            // beginning of a call right now.
-        }
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public synchronized void onRttUpdate(long avgRttMs, long maxRttMs)
+    public void onRttUpdate(long avg_rtt_ms,
+                            long max_rtt_ms)
     {
-        remoteRate.setRtt(avgRttMs);
+        synchronized (critSect)
+        {
+            remoteRate.setRtt(avg_rtt_ms);
+        }
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public synchronized long getLatestEstimate()
+    public long getLatestEstimate()
     {
-        long bitrateBps;
-        if (!remoteRate.isValidEstimate())
+        synchronized (critSect)
         {
-            return -1;
+            long bitrateBps;
+            if (!remoteRate.isValidEstimate())
+            {
+                return -1;
+            }
+            if (ssrcs_.isEmpty())
+            {
+                bitrateBps = 0;
+            }
+            else
+            {
+                bitrateBps = remoteRate.getLatestEstimate();
+            }
+            return bitrateBps;
         }
-        if (ssrcsMap.isEmpty())
-        {
-            bitrateBps = 0;
-        }
-        else
-        {
-            bitrateBps = remoteRate.getLatestEstimate();
-        }
-        return bitrateBps;
     }
 
     /**
-     * {@inheritDoc}
+     * Returns the estimated payload bitrate in bits per second if a valid
+     * estimate exists; otherwise, <tt>-1</tt>.
+     *
+     * @return the estimated payload bitrate in bits per seconds if a valid
+     * estimate exists; otherwise, <tt>-1</tt>
      */
+
     @Override
-    public Collection<Long> getSsrcs()
+    public Collection<Integer> getSsrcs()
     {
-        return ssrcs;
+
+        synchronized (critSect)
+        {
+            Collection<Integer> ssrcs
+                = new ArrayList<>();
+            for (Long ssrcValue : ssrcs_.keySet())
+            {
+                Number value = ssrcValue;
+                ssrcs.add(value.intValue());
+            }
+            return ssrcs;
+        }
+
     }
 
+
     /**
-     * {@inheritDoc}
+     * Removes all data for <tt>ssrc</tt>.
+     *
+     * @param ssrc
      */
     @Override
-    public synchronized void removeStream(long ssrc)
+    public void removeStream(int ssrc)
     {
-        if (ssrcsMap.remove(ssrc) != null)
+        synchronized (critSect)
         {
-            ssrcs = Collections
-                .unmodifiableCollection(new ArrayList<>(ssrcsMap.keySet()));
+            try
+            {
+                ssrcs_.remove(ssrc & 0xFFFF_FFFFL);
+            }
+            catch (ArrayIndexOutOfBoundsException e)
+            {
+                logger.info("Cannot remove SSRC, "
+                    + "SSRC not found");
+            }
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public synchronized void setMinBitrate(int minBitrateBps)
+    public void setMinBitrate(int minBitrateBps)
     {
         // Called from both the configuration thread and the network thread.
         // Shouldn't be called from the network thread in the future.
-        remoteRate.setMinBitrate(minBitrateBps);
+        synchronized (critSect)
+        {
+            remoteRate.setMinBitrate(minBitrateBps);
+        }
+
     }
 
-    /**
-     * Sets the AST header extension ID.
-     *
-     * @param extensionID the AST header extension ID.
-     */
-    void setExtensionID(int extensionID)
+    public void setExtensionID(int extensionID)
     {
         this.extensionID = extensionID;
     }
 
-    /**
-     * Keeps meta information about a cluster of probes.
-     */
-    private static class Cluster
+    private class Cluster
     {
-        double meanSendDeltaMs = 0L;
-        double meanRecvDeltaMs = 0L;
+        double sendMeanMs = 0L;
+        double recvMeanMs = 0L;
         int meanSize = 0;
         int count = 0;
         int numAboveMinDelta = 0;
 
-        Cluster() {
+        public Cluster() {
         }
 
-        long getSendBitrateBps()
+        public Cluster(double send_mean_ms, double recv_mean_ms,
+                       int mean_size, int counter, int num_above_min_delta)
         {
-            //RTC_CHECK_GT(this.meanSendDeltaMs, 0.0f);
-            return (long) (this.meanSize * 8 * 1000 / meanSendDeltaMs);
+            this.sendMeanMs = send_mean_ms;
+            this.recvMeanMs = recv_mean_ms;
+            this.meanSize = mean_size;
+            this.count = counter;
+            this.numAboveMinDelta = num_above_min_delta;
+
         }
 
-        long getRecvBitrateBps()
+
+        public int getSendBitrateBps()
         {
-            // RTC_CHECK_GT(this.meanRecvDeltaMs, 0.0f);
-            return (long) (this.meanSize * 8 * 1000 / this.meanRecvDeltaMs);
+            //RTC_CHECK_GT(this.sendMeanMs, 0.0f);
+            return (int) (this.meanSize * 8 * 1000 / sendMeanMs);
+        }
+
+        public int getRecvBitrateBps()
+        {
+            // RTC_CHECK_GT(this.recvMeanMs, 0.0f);
+            return (int) (this.meanSize * 8 * 1000 / this.recvMeanMs);
         }
     }
 
-    /**
-     * Keeps meta information about a probe packet.
-     */
     private class Probe
     {
         long sendTimeMs = -1L;
         long recvTimeMs = -1L;
         long payloadSize = 0;
 
-        Probe(long sendTimeMs, long recvTimeMs, long payloadSize)
+        public Probe(long send_time_ms, long recv_time_ms, long payload_size)
         {
-            this.sendTimeMs = sendTimeMs;
-            this.recvTimeMs = recvTimeMs;
-            this.payloadSize = payloadSize;
+            this.sendTimeMs = send_time_ms;
+            this.recvTimeMs = recv_time_ms;
+            this.payloadSize = payload_size;
+        }
+    }
+
+    private enum ProbeResult
+    {
+        kBitrateUpdated(0),
+        kNoUpdate(1);
+        int value;
+
+        ProbeResult(int x)
+        {
+            this.value = x;
         }
     }
 }
