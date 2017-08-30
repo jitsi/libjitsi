@@ -113,11 +113,6 @@ public interface MediaStream
     void addRTPExtension(byte extensionID, RTPExtension rtpExtension);
 
     /**
-     * Clears the RTP header extension associations stored in this instance.
-     */
-    void clearRTPExtensions();
-
-    /**
      * Releases the resources allocated by this instance in the course of its
      * execution and prepares it to be garbage collected.
      */

@@ -73,12 +73,7 @@ public class RemoteBitrateEstimatorWrapper
     /**
      * The ID of the abs-send-time RTP header extension.
      */
-    private int astExtensionID = -1;
-
-    /**
-     * The ID of the TCC RTP header extension.
-     */
-    private int tccExtensionID = -1;
+    private int extensionID = -1;
 
     /**
      *
@@ -136,15 +131,10 @@ public class RemoteBitrateEstimatorWrapper
     @Override
     public void incomingPacket(RawPacket pkt)
     {
-        if (!isEnabled())
-        {
-            return;
-        }
-
         RawPacket.HeaderExtension ext = null;
-        if (ENABLE_AST_RBE && astExtensionID != -1)
+        if (ENABLE_AST_RBE && extensionID != -1)
         {
-            ext = pkt.getHeaderExtension((byte) astExtensionID);
+            ext = pkt.getHeaderExtension((byte) extensionID);
         }
 
         if (ext != null)
@@ -157,7 +147,7 @@ public class RemoteBitrateEstimatorWrapper
                 RemoteBitrateEstimatorAbsSendTime ast
                     = new RemoteBitrateEstimatorAbsSendTime(observer);
 
-                ast.setExtensionID(astExtensionID);
+                ast.setExtensionID(extensionID);
 
                 this.rbe = ast;
 
@@ -220,41 +210,12 @@ public class RemoteBitrateEstimatorWrapper
         return pkt;
     }
 
-    /**
-     * Sets the ID of the abs-send-time RTP extension. Set to -1 to effectively
-     * disable the AST remote bitrate estimator.
-     *
-     * @param astExtensionID the ID to set.
-     */
-    public void setAstExtensionID(int astExtensionID)
+    public void setExtensionID(int extensionID)
     {
-        this.astExtensionID = astExtensionID;
+        this.extensionID = extensionID;
         if (rbe instanceof RemoteBitrateEstimatorAbsSendTime)
         {
-            ((RemoteBitrateEstimatorAbsSendTime) rbe).setExtensionID(astExtensionID);
+            ((RemoteBitrateEstimatorAbsSendTime) rbe).setExtensionID(extensionID);
         }
-    }
-
-    /**
-     * Gets a boolean that indicates whether or not to perform receive-side
-     * bandwidth estimations.
-     *
-     * @return true if receive-side bandwidth estimations are enabled, false
-     * otherwise.
-     */
-    public boolean isEnabled()
-    {
-        return tccExtensionID == -1 /* && supportsRemb */;
-    }
-
-    /**
-     * Sets the ID of the transport-cc RTP extension. Anything other than -1
-     * disables receive-side bandwidth estimations.
-     *
-     * @param tccExtensionID the ID to set.
-     */
-    public void setTccExtensionID(int tccExtensionID)
-    {
-        this.tccExtensionID = tccExtensionID;
     }
 }
