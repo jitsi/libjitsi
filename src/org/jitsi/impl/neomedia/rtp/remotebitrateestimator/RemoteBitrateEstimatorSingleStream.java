@@ -137,12 +137,17 @@ public class RemoteBitrateEstimatorSingleStream
     }
 
     /**
-     * {@inheritDoc}
+     * Notifies this instance of an incoming packet.
+     *
+     * @param arrivalTimeMs the arrival time of the packet in millis.
+     * @param timestamp the RTP timestamp of the packet (RFC3550).
+     * @param payloadSize the payload size of the packet.
+     * @param ssrc_ the SSRC of the packet.
      */
     @Override
-    public void incomingPacket(RawPacket pkt)
+    public void incomingPacketInfo(
+        long arrivalTimeMs, long timestamp, int payloadSize, long ssrc_)
     {
-        Long ssrc_ = pkt.getSSRCAsLong();
         long nowMs = System.currentTimeMillis();
 
         synchronized (critSect)
@@ -169,7 +174,7 @@ public class RemoteBitrateEstimatorSingleStream
         Detector estimator = it;
 
         estimator.lastPacketTimeMs = nowMs;
-        this.incomingBitrate.update(pkt.getPayloadLength(), nowMs);
+        this.incomingBitrate.update(payloadSize, nowMs);
 
         BandwidthUsage priorState = estimator.detector.getState();
         long[] deltas = this.deltas;
@@ -179,9 +184,9 @@ public class RemoteBitrateEstimatorSingleStream
         /* int sizeDelta */ deltas[2] = 0;
 
         if (estimator.interArrival.computeDeltas(
-                pkt.getTimestamp(),
-                System.currentTimeMillis(),
-                pkt.getPayloadLength(),
+                timestamp,
+                nowMs,
+                payloadSize,
                 deltas))
         {
             double timestampDeltaMs
@@ -236,14 +241,6 @@ public class RemoteBitrateEstimatorSingleStream
         {
             updateEstimate(nowMs);
             lastProcessTime = nowMs;
-
-            if (logger.isTraceEnabled())
-            {
-                logger.trace("rbess_bitrate_estimated" +
-                    "," + nowMs +
-                    "," + getLatestEstimate() +
-                    "," + observer.hashCode());
-            }
         }
         } // synchronized (critSect)
     }
@@ -348,6 +345,14 @@ public class RemoteBitrateEstimatorSingleStream
 
             if (observer != null)
                 observer.onReceiveBitrateChanged(getSsrcs(), targetBitrate);
+            
+            if (logger.isTraceEnabled())
+            {
+                logger.trace("rbess_bitrate_estimated" +
+                    "," + nowMs +
+                    "," + targetBitrate +
+                    "," + observer.hashCode());
+            }
         }
 
         } // synchronized (critSect)

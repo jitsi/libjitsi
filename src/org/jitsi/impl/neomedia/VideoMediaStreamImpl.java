@@ -553,6 +553,16 @@ public class VideoMediaStreamImpl
     }
 
     /**
+     * Sets the value of the flag which indicates whether the remote end
+     * supports RTCP REMB or not.
+     * @param supportsRemb the value to set.
+     */
+    public void setSupportsRemb(boolean supportsRemb)
+    {
+        remoteBitrateEstimator.setSupportsRemb(supportsRemb);
+    }
+
+    /**
      * @return {@code true} iff the remote end supports RTCP FIR.
      */
     public boolean supportsFir()

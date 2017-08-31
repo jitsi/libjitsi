@@ -17,8 +17,6 @@ package org.jitsi.impl.neomedia.rtp.remotebitrateestimator;
 
 
 import org.ice4j.util.*;
-import org.jitsi.impl.neomedia.transform.*;
-import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.Logger;
 
@@ -148,12 +146,12 @@ public class RemoteBitrateEstimatorAbsSendTime
     /**
      * A map of SSRCs -> time first seen (in millis).
      */
-    private Map<Long, Long> ssrcsMap = new TreeMap<>();
+    private final Map<Long, Long> ssrcsMap = new TreeMap<>();
 
     /**
      * The list of probes that this instance has received.
      */
-    private List<Probe> probes = new ArrayList<>();
+    private final List<Probe> probes = new ArrayList<>();
 
     /**
      * The total number of probing packets we've seen so far.
@@ -175,7 +173,7 @@ public class RemoteBitrateEstimatorAbsSendTime
     /**
      * The observer to notify on bitrate estimation changes.
      */
-    private RemoteBitrateObserver observer;
+    private final RemoteBitrateObserver observer;
 
     /**
      * The rate control implementation based on additive increases of bitrate
@@ -208,11 +206,6 @@ public class RemoteBitrateEstimatorAbsSendTime
      * Determines whether or not the incoming bitrate is initialized or not.
      */
     private boolean incomingBitrateInitialized;
-
-    /**
-     * The RTP header extension ID for the AST header extension.
-     */
-    private int extensionID;
 
     /**
      * Ctor.
@@ -441,28 +434,6 @@ public class RemoteBitrateEstimatorAbsSendTime
     }
 
     /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void incomingPacket(RawPacket packet)
-    {
-        int extensionID = this.extensionID;
-        if (extensionID == -1)
-        {
-            return;
-        }
-
-        long sendTime24bits
-            = AbsSendTimeEngine.getAbsSendTime(packet, (byte) extensionID);
-
-        if (sendTime24bits != -1)
-        {
-            incomingPacketInfo(System.currentTimeMillis(), sendTime24bits,
-                packet.getPayloadLength(), packet.getSSRCAsLong());
-        }
-    }
-
-    /**
      * Notifies this instance of an incoming packet.
      *
      * @param arrivalTimeMs the arrival time of the packet in millis.
@@ -471,6 +442,7 @@ public class RemoteBitrateEstimatorAbsSendTime
      * @param payloadSize the payload size of the packet.
      * @param ssrc the SSRC of the packet.
      */
+    @Override
     public void incomingPacketInfo(
         long arrivalTimeMs,
         long sendTime24bits,
@@ -521,8 +493,10 @@ public class RemoteBitrateEstimatorAbsSendTime
         {
             timeoutStreams(nowMs);
             ssrcsMap.put(ssrc, nowMs);
-            ssrcs = Collections
-                .unmodifiableCollection(new ArrayList<>(ssrcsMap.keySet()));
+            if (!ssrcs.contains(ssrc))
+            {
+                ssrcs = Collections.unmodifiableCollection(ssrcsMap.keySet());
+            }
 
             // For now only try to detect probes while we don't have a valid
             // estimate.
@@ -570,21 +544,15 @@ public class RemoteBitrateEstimatorAbsSendTime
                 timestamp, arrivalTimeMs, payloadSize, deltas, nowMs))
             {
                 double tsDeltaMs = deltas[0] * kTimestampToMs;
+
                 estimator.update(
-                    deltas[1], tsDeltaMs, (int) deltas[2], detector.getState());
+                    /* timeDelta */ deltas[1],
+                    /* timestampDelta */ tsDeltaMs,
+                    /* sizeDelta */ (int) deltas[2],
+                    detector.getState());
 
                 detector.detect(estimator.getOffset(), tsDeltaMs,
                     estimator.getNumOfDeltas(), arrivalTimeMs);
-
-                if (logger.isTraceEnabled())
-                {
-                    logger.trace("rbeast_delay_estimated" +
-                        "," + nowMs +
-                        "," + (deltas[1] - tsDeltaMs) +
-                        "," + estimator.getOffset() +
-                        "," + detector.getState() +
-                        "," + observer.hashCode());
-                }
             }
 
             if (!updateEstimate)
@@ -664,8 +632,7 @@ public class RemoteBitrateEstimatorAbsSendTime
 
         if (removed)
         {
-            ssrcs = Collections
-                .unmodifiableCollection(new ArrayList<>(ssrcsMap.keySet()));
+            ssrcs = Collections.unmodifiableCollection(ssrcsMap.keySet());
         }
 
         if (ssrcsMap.isEmpty())
@@ -731,8 +698,7 @@ public class RemoteBitrateEstimatorAbsSendTime
     {
         if (ssrcsMap.remove(ssrc) != null)
         {
-            ssrcs = Collections
-                .unmodifiableCollection(new ArrayList<>(ssrcsMap.keySet()));
+            ssrcs = Collections.unmodifiableCollection(ssrcsMap.keySet());
         }
     }
 
@@ -745,16 +711,6 @@ public class RemoteBitrateEstimatorAbsSendTime
         // Called from both the configuration thread and the network thread.
         // Shouldn't be called from the network thread in the future.
         remoteRate.setMinBitrate(minBitrateBps);
-    }
-
-    /**
-     * Sets the AST header extension ID.
-     *
-     * @param extensionID the AST header extension ID.
-     */
-    void setExtensionID(int extensionID)
-    {
-        this.extensionID = extensionID;
     }
 
     /**

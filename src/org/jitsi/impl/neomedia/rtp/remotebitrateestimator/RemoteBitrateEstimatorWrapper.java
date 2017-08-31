@@ -24,6 +24,13 @@ import org.jitsi.service.neomedia.rtp.*;
 import java.util.*;
 
 /**
+ * This is the receive-side remote bitrate estimator. If REMB support has not
+ * been signaled or if TCC support has been signaled, it's going to be disabled.
+ *
+ * If it's enabled, then if AST has been signaled it's going to use the
+ * {@link RemoteBitrateEstimatorAbsSendTime} otherwise it's going to use the
+ * {@link RemoteBitrateEstimatorSingleStream}.
+ *
  * @author George Politis
  */
 public class RemoteBitrateEstimatorWrapper
@@ -57,9 +64,9 @@ public class RemoteBitrateEstimatorWrapper
             ENABLE_AST_RBE_DEFAULT) : ENABLE_AST_RBE_DEFAULT;
 
     /**
-     * After this many packets without the AST header, switch to the TOF RBE.
+     * After this many packets without the AST header, switch to the SS RBE.
      */
-    private static final long TOF_THRESHOLD = 30;
+    private static final long SS_THRESHOLD = 30;
 
     /**
      * The observer to notify on bitrate estimation changes.
@@ -83,13 +90,18 @@ public class RemoteBitrateEstimatorWrapper
     private int tccExtensionID = -1;
 
     /**
+     * The ID of the TCC RTP header extension.
+     */
+    private boolean supportsRemb = false;
+
+    /**
      * A boolean that determines whether the AST RBE is in use.
      */
     private boolean usingAbsoluteSendTime = false;
 
     /**
      * Counts packets without the AST header extension. After
-     * {@link #TOF_THRESHOLD} many packets we switch back to the
+     * {@link #SS_THRESHOLD} many packets we switch back to the
      * single stream RBE.
      */
     private int packetsSinceAbsoluteSendTime = 0;
@@ -153,14 +165,25 @@ public class RemoteBitrateEstimatorWrapper
      * {@inheritDoc}
      */
     @Override
-    public void incomingPacket(RawPacket pkt)
+    public void incomingPacketInfo(
+        long arrivalTimeMs, long timestamp, int payloadSize, long ssrc)
+    {
+        rbe.incomingPacketInfo(arrivalTimeMs, timestamp, payloadSize, ssrc);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public RawPacket reverseTransform(RawPacket pkt)
     {
         if (!isEnabled())
         {
-            return;
+            return pkt;
         }
 
         RawPacket.HeaderExtension ext = null;
+        int astExtensionID = this.astExtensionID;
         if (ENABLE_AST_RBE && astExtensionID != -1)
         {
             ext = pkt.getHeaderExtension((byte) astExtensionID);
@@ -173,12 +196,7 @@ public class RemoteBitrateEstimatorWrapper
             {
                 usingAbsoluteSendTime = true;
 
-                RemoteBitrateEstimatorAbsSendTime ast
-                    = new RemoteBitrateEstimatorAbsSendTime(observer);
-
-                ast.setExtensionID(astExtensionID);
-
-                this.rbe = ast;
+                this.rbe = new RemoteBitrateEstimatorAbsSendTime(observer);
 
                 int minBitrateBps = this.minBitrateBps;
                 if (minBitrateBps > 0)
@@ -192,11 +210,11 @@ public class RemoteBitrateEstimatorWrapper
         else
         {
             // When we don't see AST, wait for a few packets before going
-            // back to TOF.
+            // back to SS.
             if (usingAbsoluteSendTime)
             {
                 ++packetsSinceAbsoluteSendTime;
-                if (packetsSinceAbsoluteSendTime >= TOF_THRESHOLD)
+                if (packetsSinceAbsoluteSendTime >= SS_THRESHOLD)
                 {
                     usingAbsoluteSendTime = false;
                     rbe = new RemoteBitrateEstimatorSingleStream(observer);
@@ -210,7 +228,24 @@ public class RemoteBitrateEstimatorWrapper
             }
         }
 
-        rbe.incomingPacket(pkt);
+        if (!usingAbsoluteSendTime)
+        {
+            incomingPacketInfo(System.currentTimeMillis(), pkt.getTimestamp(),
+                pkt.getPayloadLength(), pkt.getSSRCAsLong());
+
+            return pkt;
+        }
+
+        long sendTime24bits = astExtensionID == -1
+            ? -1 : AbsSendTimeEngine.getAbsSendTime(pkt, (byte) astExtensionID);
+
+        if (usingAbsoluteSendTime && sendTime24bits != -1)
+        {
+            incomingPacketInfo(System.currentTimeMillis(), sendTime24bits,
+                pkt.getPayloadLength(), pkt.getSSRCAsLong());
+        }
+
+        return pkt;
     }
 
     /**
@@ -241,17 +276,6 @@ public class RemoteBitrateEstimatorWrapper
     }
 
     /**
-     * {@inheritDoc}
-     */
-    @Override
-    public RawPacket reverseTransform(RawPacket pkt)
-    {
-        this.incomingPacket(pkt);
-
-        return pkt;
-    }
-
-    /**
      * Sets the ID of the abs-send-time RTP extension. Set to -1 to effectively
      * disable the AST remote bitrate estimator.
      *
@@ -260,10 +284,6 @@ public class RemoteBitrateEstimatorWrapper
     public void setAstExtensionID(int astExtensionID)
     {
         this.astExtensionID = astExtensionID;
-        if (rbe instanceof RemoteBitrateEstimatorAbsSendTime)
-        {
-            ((RemoteBitrateEstimatorAbsSendTime) rbe).setExtensionID(astExtensionID);
-        }
     }
 
     /**
@@ -275,8 +295,19 @@ public class RemoteBitrateEstimatorWrapper
      */
     public boolean isEnabled()
     {
-        return tccExtensionID == -1 /* && supportsRemb */;
+        return tccExtensionID == -1 && supportsRemb;
     }
+
+    /**
+     * Sets the value of the flag which indicates whether the remote end
+     * supports RTCP REMB or not.
+     * @param supportsRemb the value to set.
+     */
+    public void setSupportsRemb(boolean supportsRemb)
+    {
+        this.supportsRemb = supportsRemb;
+    }
+
 
     /**
      * Sets the ID of the transport-cc RTP extension. Anything other than -1
