@@ -15,6 +15,8 @@
  */
 package org.jitsi.impl.neomedia.rtp.remotebitrateestimator;
 
+import org.jitsi.util.*;
+
 import java.util.*;
 
 /**
@@ -25,6 +27,14 @@ import java.util.*;
  */
 class OveruseEstimator
 {
+    /**
+     * The <tt>Logger</tt> used by the
+     * <tt>RemoteBitrateEstimatorAbsSendTime</tt> class and its instances for
+     * logging output.
+     */
+    private static final Logger logger
+        = Logger.getLogger(OveruseEstimator.class);
+
     private static final int kDeltaCounterMax = 1000;
 
     private static final int kMinFramePeriodHistoryLength = 60;
@@ -94,7 +104,7 @@ class OveruseEstimator
     private final double[] tsDeltaHist = new double[kMinFramePeriodHistoryLength];
 
     /**
-     * Index to insert next value into {@link tsDeltaHist}
+     * Index to insert next value into {@link #tsDeltaHist}
      */
     private int tsDeltaHistInsIdx;
 
@@ -239,6 +249,18 @@ class OveruseEstimator
         slope = slope + K[0] * residual;
         prevOffset = offset;
         offset = offset + K[1] * residual;
+
+        if (logger.isTraceEnabled())
+        {
+            logger.trace("delay_estimated" +
+                "," + System.currentTimeMillis() +
+                "," + tDelta +
+                "," + tsDelta +
+                "," + tTsDelta +
+                "," + offset +
+                "," + currentHypothesis +
+                "," + hashCode());
+        }
     }
 
     private double updateMinFramePeriod(double tsDelta)
