@@ -175,8 +175,9 @@ class InterArrival
             if (prevTimestampGroup.completeTimeMs >= 0)
             {
                 /* long timestampDelta */ deltas[0]
-                    = currentTimestampGroup.timestamp
-                        - prevTimestampGroup.timestamp;
+                    = TimestampUtils.subtractAsUnsignedInt32(
+                        currentTimestampGroup.timestamp,
+                        prevTimestampGroup.timestamp);
 
                 long arrivalTimeDeltaMs
                     = deltas[1]
@@ -262,8 +263,9 @@ class InterArrival
         }
         else
         {
-            long timestampDiff = TimestampUtils.subtractAsUnsignedInt32(
-                timestamp, currentTimestampGroup.firstTimestamp);
+            long timestampDiff
+                = TimestampUtils.subtractAsUnsignedInt32(
+                    timestamp, currentTimestampGroup.firstTimestamp);
 
             return timestampDiff > kTimestampGroupLengthTicks;
         }
