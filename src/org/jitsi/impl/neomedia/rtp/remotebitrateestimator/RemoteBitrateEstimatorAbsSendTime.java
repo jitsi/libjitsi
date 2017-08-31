@@ -471,7 +471,7 @@ public class RemoteBitrateEstimatorAbsSendTime
      * @param payloadSize the payload size of the packet.
      * @param ssrc the SSRC of the packet.
      */
-    private void incomingPacketInfo(
+    public void incomingPacketInfo(
         long arrivalTimeMs,
         long sendTime24bits,
         int payloadSize,
@@ -799,5 +799,15 @@ public class RemoteBitrateEstimatorAbsSendTime
             this.recvTimeMs = recvTimeMs;
             this.payloadSize = payloadSize;
         }
+    }
+
+    /**
+     * Converts rtp timestamps to 24bit timestamp equivalence
+     * @param timeMs is the RTP timestamp e.g System.currentTimeMillis().
+     * @return time stamp representation in 24 bit representation.
+     */
+    public static long convertMsTo24Bits(long timeMs)
+    {
+        return (((timeMs << kAbsSendTimeFraction) + 500) / 1000) & 0x00FFFFFF;
     }
 }
