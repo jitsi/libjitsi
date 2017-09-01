@@ -203,6 +203,15 @@ public class BandwidthEstimatorImpl
      * {@inheritDoc}
      */
     @Override
+    public void updateReceiverEstimate(long bandwidth)
+    {
+        sendSideBandwidthEstimation.updateReceiverEstimate(bandwidth);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public int getLatestFractionLoss()
     {
         return sendSideBandwidthEstimation.getLatestFractionLoss();

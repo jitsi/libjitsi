@@ -20,8 +20,6 @@ import java.util.*;
 import net.sf.fmj.media.rtp.util.*;
 
 import org.ice4j.util.*;
-import org.jitsi.impl.neomedia.*;
-import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.Logger;
@@ -34,10 +32,7 @@ import org.jitsi.util.Logger;
  * @author George Politis
  */
 public class RemoteBitrateEstimatorSingleStream
-    extends SinglePacketTransformerAdapter
-    implements CallStatsObserver,
-               RemoteBitrateEstimator,
-               TransformEngine
+    implements RemoteBitrateEstimator
 {
     /**
      * The <tt>Logger</tt> used by the
@@ -75,7 +70,7 @@ public class RemoteBitrateEstimatorSingleStream
 
     private final RemoteBitrateObserver observer;
 
-    private final Map<Integer,Detector> overuseDetectors = new HashMap<>();
+    private final Map<Long,Detector> overuseDetectors = new HashMap<>();
 
     private long processIntervalMs = kProcessIntervalMs;
 
@@ -88,7 +83,7 @@ public class RemoteBitrateEstimatorSingleStream
      * the purposes of reducing the number of allocations and the effects of
      * garbage collection.
      */
-    private Collection<Integer> ssrcs;
+    private Collection<Long> ssrcs;
 
     public RemoteBitrateEstimatorSingleStream(RemoteBitrateObserver observer)
     {
@@ -99,24 +94,6 @@ public class RemoteBitrateEstimatorSingleStream
     {
         // TODO Auto-generated method stub
         return 0;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public PacketTransformer getRTPTransformer()
-    {
-        return this;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public PacketTransformer getRTCPTransformer()
-    {
-        return null;
     }
 
     /**
@@ -145,7 +122,7 @@ public class RemoteBitrateEstimatorSingleStream
     }
 
     @Override
-    public Collection<Integer> getSsrcs()
+    public Collection<Long> getSsrcs()
     {
         synchronized (critSect)
         {
@@ -160,12 +137,17 @@ public class RemoteBitrateEstimatorSingleStream
     }
 
     /**
-     * {@inheritDoc}
+     * Notifies this instance of an incoming packet.
+     *
+     * @param arrivalTimeMs the arrival time of the packet in millis.
+     * @param timestamp the RTP timestamp of the packet (RFC3550).
+     * @param payloadSize the payload size of the packet.
+     * @param ssrc_ the SSRC of the packet.
      */
     @Override
-    public RawPacket reverseTransform(RawPacket pkt)
+    public void incomingPacketInfo(
+        long arrivalTimeMs, long timestamp, int payloadSize, long ssrc_)
     {
-        Integer ssrc_ = pkt.getSSRC();
         long nowMs = System.currentTimeMillis();
 
         synchronized (critSect)
@@ -192,7 +174,7 @@ public class RemoteBitrateEstimatorSingleStream
         Detector estimator = it;
 
         estimator.lastPacketTimeMs = nowMs;
-        this.incomingBitrate.update(pkt.getPayloadLength(), nowMs);
+        this.incomingBitrate.update(payloadSize, nowMs);
 
         BandwidthUsage priorState = estimator.detector.getState();
         long[] deltas = this.deltas;
@@ -202,9 +184,9 @@ public class RemoteBitrateEstimatorSingleStream
         /* int sizeDelta */ deltas[2] = 0;
 
         if (estimator.interArrival.computeDeltas(
-                pkt.getTimestamp(),
-                System.currentTimeMillis(),
-                pkt.getPayloadLength(),
+                timestamp,
+                nowMs,
+                payloadSize,
                 deltas))
         {
             double timestampDeltaMs
@@ -259,18 +241,8 @@ public class RemoteBitrateEstimatorSingleStream
         {
             updateEstimate(nowMs);
             lastProcessTime = nowMs;
-
-            if (logger.isTraceEnabled())
-            {
-                logger.trace("rbess_bitrate_estimated" +
-                    "," + nowMs +
-                    "," + getLatestEstimate() +
-                    "," + observer.hashCode());
-            }
         }
         } // synchronized (critSect)
-
-        return pkt;
     }
 
     /**
@@ -289,7 +261,7 @@ public class RemoteBitrateEstimatorSingleStream
      * {@inheritDoc}
      */
     @Override
-    public void removeStream(int ssrc)
+    public void removeStream(long ssrc)
     {
         synchronized (critSect)
         {
@@ -373,6 +345,14 @@ public class RemoteBitrateEstimatorSingleStream
 
             if (observer != null)
                 observer.onReceiveBitrateChanged(getSsrcs(), targetBitrate);
+            
+            if (logger.isTraceEnabled())
+            {
+                logger.trace("rbess_bitrate_estimated" +
+                    "," + nowMs +
+                    "," + targetBitrate +
+                    "," + observer.hashCode());
+            }
         }
 
         } // synchronized (critSect)

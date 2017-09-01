@@ -43,6 +43,15 @@ public interface BandwidthEstimator
     long getLatestREMB();
 
     /**
+     * void SendSideBandwidthEstimation::UpdateReceiverEstimate
+     * This is the entry/update point for the estimated bitrate in the
+     * REMBPacket or a Delay Based Controller estimated bitrate when the
+     * Delay based controller and the loss based controller lives on the
+     * send side. see internet draft on "Congestion Control for RTCWEB"
+     */
+    void updateReceiverEstimate(long bandwidth);
+
+    /**
      * @return the latest effective fraction loss calculated by this
      * {@link BandwidthEstimator}. The value is between 0 and 256 (corresponding
      * to 0% and 100% respectively).

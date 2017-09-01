@@ -80,6 +80,12 @@ public class RTPExtension
         = "urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id";
 
     /**
+     * The URN which identifies the transmission time-offset extensions
+     * in {@link "https://tools.ietf.org/html/rfc5450"}.
+     */
+    public static final String TOF_URN = "urn:ietf:params:rtp-hdrext:toffset";
+
+    /**
      * The direction that this extension will be transmitted in.
      */
     private MediaDirection direction = MediaDirection.SENDRECV;

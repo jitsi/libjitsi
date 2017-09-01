@@ -18,11 +18,11 @@ package org.jitsi.impl.neomedia.rtcp;
 import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.rtp.*;
+import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.*;
 import org.jitsi.impl.neomedia.rtp.translator.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.event.*;
-import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.*;
 import org.jitsi.util.concurrent.*;
 import org.jitsi.util.function.*;
@@ -131,7 +131,6 @@ public class RTCPReceiverFeedbackTermination
         if (remb == null)
         {
             rtcpPackets = rrs;
-            logger.warn("no_remb,stream=" + stream.hashCode());
         }
         else
         {
@@ -302,12 +301,16 @@ public class RTCPReceiverFeedbackTermination
      */
     private RTCPREMBPacket makeREMB(long senderSSRC)
     {
-        // TODO we should only make REMBs if REMB support has been advertised.
         // Destination
-        RemoteBitrateEstimator remoteBitrateEstimator
+        RemoteBitrateEstimatorWrapper remoteBitrateEstimator
             = stream.getRemoteBitrateEstimator();
 
-        Collection<Integer> ssrcs = remoteBitrateEstimator.getSsrcs();
+        if (!remoteBitrateEstimator.isEnabled())
+        {
+            return null;
+        }
+
+        Collection<Long> ssrcs = remoteBitrateEstimator.getSsrcs();
 
         // TODO(gp) intersect with SSRCs from signaled simulcast layers
         // NOTE(gp) The Google Congestion Control algorithm (sender side)
@@ -315,8 +318,8 @@ public class RTCPReceiverFeedbackTermination
         long[] dest = new long[ssrcs.size()];
         int i = 0;
 
-        for (Integer ssrc : ssrcs)
-            dest[i++] = ssrc & 0xFFFFFFFFL;
+        for (Long ssrc : ssrcs)
+            dest[i++] = ssrc;
 
         // Exp & mantissa
         long bitrate = remoteBitrateEstimator.getLatestEstimate();

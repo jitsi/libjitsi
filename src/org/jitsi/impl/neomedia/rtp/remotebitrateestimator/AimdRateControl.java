@@ -356,14 +356,14 @@ class AimdRateControl
         inExperiment = false;
     }
 
-    public void setEstimate(int bitrateBps, long nowMs)
+    public void setEstimate(long bitrateBps, long nowMs)
     {
         updated = true;
         bitrateIsInitialized = true;
         currentBitrateBps = changeBitrate(bitrateBps, bitrateBps, nowMs);
     }
 
-    public void setMinBitrate(int minBitrateBps)
+    public void setMinBitrate(long minBitrateBps)
     {
         minConfiguredBitrateBps = minBitrateBps;
         currentBitrateBps = Math.max(minBitrateBps, currentBitrateBps);

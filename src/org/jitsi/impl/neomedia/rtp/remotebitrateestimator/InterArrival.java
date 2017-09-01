@@ -27,24 +27,14 @@ import org.jitsi.util.*;
  * webrtc/modules/remote_bitrate_estimator/inter_arrival.h
  *
  * @author Lyubomir Marinov
+ * @author Julian Chukwu
+ * @author George Politis
  */
 class InterArrival
 {
     private static final int kBurstDeltaThresholdMs  = 5;
 
     private static final Logger logger = Logger.getLogger(InterArrival.class);
-
-    /**
-     * webrtc/modules/include/module_common_types.h
-     *
-     * @param timestamp
-     * @param prevTimestamp
-     * @return
-     */
-    private static boolean isNewerTimestamp(long timestamp, long prevTimestamp)
-    {
-        return TimestampUtils.isNewerTimestamp(timestamp, prevTimestamp);
-    }
 
     /**
      * webrtc/modules/include/module_common_types.h
@@ -108,7 +98,10 @@ class InterArrival
 
         long arrivalTimeDeltaMs
             = arrivalTimeMs - currentTimestampGroup.completeTimeMs;
-        long timestampDiff = timestamp - currentTimestampGroup.timestamp;
+
+        long timestampDiff = TimestampUtils
+            .subtractAsUnsignedInt32(timestamp, currentTimestampGroup.timestamp);
+
         long tsDeltaMs = (long) (timestampToMsCoeff * timestampDiff + 0.5);
 
         if (tsDeltaMs == 0)
@@ -155,7 +148,7 @@ class InterArrival
             long arrivalTimeMs,
             int packetSize,
             long[] deltas,
-            long systemTimeMs )
+            long systemTimeMs)
     {
         if (deltas == null)
             throw new NullPointerException("deltas");
@@ -182,8 +175,9 @@ class InterArrival
             if (prevTimestampGroup.completeTimeMs >= 0)
             {
                 /* long timestampDelta */ deltas[0]
-                    = currentTimestampGroup.timestamp
-                        - prevTimestampGroup.timestamp;
+                    = TimestampUtils.subtractAsUnsignedInt32(
+                        currentTimestampGroup.timestamp,
+                        prevTimestampGroup.timestamp);
 
                 long arrivalTimeDeltaMs
                     = deltas[1]
@@ -270,7 +264,8 @@ class InterArrival
         else
         {
             long timestampDiff
-                = timestamp - currentTimestampGroup.firstTimestamp;
+                = TimestampUtils.subtractAsUnsignedInt32(
+                    timestamp, currentTimestampGroup.firstTimestamp);
 
             return timestampDiff > kTimestampGroupLengthTicks;
         }
@@ -295,7 +290,8 @@ class InterArrival
             // interval (32 bits) must be due to reordering. This code is almost
             // identical to that in isNewerTimestamp() in module_common_types.h.
             long timestampDiff
-                    = TimestampUtils.subtractAsUnsignedInt32(timestamp, currentTimestampGroup.firstTimestamp);
+                = TimestampUtils.subtractAsUnsignedInt32(
+                    timestamp, currentTimestampGroup.firstTimestamp);
 
             return timestampDiff < 0x80000000L;
         }

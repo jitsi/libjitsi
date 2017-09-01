@@ -228,7 +228,7 @@ public class RTPUtils
      */
     public static long as32Bits(long value)
     {
-        return value & 0xFFFFFFFF;
+        return value & 0xFFFFFFFFL;
     }
 
     /**

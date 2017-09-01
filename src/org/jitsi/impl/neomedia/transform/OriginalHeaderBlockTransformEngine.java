@@ -55,7 +55,7 @@ public class OriginalHeaderBlockTransformEngine
     /**
      * The ID of the OHB RTP header extension, or -1 if it is not enabled.
      */
-    private byte extensionID = -1;
+    private int extensionID = -1;
 
     /**
      * Initializes a new {@link OriginalHeaderBlockTransformEngine} instance.
@@ -225,7 +225,7 @@ public class OriginalHeaderBlockTransformEngine
      */
     private void addExtension(RawPacket pkt)
     {
-        RawPacket.HeaderExtension he = pkt.addExtension(extensionID, 11);
+        RawPacket.HeaderExtension he = pkt.addExtension((byte) extensionID, 11);
 
         byte[] buf = he.getBuffer();
         int off = he.getOffset();
@@ -242,7 +242,7 @@ public class OriginalHeaderBlockTransformEngine
      * disable this transformer.
      * @param id the ID to set.
      */
-    public void setExtensionID(byte id)
+    public void setExtensionID(int id)
     {
         extensionID = id;
     }

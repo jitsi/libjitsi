@@ -33,8 +33,8 @@ import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.format.*;
 import org.jitsi.impl.neomedia.protocol.*;
-import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.impl.neomedia.rtp.*;
+import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.*;
 import org.jitsi.impl.neomedia.rtp.translator.*;
 import org.jitsi.impl.neomedia.stats.*;
 import org.jitsi.impl.neomedia.transform.*;
@@ -49,7 +49,6 @@ import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.control.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
-import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.*;
 
 /**
@@ -343,7 +342,7 @@ public class MediaStreamImpl
      * The ID of the frame markings RTP header extension. We use this field as
      * a cache, in order to not access {@link #activeRTPExtensions} every time.
      */
-    private byte frameMarkingsExtensionId = -1;
+    private int frameMarkingsExtensionId = -1;
 
     /**
      * The {@link TransportCCEngine} instance, if any, for this
@@ -643,6 +642,44 @@ public class MediaStreamImpl
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void clearRTPExtensions()
+    {
+        synchronized (activeRTPExtensions)
+        {
+            activeRTPExtensions.clear();
+
+            frameMarkingsExtensionId = -1;
+
+            if (transportCCEngine != null)
+            {
+                transportCCEngine.setExtensionID(-1);
+            }
+
+            if (ohbEngine != null)
+            {
+                ohbEngine.setExtensionID((byte) -1);
+            }
+
+            RemoteBitrateEstimatorWrapper remoteBitrateEstimatorWrapper
+                = getRemoteBitrateEstimator();
+
+            if (remoteBitrateEstimatorWrapper != null)
+            {
+                remoteBitrateEstimatorWrapper.setAstExtensionID(-1);
+                remoteBitrateEstimatorWrapper.setTccExtensionID(-1);
+            }
+
+            if (absSendTimeEngine != null)
+            {
+                absSendTimeEngine.setExtensionID(-1);
+            }
+        }
+    }
+
+    /**
      * Enables all RTP extensions configured for this {@link MediaStream}.
      */
     private void enableRTPExtensions()
@@ -667,7 +704,7 @@ public class MediaStreamImpl
         boolean active
             = !MediaDirection.INACTIVE.equals(rtpExtension.getDirection());
 
-        byte effectiveId = active ? extensionID : -1;
+        int effectiveId = active ? RTPUtils.as16Bits(extensionID) : -1;
 
         String uri = rtpExtension.getURI().toString();
         if (RTPExtension.ABS_SEND_TIME_URN.equals(uri))
@@ -675,6 +712,15 @@ public class MediaStreamImpl
             if (absSendTimeEngine != null)
             {
                 absSendTimeEngine.setExtensionID(effectiveId);
+            }
+
+            RemoteBitrateEstimatorWrapper remoteBitrateEstimatorWrapper
+                = getRemoteBitrateEstimator();
+
+            if (remoteBitrateEstimatorWrapper != null)
+            {
+                remoteBitrateEstimatorWrapper
+                    .setAstExtensionID(effectiveId);
             }
         }
         else if (RTPExtension.FRAME_MARKING_URN.equals(uri))
@@ -688,6 +734,13 @@ public class MediaStreamImpl
         else if (RTPExtension.TRANSPORT_CC_URN.equals(uri))
         {
             transportCCEngine.setExtensionID(effectiveId);
+            RemoteBitrateEstimatorWrapper remoteBitrateEstimatorWrapper
+                = getRemoteBitrateEstimator();
+
+            if (remoteBitrateEstimatorWrapper != null)
+            {
+                remoteBitrateEstimatorWrapper.setTccExtensionID(effectiveId);
+            }
         }
     }
 
@@ -1103,7 +1156,7 @@ public class MediaStreamImpl
 
         // TODO RTCP termination should end up here.
 
-        RemoteBitrateEstimator
+        RemoteBitrateEstimatorWrapper
             remoteBitrateEstimator = getRemoteBitrateEstimator();
         if (remoteBitrateEstimator != null)
         {
@@ -3660,7 +3713,7 @@ public class MediaStreamImpl
         if (frameMarkingsExtensionId != -1)
         {
             RawPacket.HeaderExtension fmhe
-                = pkt.getHeaderExtension(frameMarkingsExtensionId);
+                = pkt.getHeaderExtension((byte) frameMarkingsExtensionId);
 
             if (fmhe != null)
             {
@@ -3746,7 +3799,7 @@ public class MediaStreamImpl
             RawPacket pkt = new RawPacket(buf, off, len);
 	    String encoding = getFormat(pkt.getPayloadType()).getEncoding();
             RawPacket.HeaderExtension fmhe
-                = pkt.getHeaderExtension(frameMarkingsExtensionId);
+                = pkt.getHeaderExtension((byte) frameMarkingsExtensionId);
             if (fmhe != null)
             {
                 return FrameMarkingHeaderExtension.getSpatialID(fmhe,encoding);
@@ -3811,7 +3864,7 @@ public class MediaStreamImpl
         }
         else
         {
-            return pkt.getHeaderExtension(frameMarkingsExtensionId) != null;
+            return pkt.getHeaderExtension((byte) frameMarkingsExtensionId) != null;
         }
     }
 
@@ -3837,7 +3890,7 @@ public class MediaStreamImpl
         if (frameMarkingsExtensionId != -1)
         {
             RawPacket.HeaderExtension fmhe
-                = pkt.getHeaderExtension(frameMarkingsExtensionId);
+                = pkt.getHeaderExtension((byte) frameMarkingsExtensionId);
             if (fmhe != null)
             {
                 return FrameMarkingHeaderExtension.isStartOfFrame(fmhe);
@@ -3897,7 +3950,7 @@ public class MediaStreamImpl
         if (frameMarkingsExtensionId != -1)
         {
             RawPacket.HeaderExtension fmhe
-                = pkt.getHeaderExtension(frameMarkingsExtensionId);
+                = pkt.getHeaderExtension((byte) frameMarkingsExtensionId);
             if (fmhe != null)
             {
                 return FrameMarkingHeaderExtension.isEndOfFrame(fmhe);
@@ -3955,7 +4008,7 @@ public class MediaStreamImpl
         if (frameMarkingsExtensionId != -1)
         {
             RawPacket.HeaderExtension fmhe
-                = pkt.getHeaderExtension(frameMarkingsExtensionId);
+                = pkt.getHeaderExtension((byte) frameMarkingsExtensionId);
             if (fmhe != null)
             {
                 return FrameMarkingHeaderExtension.isKeyframe(fmhe);
@@ -4130,7 +4183,7 @@ public class MediaStreamImpl
      * @return the <tt>RemoteBitrateEstimator</tt> of this
      * <tt>VideoMediaStream</tt> if any; otherwise, <tt>null</tt>
      */
-    public RemoteBitrateEstimator getRemoteBitrateEstimator()
+    public RemoteBitrateEstimatorWrapper getRemoteBitrateEstimator()
     {
         return null;
     }
@@ -4163,14 +4216,5 @@ public class MediaStreamImpl
         {
             transportCCEngine.addMediaStream(this);
         }
-    }
-
-    /**
-     * @return {@Link getAbsSendTimeEngine} returns the AbsSendTimeEngine
-     * for this media stream
-     */
-    public AbsSendTimeEngine getAbsSendTimeEngine()
-    {
-        return absSendTimeEngine;
     }
 }
