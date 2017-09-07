@@ -20,9 +20,7 @@ import java.util.*;
 import net.sf.fmj.media.rtp.util.*;
 
 import org.ice4j.util.*;
-import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.rtp.*;
-import org.jitsi.util.Logger;
 
 /**
  * webrtc/modules/remote_bitrate_estimator/remote_bitrate_estimator_single_stream.cc
@@ -34,14 +32,6 @@ import org.jitsi.util.Logger;
 public class RemoteBitrateEstimatorSingleStream
     implements RemoteBitrateEstimator
 {
-    /**
-     * The <tt>Logger</tt> used by the
-     * <tt>RemoteBitrateEstimatorSingleStream</tt> class and its instances for
-     * logging output.
-     */
-    private static final Logger logger
-        = Logger.getLogger(RemoteBitrateEstimatorSingleStream.class);
-
     static final double kTimestampToMs = 1.0 / 90.0;
 
     private final Object critSect = new Object();
