@@ -54,8 +54,8 @@ public class RemoteBitrateEstimatorAbsSendTime
     private final static int kAbsSendTimeInterArrivalUpshift = 8;
 
     /**
-     * This is used with the {@link #interArrival}. In this estimator a
-     * timestamp group is defined as all packets with a timestamp which are at
+     * This is used in the {@link InterArrival} computations. In this estimator
+     * a timestamp group is defined as all packets with a timestamp which are at
      * most 5ms older than the first timestamp in that group.
      */
     private final static int kTimestampGroupLengthMs = 5;
@@ -69,7 +69,7 @@ public class RemoteBitrateEstimatorAbsSendTime
 
     /**
      * Converts the {@link #kTimestampGroupLengthMs} into "ticks" for use with
-     * the {@link #interArrival}.
+     * the {@link InterArrival}.
      */
     private static final long kTimestampGroupLengthTicks
         = (kTimestampGroupLengthMs << kInterArrivalShift) / 1000;
@@ -183,19 +183,10 @@ public class RemoteBitrateEstimatorAbsSendTime
     private final AimdRateControl remoteRate = new AimdRateControl();
 
     /**
-     * Computes the send-time and recv-time deltas to feed to the estimator.
+     * Holds the {@link InterArrival}, {@link OveruseEstimator} and
+     * {@link OveruseDetector} instances of this RBE.
      */
-    private InterArrival interArrival;
-
-    /**
-     * The Kalman filter implementation that estimates the jitter.
-     */
-    private OveruseEstimator estimator;
-
-    /**
-     * The overuse detector that compares the jitter to an adaptive threshold.
-     */
-    private final OveruseDetector detector;
+    private Detector detector;
 
     /**
      * Keeps track of how much data we're receiving.
@@ -215,11 +206,6 @@ public class RemoteBitrateEstimatorAbsSendTime
     public RemoteBitrateEstimatorAbsSendTime(RemoteBitrateObserver observer)
     {
         this.observer = observer;
-        this.interArrival = new InterArrival(
-            kTimestampGroupLengthTicks, kTimestampToMs, true);
-
-        this.estimator = new OveruseEstimator(new OverUseDetectorOptions());
-        this.detector = new OveruseDetector(new OverUseDetectorOptions());
         this.incomingBitrate = new RateStatistics(kBitrateWindowMs, kBitrateScale);
         this.incomingBitrateInitialized = false;
         this.totalProbesReceived = 0;
@@ -540,19 +526,32 @@ public class RemoteBitrateEstimatorAbsSendTime
             /* long timeDelta */ deltas[1] = 0;
             /* int sizeDelta */ deltas[2] = 0;
 
-            if (interArrival.computeDeltas(
+            if (detector == null)
+            {
+                detector = new Detector(new OverUseDetectorOptions(), true);
+                if (logger.isTraceEnabled())
+                {
+                    logger.trace("new_detector," + remoteRate.hashCode()
+                        + "," + detector.detector.hashCode()
+                        + "," + detector.estimator.hashCode()
+                        + "," + detector.interArrival.hashCode());
+                }
+            }
+
+            if (detector.interArrival.computeDeltas(
                 timestamp, arrivalTimeMs, payloadSize, deltas, nowMs))
             {
                 double tsDeltaMs = deltas[0] * kTimestampToMs;
 
-                estimator.update(
+                detector.estimator.update(
                     /* timeDelta */ deltas[1],
                     /* timestampDelta */ tsDeltaMs,
                     /* sizeDelta */ (int) deltas[2],
-                    detector.getState(), nowMs);
+                    detector.detector.getState(), nowMs);
 
-                detector.detect(estimator.getOffset(), tsDeltaMs,
-                    estimator.getNumOfDeltas(), arrivalTimeMs);
+                detector.detector.detect(
+                    detector.estimator.getOffset(), tsDeltaMs,
+                    detector.estimator.getNumOfDeltas(), arrivalTimeMs);
             }
 
             if (!updateEstimate)
@@ -564,7 +563,8 @@ public class RemoteBitrateEstimatorAbsSendTime
                 {
                     updateEstimate = true;
                 }
-                else if (detector.getState() == BandwidthUsage.kBwOverusing)
+                else if (
+                    detector.detector.getState() == BandwidthUsage.kBwOverusing)
                 {
                     long incomingRate_ = incomingBitrate.getRate(arrivalTimeMs);
 
@@ -582,9 +582,9 @@ public class RemoteBitrateEstimatorAbsSendTime
                 // We also have to update the estimate immediately if we are
                 // overusing and the target bitrate is too high compared to
                 // what we are receiving.
-                input.bwState = detector.getState();
+                input.bwState = detector.detector.getState();
                 input.incomingBitRate = incomingBitrate.getRate(arrivalTimeMs);
-                input.noiseVar = estimator.getVarNoise();
+                input.noiseVar = detector.estimator.getVarNoise();
 
                 remoteRate.update(input, nowMs);
                 targetBitrateBps = remoteRate.updateBandwidthEstimate(nowMs);
@@ -627,15 +627,10 @@ public class RemoteBitrateEstimatorAbsSendTime
             ssrcs = Collections.unmodifiableCollection(ssrcsMap.keySet());
         }
 
-        if (ssrcsMap.isEmpty())
+        if (detector != null && ssrcsMap.isEmpty())
         {
             // We can't update the estimate if we don't have any active streams.
-            interArrival = new InterArrival(
-                kTimestampGroupLengthTicks,
-                kTimestampToMs /* timestampToMsCoeff */,
-                true /* enableBurstGrouping */);
-
-            estimator = new OveruseEstimator(new OverUseDetectorOptions());
+            detector = null;
             // We deliberately don't reset the first_packet_time_ms_
             // here for now since we only probe for bandwidth in the
             // beginning of a call right now.
@@ -746,6 +741,45 @@ public class RemoteBitrateEstimatorAbsSendTime
             this.sendTimeMs = sendTimeMs;
             this.recvTimeMs = recvTimeMs;
             this.payloadSize = payloadSize;
+        }
+    }
+
+    /**
+     * Holds the {@link InterArrival}, {@link OveruseEstimator} and
+     * {@link OveruseDetector} instances that estimate the remote bitrate of a
+     * stream.
+     */
+    private static class Detector
+    {
+        /**
+         * Computes the send-time and recv-time deltas to feed to the estimator.
+         */
+        private InterArrival interArrival;
+
+        /**
+         * The Kalman filter implementation that estimates the jitter.
+         */
+        private OveruseEstimator estimator;
+
+        /**
+         * The overuse detector that compares the jitter to an adaptive threshold.
+         */
+        private final OveruseDetector detector;
+
+        /**
+         * Ctor.
+         *
+         * @param options
+         * @param enableBurstGrouping
+         */
+        public Detector(OverUseDetectorOptions options,
+            boolean enableBurstGrouping)
+        {
+            this.interArrival = new InterArrival(
+                kTimestampGroupLengthTicks, kTimestampToMs, enableBurstGrouping);
+
+            this.estimator = new OveruseEstimator(options);
+            this.detector = new OveruseDetector(options);
         }
     }
 
