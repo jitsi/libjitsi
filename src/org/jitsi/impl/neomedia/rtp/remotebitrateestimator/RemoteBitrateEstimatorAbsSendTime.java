@@ -549,7 +549,7 @@ public class RemoteBitrateEstimatorAbsSendTime
                     /* timeDelta */ deltas[1],
                     /* timestampDelta */ tsDeltaMs,
                     /* sizeDelta */ (int) deltas[2],
-                    detector.getState());
+                    detector.getState(), nowMs);
 
                 detector.detect(estimator.getOffset(), tsDeltaMs,
                     estimator.getNumOfDeltas(), arrivalTimeMs);
@@ -598,14 +598,6 @@ public class RemoteBitrateEstimatorAbsSendTime
             if (observer != null)
             {
                 observer.onReceiveBitrateChanged(getSsrcs(), targetBitrateBps);
-
-                if (logger.isTraceEnabled())
-                {
-                    logger.trace("rbeast_bitrate_estimated" +
-                        "," + nowMs +
-                        "," + targetBitrateBps +
-                        "," + observer.hashCode());
-                }
             }
         }
     }

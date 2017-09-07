@@ -196,22 +196,12 @@ public class RemoteBitrateEstimatorSingleStream
                     /* timeDelta */ deltas[1],
                     timestampDeltaMs,
                     /* sizeDelta */ (int) deltas[2],
-                    estimator.detector.getState());
+                    estimator.detector.getState(), nowMs);
             estimator.detector.detect(
                     estimator.estimator.getOffset(),
                     timestampDeltaMs,
                     estimator.estimator.getNumOfDeltas(),
                     nowMs);
-
-            if (logger.isTraceEnabled())
-            {
-                logger.trace("rbess_delay_estimated" +
-                    "," + nowMs +
-                    "," + (deltas[1] - timestampDeltaMs) +
-                    "," + estimator.estimator.getOffset() +
-                    "," + estimator.detector.getState() +
-                    "," + observer.hashCode());
-            }
         }
 
         boolean updateEstimate = false;
@@ -345,14 +335,6 @@ public class RemoteBitrateEstimatorSingleStream
 
             if (observer != null)
                 observer.onReceiveBitrateChanged(getSsrcs(), targetBitrate);
-            
-            if (logger.isTraceEnabled())
-            {
-                logger.trace("rbess_bitrate_estimated" +
-                    "," + nowMs +
-                    "," + targetBitrate +
-                    "," + observer.hashCode());
-            }
         }
 
         } // synchronized (critSect)

@@ -16,6 +16,7 @@
 package org.jitsi.impl.neomedia.rtp.remotebitrateestimator;
 
 import org.jitsi.service.neomedia.rtp.*;
+import org.jitsi.util.*;
 
 /**
  * A rate control implementation based on additive increases of bitrate when no
@@ -30,6 +31,14 @@ import org.jitsi.service.neomedia.rtp.*;
  */
 class AimdRateControl
 {
+    /**
+     * The <tt>Logger</tt> used by the
+     * <tt>RemoteBitrateEstimatorAbsSendTime</tt> class and its instances for
+     * logging output.
+     */
+    private static final Logger logger
+        = Logger.getLogger(AimdRateControl.class);
+
     private static final int kDefaultRttMs = 200;
 
     private static final long kInitializationTimeMs = 5000;
@@ -417,6 +426,15 @@ class AimdRateControl
                     currentBitrateBps,
                     currentInput.incomingBitRate,
                     nowMs);
+
+        if (isValidEstimate() && logger.isTraceEnabled())
+        {
+            logger.trace("new_rate_estimate" +
+                "," + hashCode() +
+                "," + nowMs +
+                "," + currentBitrateBps);
+        }
+
         if (nowMs - timeOfLastLog > kLogIntervalMs)
             timeOfLastLog = nowMs;
         return currentBitrateBps;

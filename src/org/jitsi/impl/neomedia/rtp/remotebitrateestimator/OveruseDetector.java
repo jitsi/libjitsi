@@ -15,6 +15,8 @@
  */
 package org.jitsi.impl.neomedia.rtp.remotebitrateestimator;
 
+import org.jitsi.util.*;
+
 /**
  * webrtc/modules/remote_bitrate_estimator/overuse_detector.cc
  * webrtc/modules/remote_bitrate_estimator/overuse_detector.h
@@ -23,6 +25,9 @@ package org.jitsi.impl.neomedia.rtp.remotebitrateestimator;
  */
 class OveruseDetector
 {
+    private static final Logger logger
+        = Logger.getLogger(OveruseDetector.class);
+
     private static final double kMaxAdaptOffsetMs = 15.0;
 
     private static final int kOverUsingTimeThreshold = 100;
@@ -87,6 +92,8 @@ class OveruseDetector
 
         double T = Math.min(numOfDeltas, 60) * offset;
 
+        boolean newHypothesis = false;
+
         if (T > threshold)
         {
             if (timeOverUsing == -1)
@@ -109,6 +116,7 @@ class OveruseDetector
                     timeOverUsing = 0;
                     overuseCounter = 0;
                     hypothesis = BandwidthUsage.kBwOverusing;
+                    newHypothesis = true;
                 }
             }
         }
@@ -117,12 +125,25 @@ class OveruseDetector
             timeOverUsing = -1;
             overuseCounter = 0;
             hypothesis = BandwidthUsage.kBwUnderusing;
+            newHypothesis = true;
         }
         else
         {
             timeOverUsing = -1;
             overuseCounter = 0;
             hypothesis = BandwidthUsage.kBwNormal;
+            newHypothesis = true;
+        }
+
+        if (newHypothesis && logger.isTraceEnabled())
+        {
+            logger.trace("new_utilization_hypothesis," + hashCode()
+                + "," + nowMs
+                + "," + offset
+                + "," + prev_offset
+                + "," + T
+                + "," + threshold
+                + "," + hypothesis.getValue());
         }
 
         updateThreshold(T, nowMs);

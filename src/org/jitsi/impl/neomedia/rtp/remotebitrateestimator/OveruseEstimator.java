@@ -172,7 +172,7 @@ class OveruseEstimator
             long tDelta,
             double tsDelta,
             int sizeDelta,
-            BandwidthUsage currentHypothesis)
+            BandwidthUsage currentHypothesis, long systemTimeMs)
     {
         double minFramePeriod = updateMinFramePeriod(tsDelta);
         double tTsDelta = tDelta - tsDelta;
@@ -252,14 +252,14 @@ class OveruseEstimator
 
         if (logger.isTraceEnabled())
         {
-            logger.trace("delay_estimated" +
-                "," + System.currentTimeMillis() +
+            logger.trace("new_jitter_estimate" +
+                    "," + hashCode() +
+                "," + systemTimeMs +
                 "," + tDelta +
                 "," + tsDelta +
                 "," + tTsDelta +
                 "," + offset +
-                "," + currentHypothesis +
-                "," + hashCode());
+                "," + currentHypothesis);
         }
     }
 

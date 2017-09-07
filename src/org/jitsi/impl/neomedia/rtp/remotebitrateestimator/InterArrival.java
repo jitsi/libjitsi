@@ -221,6 +221,14 @@ class InterArrival
                 /* int packetSizeDelta */ deltas[2]
                     = (int)
                         (currentTimestampGroup.size - prevTimestampGroup.size);
+
+                if (logger.isTraceEnabled())
+                {
+                    logger.trace("computed_deltas," + hashCode()
+                        + "," + arrivalTimeMs + "," + deltas[0] + "," + deltas[1]
+                        + "," + deltas[2]);
+                }
+
                 calculatedDeltas = true;
             }
             prevTimestampGroup.copy(currentTimestampGroup);
