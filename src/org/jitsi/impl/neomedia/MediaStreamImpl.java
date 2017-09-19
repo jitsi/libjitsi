@@ -1079,13 +1079,17 @@ public class MediaStreamImpl
 
         // CSRCs and CSRC audio levels
         if (csrcEngine == null)
+        {
             csrcEngine = new CsrcTransformEngine(this);
+        }
         engineChain.add(csrcEngine);
 
         // DTMF
         DtmfTransformEngine dtmfEngine = createDtmfTransformEngine();
         if (dtmfEngine != null)
+        {
             engineChain.add(dtmfEngine);
+        }
 
         engineChain.add(externalTransformerWrapper);
 
@@ -1134,7 +1138,6 @@ public class MediaStreamImpl
 
         MediaStreamTrackReceiver mediaStreamTrackReceiver
             = getMediaStreamTrackReceiver();
-
         if (mediaStreamTrackReceiver != null)
         {
             engineChain.add(mediaStreamTrackReceiver);
@@ -1197,7 +1200,9 @@ public class MediaStreamImpl
          */
         SsrcTransformEngine ssrcEngine = createSsrcTransformEngine();
         if (ssrcEngine != null)
+        {
             engineChain.add(ssrcEngine);
+        }
 
         // RTP extensions may be implemented in some of the engines just
         // created (e.g. abs-send-time, ohb, transport-cc). So take into
