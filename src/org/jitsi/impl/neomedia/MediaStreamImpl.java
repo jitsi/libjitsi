@@ -3788,33 +3788,30 @@ public class MediaStreamImpl
      * Utility method that determines the spatial layer index (SID) of an RTP
      * packet.
      *
-     * @param buf the buffer that holds the RTP payload.
-     * @param off the offset in the buff where the RTP payload is found.
-     * @param len then length of the RTP payload in the buffer.
+     * @param pkt the RTP packet.
      *
      * @return the SID of the packet, -1 otherwise.
      *
      * FIXME(gp) conceptually this belongs to the {@link VideoMediaStreamImpl},
      * but I don't want to be obliged to cast to use this method.
      */
-    public int getSpatialID(byte[] buf, int off, int len)
+    public int getSpatialID(RawPacket pkt)
     {
-        if (frameMarkingsExtensionId != -1) 
-	{
-            RawPacket pkt = new RawPacket(buf, off, len);
-	    String encoding = getFormat(pkt.getPayloadType()).getEncoding();
+        if (frameMarkingsExtensionId != -1)
+        {
+            String encoding = getFormat(pkt.getPayloadType()).getEncoding();
             RawPacket.HeaderExtension fmhe
                 = pkt.getHeaderExtension((byte) frameMarkingsExtensionId);
             if (fmhe != null)
             {
-                return FrameMarkingHeaderExtension.getSpatialID(fmhe,encoding);
+                return FrameMarkingHeaderExtension.getSpatialID(fmhe, encoding);
             }
             // Note that we go on and try to use the payload itself. We may want
             // to change this behaviour in the future, because it will give
             // wrong results if the payload is encrypted.
         }
 
-        REDBlock redBlock = getPrimaryREDBlock(buf, off, len);
+        REDBlock redBlock = getPrimaryREDBlock(pkt);
         if (redBlock == null || redBlock.getLength() == 0)
         {
             return -1;
