@@ -523,17 +523,14 @@ public class RTPEncodingDesc
     }
 
     /**
-     * Gets a boolean indicating whether or not the packet specified in the
-     * arguments matches this encoding or not.
+     * Gets a boolean indicating whether or not the specified packet matches
+     * this encoding or not. Assumes that the packet is valid.
      *
-     * @param buf the <tt>byte</tt> array that contains the RTP packet data.
-     * @param off the offset in <tt>buf</tt> at which the actual data starts.
-     * @param len the number of <tt>byte</tt>s in <tt>buf</tt> which
-     * constitute the actual data.
+     * @param pkt the RTP packet.
      */
-    public boolean matches(byte[] buf, int off, int len)
+    boolean matches(RawPacket pkt)
     {
-        long ssrc = RawPacket.getSSRCAsLong(buf, off, len);
+        long ssrc = pkt.getSSRCAsLong();
 
         if (primarySSRC != ssrc && rtxSSRC != ssrc)
         {
@@ -545,10 +542,16 @@ public class RTPEncodingDesc
             return true;
         }
 
-        int tid = this.tid != -1 ? track.getMediaStreamTrackReceiver()
-            .getStream().getTemporalID(buf, off, len) : -1,
-            sid = this.sid != -1 ? track.getMediaStreamTrackReceiver()
-            .getStream().getSpatialID(buf, off, len) : -1;
+        int tid
+            = this.tid != -1
+                    ? track.getMediaStreamTrackReceiver()
+                            .getStream().getTemporalID(pkt)
+                    : -1;
+        int sid
+            = this.sid != -1
+                    ? track.getMediaStreamTrackReceiver()
+                            .getStream().getSpatialID(pkt)
+                    : -1;
 
         return (tid == -1 && sid == -1 && idx == 0)
             || (tid == this.tid && sid == this.sid);
@@ -581,8 +584,6 @@ public class RTPEncodingDesc
      *
      * @param pkt
      * @param nowMs
-     *
-     * @return the {@link FrameDesc} that was updated, otherwise null.
      */
     void update(RawPacket pkt, long nowMs)
     {
@@ -606,7 +607,8 @@ public class RTPEncodingDesc
             lastStableBitrateBps = getBitrateBps(nowMs);
 
             if (lastReceivedFrame == null
-                || RTPUtils.rtpTimestampDiff(ts, lastReceivedFrame.getTimestamp()) > 0)
+                || RTPUtils.isNewerTimestampThan(
+                        ts, lastReceivedFrame.getTimestamp()))
             {
                 lastReceivedFrame = frame;
             }

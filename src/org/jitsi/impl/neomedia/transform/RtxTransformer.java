@@ -484,8 +484,8 @@ public class RtxTransformer
                             mediaSSRC, container.pkt.getLength());
 
                         // We just retransmitted the packet. Update its
-                        // timestamp so that we use the new timestamp when we
-                        // handle subsequent NACKs.
+                        // timestamp in the cache so that we use the new
+                        // timestamp when we handle subsequent NACKs.
                         cache.updateTimestamp(mediaSSRC, seq, now);
 
                         i.remove();
@@ -647,8 +647,6 @@ public class RtxTransformer
                 return pkt;
             }
 
-            boolean success = false;
-
             if (pkt.getPayloadLength() - pkt.getPaddingSize() < 2)
             {
                 // We need at least 2 bytes to read the OSN field.
@@ -661,6 +659,7 @@ public class RtxTransformer
                 return null;
             }
 
+            boolean success = false;
             long mediaSsrc = getPrimarySsrc(pkt.getSSRCAsLong());
             if (mediaSsrc != -1)
             {

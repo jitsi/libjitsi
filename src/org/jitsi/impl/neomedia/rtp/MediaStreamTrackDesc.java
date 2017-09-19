@@ -350,25 +350,22 @@ public class MediaStreamTrackDesc
 
     /**
      * Finds the {@link RTPEncodingDesc} that corresponds to the packet that is
-     * specified in the buffer passed in as an argument.
+     * passed in as an argument. Assumes that the packet is valid.
      *
-     * @param buf the byte array that holds the RTP packet.
-     * @param off the offset in the byte array where the actual data starts
-     * @param len the length of the actual data
+     * @param pkt the packet to match.
      * @return the {@link RTPEncodingDesc} that corresponds to the packet that is
      * specified in the buffer passed in as an argument, or null.
      */
-    RTPEncodingDesc findRTPEncodingDesc(byte[] buf, int off, int len)
+    RTPEncodingDesc findRTPEncodingDesc(RawPacket pkt)
     {
-        if (buf == null || buf.length < off + len
-            || ArrayUtils.isNullOrEmpty(rtpEncodings))
+        if (ArrayUtils.isNullOrEmpty(rtpEncodings))
         {
             return null;
         }
 
         for (RTPEncodingDesc encoding : rtpEncodings)
         {
-            if (encoding.matches(buf, off, len))
+            if (encoding.matches(pkt))
             {
                 return encoding;
             }

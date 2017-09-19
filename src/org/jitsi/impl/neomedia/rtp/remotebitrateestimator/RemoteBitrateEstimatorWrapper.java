@@ -90,7 +90,8 @@ public class RemoteBitrateEstimatorWrapper
     private int tccExtensionID = -1;
 
     /**
-     * The ID of the TCC RTP header extension.
+     * The flag which indicates whether the remote end supports RTCP REMB or
+     * not.
      */
     private boolean supportsRemb = false;
 
@@ -177,7 +178,7 @@ public class RemoteBitrateEstimatorWrapper
     @Override
     public RawPacket reverseTransform(RawPacket pkt)
     {
-        if (!isEnabled())
+        if (!receiveSideBweEnabled())
         {
             return pkt;
         }
@@ -293,7 +294,7 @@ public class RemoteBitrateEstimatorWrapper
      * @return true if receive-side bandwidth estimations are enabled, false
      * otherwise.
      */
-    public boolean isEnabled()
+    public boolean receiveSideBweEnabled()
     {
         return tccExtensionID == -1 && supportsRemb;
     }

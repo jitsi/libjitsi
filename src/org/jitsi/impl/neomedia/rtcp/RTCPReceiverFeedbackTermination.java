@@ -305,7 +305,7 @@ public class RTCPReceiverFeedbackTermination
         RemoteBitrateEstimatorWrapper remoteBitrateEstimator
             = stream.getRemoteBitrateEstimator();
 
-        if (!remoteBitrateEstimator.isEnabled())
+        if (!remoteBitrateEstimator.receiveSideBweEnabled())
         {
             return null;
         }
