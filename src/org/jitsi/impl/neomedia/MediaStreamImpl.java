@@ -660,7 +660,7 @@ public class MediaStreamImpl
 
             if (ohbEngine != null)
             {
-                ohbEngine.setExtensionID((byte) -1);
+                ohbEngine.setExtensionID(-1);
             }
 
             RemoteBitrateEstimatorWrapper remoteBitrateEstimatorWrapper
