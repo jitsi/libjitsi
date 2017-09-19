@@ -299,7 +299,7 @@ public class TransportCCEngine
     @Override
     public void onReceiveBitrateChanged(Collection<Long> ssrcs, long bitrate)
     {
-        VideoMediaStream videoStream = null;
+        VideoMediaStream videoStream;
         for (MediaStream stream : mediaStreams)
         {
             if (stream instanceof VideoMediaStream)
@@ -492,10 +492,10 @@ public class TransportCCEngine
     }
 
     /**
-     * {@Link packetDetail} is an object that holds the
-     * length(size) of the packet in {@Link packetLength}
+     * {@link PacketDetail} is an object that holds the
+     * length(size) of the packet in {@link #packetLength}
      * and the time stamps of the outgoing packet
-     * in {@Link packetSendTimeMs}
+     * in {@link #packetSendTimeMs}
      */
     private class PacketDetail
     {

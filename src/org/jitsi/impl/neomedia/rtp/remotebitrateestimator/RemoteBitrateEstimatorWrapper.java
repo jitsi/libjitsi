@@ -90,7 +90,8 @@ public class RemoteBitrateEstimatorWrapper
     private int tccExtensionID = -1;
 
     /**
-     * The ID of the TCC RTP header extension.
+     * The flag which indicates whether the remote end supports RTCP REMB or
+     * not.
      */
     private boolean supportsRemb = false;
 
