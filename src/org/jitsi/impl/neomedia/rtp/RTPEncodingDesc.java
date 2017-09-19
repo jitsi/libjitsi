@@ -523,8 +523,8 @@ public class RTPEncodingDesc
     }
 
     /**
-     * Gets a boolean indicating whether or not the packet specified in the
-     * arguments matches this encoding or not.
+     * Gets a boolean indicating whether or not the specified packet matches
+     * this encoding or not. Assumes that the packet is valid.
      *
      * @param pkt the RTP packet.
      */
@@ -584,8 +584,6 @@ public class RTPEncodingDesc
      *
      * @param pkt
      * @param nowMs
-     *
-     * @return the {@link FrameDesc} that was updated, otherwise null.
      */
     void update(RawPacket pkt, long nowMs)
     {
@@ -609,7 +607,8 @@ public class RTPEncodingDesc
             lastStableBitrateBps = getBitrateBps(nowMs);
 
             if (lastReceivedFrame == null
-                || RTPUtils.rtpTimestampDiff(ts, lastReceivedFrame.getTimestamp()) > 0)
+                || RTPUtils.isNewerTimestampThan(
+                        ts, lastReceivedFrame.getTimestamp()))
             {
                 lastReceivedFrame = frame;
             }

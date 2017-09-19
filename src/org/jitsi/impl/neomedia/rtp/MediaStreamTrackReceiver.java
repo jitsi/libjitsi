@@ -52,8 +52,8 @@ public class MediaStreamTrackReceiver
     }
 
     /**
-     * Finds the {@link RTPEncodingDesc} that matches {@link ByteArrayBuffer}
-     * passed in as a parameter.
+     * Finds the {@link RTPEncodingDesc} that matches the {@link RawPacket}
+     * passed in as a parameter. Assumes that the packet is valid.
      *
      * @param pkt the packet to match.
      * @return the {@link RTPEncodingDesc} that matches the pkt passed in as
@@ -61,11 +61,6 @@ public class MediaStreamTrackReceiver
      */
     public RTPEncodingDesc findRTPEncodingDesc(RawPacket pkt)
     {
-        if (pkt == null)
-        {
-            return null;
-        }
-
         MediaStreamTrackDesc[] localTracks = tracks;
         if (ArrayUtils.isNullOrEmpty(localTracks))
         {
@@ -250,7 +245,8 @@ public class MediaStreamTrackReceiver
         long nowMs = System.currentTimeMillis();
         for (RawPacket pkt : pkts)
         {
-            if (!RTPPacketPredicate.INSTANCE.test(pkt))
+            if (!RTPPacketPredicate.INSTANCE.test(pkt)
+                || pkt.isInvalid())
             {
                 continue;
             }

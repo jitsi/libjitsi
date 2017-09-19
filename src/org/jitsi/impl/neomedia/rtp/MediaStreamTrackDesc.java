@@ -350,7 +350,7 @@ public class MediaStreamTrackDesc
 
     /**
      * Finds the {@link RTPEncodingDesc} that corresponds to the packet that is
-     * specified in the buffer passed in as an argument.
+     * passed in as an argument. Assumes that the packet is valid.
      *
      * @param pkt the packet to match.
      * @return the {@link RTPEncodingDesc} that corresponds to the packet that is
