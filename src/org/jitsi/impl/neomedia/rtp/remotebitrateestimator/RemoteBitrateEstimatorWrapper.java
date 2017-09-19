@@ -178,7 +178,7 @@ public class RemoteBitrateEstimatorWrapper
     @Override
     public RawPacket reverseTransform(RawPacket pkt)
     {
-        if (!isEnabled())
+        if (!receiveSideBweEnabled())
         {
             return pkt;
         }
@@ -294,7 +294,7 @@ public class RemoteBitrateEstimatorWrapper
      * @return true if receive-side bandwidth estimations are enabled, false
      * otherwise.
      */
-    public boolean isEnabled()
+    public boolean receiveSideBweEnabled()
     {
         return tccExtensionID == -1 && supportsRemb;
     }
