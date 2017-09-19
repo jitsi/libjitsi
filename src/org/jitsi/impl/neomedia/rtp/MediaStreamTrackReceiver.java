@@ -266,18 +266,18 @@ public class MediaStreamTrackReceiver
     public RawPacket[] reverseTransform(RawPacket[] pkts)
     {
         long nowMs = System.currentTimeMillis();
-        for (int i = 0; i < pkts.length; i++)
+        for (RawPacket pkt : pkts)
         {
-            if (!RTPPacketPredicate.INSTANCE.test(pkts[i]))
+            if (!RTPPacketPredicate.INSTANCE.test(pkt))
             {
                 continue;
             }
 
-            RTPEncodingDesc encoding = findRTPEncodingDesc(pkts[i]);
+            RTPEncodingDesc encoding = findRTPEncodingDesc(pkt);
 
             if (encoding != null)
             {
-                encoding.update(pkts[i], nowMs);
+                encoding.update(pkt, nowMs);
             }
         }
 
