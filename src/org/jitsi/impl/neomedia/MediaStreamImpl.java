@@ -3765,26 +3765,6 @@ public class MediaStreamImpl
     }
 
     /**
-     * Utility method that determines the temporal layer index (TID) of an RTP
-     * packet.
-     *
-     * @param buf the buffer that holds the RTP payload.
-     * @param off the offset in the buff where the RTP payload is found.
-     * @param len then length of the RTP payload in the buffer.
-     *
-     * @return the TID of the packet, -1 otherwise.
-     *
-     * FIXME(gp) conceptually this belongs to the {@link VideoMediaStreamImpl},
-     * but I don't want to be obliged to cast to use this method
-     * @Deprecated use getTemporalID(RawPacket)
-     */
-    @Deprecated
-    public int getTemporalID(byte[] buf, int off, int len)
-    {
-        return getTemporalID(new RawPacket(buf, off, len));
-    }
-
-    /**
      * Utility method that determines the spatial layer index (SID) of an RTP
      * packet.
      *
@@ -4003,10 +3983,6 @@ public class MediaStreamImpl
             return false;
         }
 
-        byte[] buf = pkt.getBuffer();
-        int off = pkt.getOffset();
-        int len = pkt.getLength();
-
         if (frameMarkingsExtensionId != -1)
         {
             RawPacket.HeaderExtension fmhe
@@ -4020,7 +3996,7 @@ public class MediaStreamImpl
             // wrong results if the payload is encrypted.
         }
 
-        REDBlock redBlock = getPrimaryREDBlock(buf, off, len);
+        REDBlock redBlock = getPrimaryREDBlock(pkt);
         if (redBlock == null || redBlock.getLength() == 0)
         {
             return false;
@@ -4032,7 +4008,9 @@ public class MediaStreamImpl
         if (redBlock.getPayloadType() == vp8PT)
         {
             return org.jitsi.impl.neomedia.codec.video.vp8.DePacketizer
-                .isKeyFrame(buf, redBlock.getOffset(), redBlock.getLength());
+                .isKeyFrame(redBlock.getBuffer(),
+                            redBlock.getOffset(),
+                            redBlock.getLength());
         }
         else if (redBlock.getPayloadType() == h264PT)
         {
@@ -4089,23 +4067,6 @@ public class MediaStreamImpl
     {
         return getPrimaryREDBlock(new RawPacket(
             baf.getBuffer(), baf.getOffset(), baf.getLength()));
-    }
-
-    /**
-     * Gets the {@link REDBlock} that contains the payload of the packet passed
-     * in as a parameter.
-     *
-     * @param buf the buffer that holds the RTP payload.
-     * @param off the offset in the buff where the RTP payload is found.
-     * @param len then length of the RTP payload in the buffer.
-     * @return the {@link REDBlock} that contains the payload of the packet
-     * passed in as a parameter, or null if the buffer is invalid.
-     * @Deprecated use getPrimaryREDBlock(RawPacket)
-     */
-    @Deprecated
-    public REDBlock getPrimaryREDBlock(byte[] buf, int off, int len)
-    {
-        return getPrimaryREDBlock(new RawPacket(buf, off, len));
     }
 
     /**
