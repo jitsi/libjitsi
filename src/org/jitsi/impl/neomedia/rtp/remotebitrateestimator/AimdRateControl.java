@@ -432,7 +432,8 @@ class AimdRateControl
             logger.trace("new_rate_estimate" +
                 "," + hashCode() +
                 "," + nowMs +
-                "," + currentBitrateBps);
+                "," + currentBitrateBps +
+                "," + currentInput.incomingBitRate);
         }
 
         if (nowMs - timeOfLastLog > kLogIntervalMs)
