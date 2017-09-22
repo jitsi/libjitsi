@@ -269,7 +269,7 @@ public class RTPEncodingDesc
             // sequence number of newerFrame, no need for further heuristics.
             return;
         }
-        if (!TimestampUtils.isNewerTimestamp(
+        if (!RTPUtils.isNewerTimestampThan(
                 newerFrame.getTimestamp(), olderFrame.getTimestamp()))
         {
             // newerFrame isn't newer than olderFrame, bail

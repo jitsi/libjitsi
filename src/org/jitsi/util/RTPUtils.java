@@ -294,4 +294,17 @@ public class RTPUtils
     {
         return rtpTimestampDiff(a, b) > 0;
     }
+
+    /**
+     * Returns the latest timestamp.
+     *
+     * @param timestamp1
+     * @param timestamp2
+     * @return
+     */
+    public static long latestTimestamp(long timestamp1, long timestamp2)
+    {
+        return
+            isNewerTimestampThan(timestamp1, timestamp2) ? timestamp1 : timestamp2;
+    }
 }
