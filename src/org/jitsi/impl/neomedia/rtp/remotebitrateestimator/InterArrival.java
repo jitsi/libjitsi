@@ -15,7 +15,6 @@
  */
 package org.jitsi.impl.neomedia.rtp.remotebitrateestimator;
 
-import org.jitsi.impl.neomedia.rtp.TimestampUtils;
 import org.jitsi.util.*;
 
 /**
@@ -35,18 +34,6 @@ class InterArrival
     private static final int kBurstDeltaThresholdMs  = 5;
 
     private static final Logger logger = Logger.getLogger(InterArrival.class);
-
-    /**
-     * webrtc/modules/include/module_common_types.h
-     *
-     * @param timestamp1
-     * @param timestamp2
-     * @return
-     */
-    private static long latestTimestamp(long timestamp1, long timestamp2)
-    {
-        return TimestampUtils.latestTimestamp(timestamp1, timestamp2);
-    }
 
     private boolean burstGrouping;
 
@@ -99,8 +86,8 @@ class InterArrival
         long arrivalTimeDeltaMs
             = arrivalTimeMs - currentTimestampGroup.completeTimeMs;
 
-        long timestampDiff = TimestampUtils
-            .subtractAsUnsignedInt32(timestamp, currentTimestampGroup.timestamp);
+        long timestampDiff = RTPUtils
+            .rtpTimestampDiff(timestamp, currentTimestampGroup.timestamp);
 
         long tsDeltaMs = (long) (timestampToMsCoeff * timestampDiff + 0.5);
 
@@ -175,7 +162,7 @@ class InterArrival
             if (prevTimestampGroup.completeTimeMs >= 0)
             {
                 /* long timestampDelta */ deltas[0]
-                    = TimestampUtils.subtractAsUnsignedInt32(
+                    = RTPUtils.rtpTimestampDiff(
                         currentTimestampGroup.timestamp,
                         prevTimestampGroup.timestamp);
 
@@ -240,7 +227,7 @@ class InterArrival
         }
         else
         {
-            currentTimestampGroup.timestamp = latestTimestamp(
+            currentTimestampGroup.timestamp = RTPUtils.latestTimestamp(
                     currentTimestampGroup.timestamp, timestamp);
         }
         // Accumulate the frame size.
@@ -272,7 +259,7 @@ class InterArrival
         else
         {
             long timestampDiff
-                = TimestampUtils.subtractAsUnsignedInt32(
+                = RTPUtils.rtpTimestampDiff(
                     timestamp, currentTimestampGroup.firstTimestamp);
 
             return timestampDiff > kTimestampGroupLengthTicks;
@@ -298,7 +285,7 @@ class InterArrival
             // interval (32 bits) must be due to reordering. This code is almost
             // identical to that in isNewerTimestamp() in module_common_types.h.
             long timestampDiff
-                = TimestampUtils.subtractAsUnsignedInt32(
+                = RTPUtils.rtpTimestampDiff(
                     timestamp, currentTimestampGroup.firstTimestamp);
 
             return timestampDiff < 0x80000000L;
