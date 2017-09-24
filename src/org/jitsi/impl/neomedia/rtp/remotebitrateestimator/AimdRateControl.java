@@ -150,7 +150,7 @@ class AimdRateControl
                     && incomingBitrateKbps
                         > avgMaxBitrateKbps + 3F * stdMaxBitRate)
             {
-                changeRegion(RateControlRegion.kRcMaxUnknown);
+                changeRegion(RateControlRegion.kRcMaxUnknown, nowMs);
                 avgMaxBitrateKbps = -1F;
             }
             if (rateControlRegion == RateControlRegion.kRcNearMax)
@@ -165,7 +165,7 @@ class AimdRateControl
 
                 currentBitrateBps += additiveIncreaseBps;
             }
-            else
+            else // kRcMaxUnknown || kRcAboveMax
             {
                 long multiplicativeIncreaseBps
                     = multiplicativeRateIncrease(
@@ -202,7 +202,7 @@ class AimdRateControl
                     currentBitrateBps
                         = Math.min(currentBitrateBps, this.currentBitrateBps);
                 }
-                changeRegion(RateControlRegion.kRcNearMax);
+                changeRegion(RateControlRegion.kRcNearMax, nowMs);
 
                 if (incomingBitrateKbps
                         < avgMaxBitrateKbps - 3F * stdMaxBitRate)
@@ -213,7 +213,7 @@ class AimdRateControl
                 updateMaxBitRateEstimate(incomingBitrateKbps);
             }
             // Stay on hold until the pipes are cleared.
-            changeState(RateControlState.kRcHold);
+            changeState(RateControlState.kRcHold, nowMs);
             timeLastBitrateChange = nowMs;
             break;
         }
@@ -232,9 +232,20 @@ class AimdRateControl
         return currentBitrateBps;
     }
 
-    private void changeRegion(RateControlRegion region)
+    private void changeRegion(RateControlRegion region, long nowMs)
     {
+        if (rateControlRegion == region)
+        {
+            return;
+        }
+
         rateControlRegion = region;
+
+        if (logger.isTraceEnabled())
+        {
+            logger.trace(
+                "region_changed," + hashCode() + "," + nowMs + "," + region);
+        }
     }
 
     private void changeState(RateControlInput input, long nowMs)
@@ -245,26 +256,37 @@ class AimdRateControl
             if (rateControlState == RateControlState.kRcHold)
             {
                 timeLastBitrateChange = nowMs;
-                changeState(RateControlState.kRcIncrease);
+                changeState(RateControlState.kRcIncrease, nowMs);
             }
             break;
         case kBwOverusing:
             if (rateControlState != RateControlState.kRcDecrease)
             {
-                changeState(RateControlState.kRcDecrease);
+                changeState(RateControlState.kRcDecrease, nowMs);
             }
             break;
         case kBwUnderusing:
-            changeState(RateControlState.kRcHold);
+            changeState(RateControlState.kRcHold, nowMs);
             break;
         default:
             throw new IllegalStateException("currentInput.bwState");
         }
     }
 
-    private void changeState(RateControlState newState)
+    private void changeState(RateControlState newState, long nowMs)
     {
+        if (rateControlState == newState)
+        {
+            return;
+        }
+
         rateControlState = newState;
+
+        if (logger.isTraceEnabled())
+        {
+            logger.trace("state_changed,"
+                + hashCode() + "," + nowMs + "," + rateControlState);
+        }
     }
 
     public long getFeedBackInterval()
@@ -380,6 +402,13 @@ class AimdRateControl
 
     public void setRtt(long rtt)
     {
+        if (logger.isTraceEnabled())
+        {
+            logger.trace("rtt_update," + hashCode()
+                + "," + System.currentTimeMillis()
+                + "," + rtt);
+        }
+
         this.rtt = rtt;
     }
 

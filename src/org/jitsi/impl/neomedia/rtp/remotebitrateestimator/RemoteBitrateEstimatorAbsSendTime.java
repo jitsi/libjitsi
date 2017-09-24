@@ -435,6 +435,14 @@ public class RemoteBitrateEstimatorAbsSendTime
         int payloadSize,
         long ssrc)
     {
+        if (logger.isTraceEnabled())
+        {
+            logger.trace("incoming_packet," + remoteRate.hashCode()
+                + "," + arrivalTimeMs
+                + "," + sendTime24bits
+                + "," + payloadSize
+                + "," + ssrc);
+        }
         // Shift up send time to use the full 32 bits that inter_arrival
         // works with, so wrapping works properly.
         long timestamp = sendTime24bits << kAbsSendTimeInterArrivalUpshift;

@@ -259,7 +259,7 @@ class OveruseEstimator
                 "," + tsDelta +
                 "," + tTsDelta +
                 "," + offset +
-                "," + currentHypothesis);
+                "," + currentHypothesis.getValue());
         }
     }
 
