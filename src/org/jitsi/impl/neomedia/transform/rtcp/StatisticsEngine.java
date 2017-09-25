@@ -23,7 +23,6 @@ import javax.media.rtp.*;
 
 import net.sf.fmj.media.rtp.*;
 import net.sf.fmj.media.rtp.util.*;
-import net.sf.fmj.utility.*;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.device.*;
