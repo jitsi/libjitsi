@@ -47,7 +47,7 @@ public class RTCPPacketListenerAdapter
      * {@inheritDoc}
      */
     @Override
-    public void srReceived(RTCPSRPacket srPacket)
+    public void srReceived(NewRTCPSRPacket srPacket)
     {
 
     }

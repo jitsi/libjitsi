@@ -887,6 +887,13 @@ public class StatisticsEngine
             RTCPCompoundPacket compound;
             Exception ex;
 
+            // First we'll use the new libjitsi parser and update method
+            // (which will incrementally handle more and more rtcp types).
+            RTCPPacket[] newParserPackets = NewRTCPPacketParser.parse(pkt);
+            newUpdateReceivedMediaStreamStats(newParserPackets);
+
+            // Now we'll do the rest of the parsing/updates using the old
+            // parse flow
             try
             {
                 compound
@@ -948,6 +955,57 @@ public class StatisticsEngine
      * Processes the {@link RTCPPacket}s from {@code in} as received RTCP
      * packets and updates the {@link MediaStreamStats}. Adds to {@code out} the
      * ones which were not consumed and should be output from this instance.
+     * NOTE: this version is for handling the rtcp types that have been migrated
+     * over away from the fmj classes, so the list of rtcp types it handles
+     * is mutually exclusive with those handled in updateReceivedMediaStreamStats
+     * (to prevent double handling).  Eventually this method will handle all
+     * types and the old one will go away, and this will be renamed.
+     * @param in the array of received RTCP packets
+     */
+    private void newUpdateReceivedMediaStreamStats(
+        RTCPPacket[] in)
+    {
+        MediaStreamStatsImpl streamStats = mediaStream.getMediaStreamStats();
+
+        for (RTCPPacket rtcp : in)
+        {
+            switch (rtcp.type)
+            {
+                case RTCPPacket.SR:
+                    streamStats.srReceived((NewRTCPSRPacket) rtcp);
+                    RTCPReport report;
+
+                    try
+                    {
+                        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+                        rtcp.assemble(new DataOutputStream(baos));
+
+                        byte[] buf = baos.toByteArray();
+
+                        report = parseRTCPReport(rtcp.type, buf, 0, buf.length);
+                    }
+                    catch (IOException ioe)
+                    {
+                        logger.error("Failed to assemble an RTCP report: " + ioe);
+                        report = null;
+                    }
+                    if (report != null)
+                    {
+                        streamStats.getRTCPReports().rtcpReportReceived(report);
+                    }
+                break;
+                default:
+                    // These types of RTCP packets are of no interest at present.
+                    break;
+            }
+        }
+    }
+
+    /**
+     * Processes the {@link RTCPPacket}s from {@code in} as received RTCP
+     * packets and updates the {@link MediaStreamStats}. Adds to {@code out} the
+     * ones which were not consumed and should be output from this instance.
      * @param in the array of received RTCP packets
      */
     private void updateReceivedMediaStreamStats(
@@ -975,11 +1033,6 @@ public class StatisticsEngine
                 }
                 break;
 
-            case RTCPPacket.SR:
-                if (rtcp instanceof RTCPSRPacket)
-                {
-                    streamStats.srReceived((RTCPSRPacket) rtcp);
-                }
             case RTCPPacket.RR:
                 {
                 RTCPReport report;

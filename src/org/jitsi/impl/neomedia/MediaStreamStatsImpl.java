@@ -1508,12 +1508,12 @@ public class MediaStreamStatsImpl
      * Notifies this instance that an RTCP SR packet was received.
      * @param sr the packet.
      */
-    public void srReceived(RTCPSRPacket sr)
+    public void srReceived(NewRTCPSRPacket sr)
     {
         if (sr != null)
         {
             long emisionTime = TimeUtils.toNtpShortFormat(
-                TimeUtils.constuctNtp(sr.ntptimestampmsw, sr.ntptimestamplsw));
+                TimeUtils.constuctNtp(sr.getNtpTimestampMsw(), sr.getNtpTimestampLsw()));
 
             long arrivalTime = TimeUtils.toNtpShortFormat(
                 TimeUtils.toNtpTime(System.currentTimeMillis()));
