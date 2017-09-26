@@ -102,7 +102,7 @@ public class ByteBufferOutputStream
         if (index >= endIndex)
         {
             throw new IOException(
-                "This " + net.sf.fmj.utility.ByteBufferOutputStream.class.getName()
+                "This " + ByteBufferOutputStream.class.getName()
                     + " is fully written.");
         }
         else
