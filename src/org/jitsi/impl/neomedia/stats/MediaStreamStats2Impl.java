@@ -183,18 +183,29 @@ public class MediaStreamStats2Impl
      */
     public void updateJitter(long ssrc, StreamDirection direction, double jitter)
     {
-        // TODO(boris) Currently we only maintain a jitter value for the entire
-        // MediaStream, and not for any of the individual SSRCs. At the time of
-        // this writing, it is unclear to me whether it should be kept this way,
-        // or whether keeping a per-SSRC value can be useful for something. So
-        // I am doing the easier thing.
+        // Maintain a jitter value for the entire MediaStream, and for
+        // the individual SSRCs(if available)
         if (direction == StreamDirection.DOWNLOAD)
         {
             receiveStats.setJitter(jitter);
+
+            // update jitter for known stats
+            ReceiveTrackStatsImpl receiveSsrcStat = receiveSsrcStats.get(ssrc);
+            if (receiveSsrcStat != null)
+            {
+                receiveSsrcStat.setJitter(jitter);
+            }
         }
         else if (direction == StreamDirection.UPLOAD)
         {
             sendStats.setJitter(jitter);
+
+            // update jitter for known stats
+            SendTrackStatsImpl sendSsrcStat = sendSsrcStats.get(ssrc);
+            if (sendSsrcStat != null)
+            {
+                sendSsrcStat.setJitter(jitter);
+            }
         }
     }
 
@@ -206,13 +217,24 @@ public class MediaStreamStats2Impl
      */
     public void updateRtt(long ssrc, long rtt)
     {
-        // TODO(boris) Currently we only maintain an RTT value for the entire
-        // MediaStream, and not for any of the individual SSRCs. At the time of
-        // this writing, it is unclear to me whether it should be kept this way,
-        // or whether keeping a per-SSRC value can be useful for something. So
-        // I am doing the easier thing.
+        // RTT value for the entire MediaStream
         receiveStats.setRtt(rtt);
         sendStats.setRtt(rtt);
+
+        // RTT value for individual SSRCs
+        // skip invalid ssrc
+        if (ssrc < 0)
+            return;
+
+        // directly get the receive/send stats to avoid creating unnecessary
+        // stats
+        ReceiveTrackStatsImpl receiveSsrcStat = receiveSsrcStats.get(ssrc);
+        if (receiveSsrcStat != null)
+            receiveSsrcStat.setRtt(rtt);
+
+        SendTrackStatsImpl sendSsrcStat = sendSsrcStats.get(ssrc);
+        if (sendSsrcStat != null)
+            sendSsrcStat.setRtt(rtt);
     }
 
     /**
