@@ -69,7 +69,7 @@ public class EncodingConfigurationImpl extends EncodingConfiguration
         setEncodingPreference(
             "VP8",
             VideoMediaFormatImpl.DEFAULT_CLOCK_RATE,
-            0);
+            1200);
         /*
         setEncodingPreference(
             "H263",

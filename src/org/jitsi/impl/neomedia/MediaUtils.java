@@ -293,6 +293,8 @@ public class MediaUtils
             h264FormatParams.put("profile-level-id", "42E01f");
         }
 
+        if(cfg.getBoolean("net.java.sip.communicator.impl.neomedia"
+                + ".codec.video.h264.enabled", false)) {
         // By default, packetization-mode=1 is enabled.
         if ((cfg == null)
                 || cfg.getBoolean(
@@ -331,6 +333,7 @@ public class MediaUtils
                 h264FormatParams,
                 h264AdvancedAttributes);
 
+        }
         /* H263+
         Map<String, String> h263FormatParams
             = new HashMap<String, String>();
