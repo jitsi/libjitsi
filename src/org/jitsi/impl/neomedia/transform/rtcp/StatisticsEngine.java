@@ -21,12 +21,11 @@ import java.util.*;
 import javax.media.control.*;
 import javax.media.rtp.*;
 
-import net.sf.fmj.media.rtp.*;
-import net.sf.fmj.media.rtp.util.*;
-
+import net.sf.fmj.media.rtp.SSRCInfo;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.rtcp.*;
+import org.jitsi.impl.neomedia.rtcp.fmj_port.*;
 import org.jitsi.impl.neomedia.stats.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;

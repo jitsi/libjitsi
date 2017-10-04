@@ -16,8 +16,8 @@
 package org.jitsi.impl.neomedia.rtcp;
 
 import java.io.*;
-import net.sf.fmj.media.rtp.*;
-import net.sf.fmj.media.rtp.util.*;
+
+import org.jitsi.impl.neomedia.rtcp.fmj_port.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.event.*;
 import org.jitsi.service.neomedia.rtp.*;
@@ -32,7 +32,7 @@ import org.jitsi.util.*;
  * @author Lyubomir Marinov
  */
 public class RTCPPacketParserEx
-    extends net.sf.fmj.media.rtp.RTCPPacketParser
+    extends RTCPPacketParser
 {
     /**
      * The <tt>Logger</tt> used by the <tt>RTCPPacketParserEx</tt> class and its

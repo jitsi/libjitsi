@@ -15,10 +15,10 @@
  */
 package org.jitsi.service.neomedia.rtp;
 
+import org.jitsi.impl.neomedia.rtcp.fmj_port.*;
+
 import java.io.*;
 import java.util.*;
-
-import net.sf.fmj.media.rtp.*;
 
 /**
  * Represents an RTP Control Protocol Extended Report (RTCP XR) packet in the
