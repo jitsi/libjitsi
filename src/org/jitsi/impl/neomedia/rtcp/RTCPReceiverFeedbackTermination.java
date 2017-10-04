@@ -15,8 +15,10 @@
  */
 package org.jitsi.impl.neomedia.rtcp;
 
-import net.sf.fmj.media.rtp.*;
+import net.sf.fmj.media.rtp.SSRCCache;
+import net.sf.fmj.media.rtp.SSRCInfo;
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.impl.neomedia.rtcp.fmj_port.*;
 import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.*;
 import org.jitsi.impl.neomedia.rtp.translator.*;
@@ -283,8 +285,11 @@ public class RTCPReceiverFeedbackTermination
             }
             if (!info.ours && info.sender)
             {
+                // Create a libjits RTCPReportBlock type from the
+                // fmj RTCPReportBlock type we get from SSRCInfo
                 RTCPReportBlock reportBlock
-                    = info.makeReceiverReport(getLastProcessTime());
+                    = RTCPReportBlock.fromFmjRTCPReportBlock(
+                        info.makeReceiverReport(getLastProcessTime()));
                 reportBlocks.add(reportBlock);
             }
         }

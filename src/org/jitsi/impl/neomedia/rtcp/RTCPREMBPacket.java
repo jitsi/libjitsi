@@ -18,9 +18,8 @@ package org.jitsi.impl.neomedia.rtcp;
 import java.io.*;
 import java.util.*;
 
-import net.sf.fmj.media.rtp.*;
-
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.impl.neomedia.rtcp.fmj_port.*;
 import org.jitsi.service.neomedia.*;
 
 /**

@@ -15,7 +15,7 @@
  */
 package org.jitsi.service.neomedia.rtp;
 
-import net.sf.fmj.media.rtp.*;
+import org.jitsi.impl.neomedia.rtcp.fmj_port.*;
 
 /**
  *

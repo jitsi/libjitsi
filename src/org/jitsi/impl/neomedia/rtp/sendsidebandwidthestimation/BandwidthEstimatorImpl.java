@@ -15,7 +15,7 @@
  */
 package org.jitsi.impl.neomedia.rtp.sendsidebandwidthestimation;
 
-import net.sf.fmj.media.rtp.*;
+import org.jitsi.impl.neomedia.rtcp.fmj_port.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;

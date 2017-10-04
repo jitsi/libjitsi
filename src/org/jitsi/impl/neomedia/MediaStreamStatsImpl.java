@@ -26,10 +26,9 @@ import javax.media.format.*;
 import javax.media.protocol.*;
 import javax.media.rtp.*;
 
-import net.sf.fmj.media.rtp.*;
-
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.rtcp.*;
+import org.jitsi.impl.neomedia.rtcp.fmj_port.*;
 import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.stats.*;
 import org.jitsi.impl.neomedia.transform.rtcp.*;
