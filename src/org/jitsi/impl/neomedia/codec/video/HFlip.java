@@ -50,7 +50,7 @@ public class HFlip
      * The name of the FFmpeg ffsink video source <tt>AVFilter</tt> used by
      * <tt>HFlip</tt>.
      */
-    private static final String VSINK_FFSINK_NAME = "nullsink";
+    private static final String VSINK_FFSINK_NAME = "buffersink";
 
     /**
      * The name of the FFmpeg buffer video source <tt>AVFilter</tt> used by
@@ -91,12 +91,6 @@ public class HFlip
     private int height;
 
     /**
-     * The pointer to the <tt>AVFilterBufferRef</tt> instance represented as an
-     * <tt>AVFrame</tt> by {@link #outputFrame}.
-     */
-    private long outputFilterBufferRef;
-
-    /**
      * The pointer to the <tt>AVFrame</tt> instance which is the output (data)
      * of this <tt>Effect</tt>.
      */
@@ -123,7 +117,7 @@ public class HFlip
     /**
      * Closes this <tt>Effect</tt>.
      *
-     * @see AbstractCodecExt#doClose()
+     * @see AbstractCodec2#doClose()
      */
     @Override
     protected synchronized void doClose()
@@ -147,7 +141,7 @@ public class HFlip
      *
      * @throws ResourceUnavailableException if any of the required resource
      * cannot be allocated
-     * @see AbstractCodecExt#doOpen()
+     * @see AbstractCodec2#doOpen()
      */
     @Override
     protected synchronized void doOpen()
@@ -171,27 +165,15 @@ public class HFlip
      * @param outputBuffer the <tt>Buffer</tt> in which to store the processed
      * media data
      * @return <tt>BUFFER_PROCESSED_OK</tt> if the processing is successful
-     * @see AbstractCodecExt#doProcess(Buffer, Buffer)
+     * @see AbstractCodec2#doProcess(Buffer, Buffer)
      */
     @Override
     protected synchronized int doProcess(
             Buffer inputBuffer,
             Buffer outputBuffer)
     {
-        /*
-         * A new frame is about to be output so the old frame is no longer
-         * necessary.
-         */
-        if (outputFilterBufferRef != 0)
-        {
-            FFmpeg.avfilter_unref_buffer(outputFilterBufferRef);
-            outputFilterBufferRef = 0;
-        }
-
-        /*
-         * Make sure the graph is configured with the current Format i.e. size
-         * and pixFmt.
-         */
+        // Make sure the graph is configured with the current Format i.e. size
+        // and pixFmt.
         AVFrameFormat format = (AVFrameFormat) inputBuffer.getFormat();
         Dimension size = format.getSize();
         int pixFmt = format.getPixFmt();
@@ -200,15 +182,69 @@ public class HFlip
                 || (this.height != size.height)
                 || (this.pixFmt != pixFmt))
             reset();
-        if (graph == 0)
-        {
-            String errorReason = null;
-            int error = 0;
-            long buffer = 0;
-            long ffsink = 0;
 
-            if (graphIsPending)
-            {
+        if (!allocateFfmpegGraph(format, size, pixFmt))
+        {
+            return BUFFER_PROCESSED_FAILED;
+        }
+
+        // The graph is configured for the current Format, apply its filters to
+        // the inputFrame.
+        long inputFrame = ((AVFrame) inputBuffer.getData()).getPtr();
+
+        long filterResult
+            = FFmpeg.get_filtered_video_frame(
+                    inputFrame, this.width, this.height, this.pixFmt,
+                    buffer,
+                    ffsink,
+                    outputFrame);
+        if(filterResult < 0)
+        {
+            // If get_filtered_video_frame fails, it is likely to fail for any
+            // frame. Consequently, printing that it has failed will result in a
+            // lot of repeating logging output. Since the failure in question
+            // will be visible in the UI anyway, just debug it.
+            if (logger.isTraceEnabled())
+                logger.trace("get_filtered_video_frame: "
+                    + FFmpeg.av_strerror((int)filterResult));
+            return BUFFER_PROCESSED_FAILED;
+        }
+
+        Object out = outputBuffer.getData();
+
+        if (!(out instanceof AVFrame)
+                || (((AVFrame) out).getPtr() != outputFrame))
+        {
+            outputBuffer.setData(new AVFrame(outputFrame));
+        }
+
+        outputBuffer.setDiscard(inputBuffer.isDiscard());
+        outputBuffer.setDuration(inputBuffer.getDuration());
+        outputBuffer.setEOM(inputBuffer.isEOM());
+        outputBuffer.setFlags(inputBuffer.getFlags());
+        outputBuffer.setFormat(format);
+        outputBuffer.setHeader(inputBuffer.getHeader());
+        outputBuffer.setLength(inputBuffer.getLength());
+        outputBuffer.setSequenceNumber(inputBuffer.getSequenceNumber());
+        outputBuffer.setTimeStamp(inputBuffer.getTimeStamp());
+        return BUFFER_PROCESSED_OK;
+    }
+
+    private boolean allocateFfmpegGraph(AVFrameFormat format, Dimension size,
+        int pixFmt)
+    {
+        if (graph != 0)
+        {
+            return true;
+        }
+
+        String errorReason = null;
+        int error = 0;
+        long buffer = 0;
+        long ffsink = 0;
+
+        if (graphIsPending)
+        {
             graphIsPending = false;
 
             graph = FFmpeg.avfilter_graph_alloc();
@@ -230,10 +266,8 @@ public class HFlip
                             log_ctx);
                 if (error == 0)
                 {
-                    /*
-                     * Unfortunately, the name of an AVFilterContext created by
-                     * avfilter_graph_parse is not the name of the AVFilter.
-                     */
+                    // Unfortunately, the name of an AVFilterContext created by
+                    // avfilter_graph_parse is not the name of the AVFilter.
                     String parsedFilterNameFormat = "Parsed_%2$s_%1$d";
                     String parsedFilterName
                         = String.format(
@@ -281,80 +315,44 @@ public class HFlip
                     }
                 }
                 else
+                {
                     errorReason = "avfilter_graph_parse";
-                if ((errorReason != null) || (error != 0))
+                }
+
+                if (errorReason != null)
                 {
                     FFmpeg.avfilter_graph_free(graph);
                     graph = 0;
                 }
             }
-            }
-            if (graph == 0)
+        }
+
+        if (graph == 0)
+        {
+            if (errorReason != null)
             {
-                if (errorReason != null)
+                StringBuilder msg = new StringBuilder(errorReason);
+                if (error != 0)
                 {
-                    StringBuilder msg = new StringBuilder(errorReason);
-
-                    if (error != 0)
-                        msg.append(": ").append(error);
-                    msg.append(", format ").append(format);
-                    logger.error(msg);
+                    msg.append(": ").append(error);
                 }
-                return BUFFER_PROCESSED_FAILED;
+
+                msg.append(", format ").append(format);
+                logger.error(msg);
             }
-            else
-            {
-                this.width = size.width;
-                this.height = size.height;
-                this.pixFmt = pixFmt;
-                this.buffer = buffer;
-                this.ffsink = ffsink;
-            }
+
+            return false;
         }
-
-        /*
-         * The graph is configured for the current Format, apply its filters to
-         * the inputFrame.
-         */
-        long inputFrame = ((AVFrame) inputBuffer.getData()).getPtr();
-
-        outputFilterBufferRef
-            = FFmpeg.get_filtered_video_frame(
-                    inputFrame, this.width, this.height, this.pixFmt,
-                    buffer,
-                    ffsink,
-                    outputFrame);
-        if(outputFilterBufferRef == 0)
+        else
         {
-            /*
-             * If get_filtered_video_frame fails, it is likely to fail for any
-             * frame. Consequently, printing that it has failed will result in a
-             * lot of repeating logging output. Since the failure in question
-             * will be visible in the UI anyway, just debug it.
-             */
-            if (logger.isDebugEnabled())
-                logger.debug("get_filtered_video_frame");
-            return BUFFER_PROCESSED_FAILED;
+            this.width = size.width;
+            this.height = size.height;
+            this.pixFmt = pixFmt;
+            this.buffer = buffer;
+            this.ffsink = ffsink;
         }
 
-        Object out = outputBuffer.getData();
-
-        if (!(out instanceof AVFrame)
-                || (((AVFrame) out).getPtr() != outputFrame))
-        {
-            outputBuffer.setData(new AVFrame(outputFrame));
-        }
-
-        outputBuffer.setDiscard(inputBuffer.isDiscard());
-        outputBuffer.setDuration(inputBuffer.getDuration());
-        outputBuffer.setEOM(inputBuffer.isEOM());
-        outputBuffer.setFlags(inputBuffer.getFlags());
-        outputBuffer.setFormat(format);
-        outputBuffer.setHeader(inputBuffer.getHeader());
-        outputBuffer.setLength(inputBuffer.getLength());
-        outputBuffer.setSequenceNumber(inputBuffer.getSequenceNumber());
-        outputBuffer.setTimeStamp(inputBuffer.getTimeStamp());
-        return BUFFER_PROCESSED_OK;
+        return true;
     }
 
     /**
@@ -363,11 +361,6 @@ public class HFlip
     @Override
     public synchronized void reset()
     {
-        if (outputFilterBufferRef != 0)
-        {
-            FFmpeg.avfilter_unref_buffer(outputFilterBufferRef);
-            outputFilterBufferRef = 0;
-        }
         if (graph != 0)
         {
             FFmpeg.avfilter_graph_free(graph);
