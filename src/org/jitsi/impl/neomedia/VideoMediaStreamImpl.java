@@ -521,6 +521,11 @@ public class VideoMediaStreamImpl
         super(connector, device, srtpControl);
 
         recurringRunnableExecutor.registerRecurringRunnable(rtcpFeedbackTermination);
+        if (logger.isTraceEnabled())
+        {
+            logger.trace("rtcp_termination," + hashCode()
+                    + "," + rtcpFeedbackTermination.hashCode());
+        }
     }
 
     /**
