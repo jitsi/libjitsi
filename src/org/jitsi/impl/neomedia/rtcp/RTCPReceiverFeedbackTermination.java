@@ -289,7 +289,8 @@ public class RTCPReceiverFeedbackTermination
 
                 if (logger.isTraceEnabled())
                 {
-                    logger.trace("sending_rtcp_rr," + hashCode()
+                    logger.trace("created_report_block," + hashCode()
+                            + "," + System.currentTimeMillis()
                             + "," + reportBlock.getSSRC()
                             + "," + reportBlock.getNumLost()
                             + "," + (reportBlock.getFractionLost() / 256D)
