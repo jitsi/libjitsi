@@ -66,7 +66,8 @@ public class RTCPTCCPacketTest
         assertEquals(5929, packetMap.size());
         assertEquals(4, (int) packetMap.firstKey());
         assertEquals(4 + 5929 - 1, (int) packetMap.lastKey());
-        assertEquals((0x298710L << 8) + 0x2c, (long) packetMap.firstEntry().getValue());
+        assertEquals((0x298710L << 8) + 0x2c, tccPacket.getReferenceTime()
+                + (long) packetMap.firstEntry().getValue());
     }
 
     @Test
