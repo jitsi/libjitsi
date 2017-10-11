@@ -22,6 +22,7 @@ import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.rtp.*;
 
 import java.util.*;
+import org.jitsi.util.*;
 
 /**
  * This is the receive-side remote bitrate estimator. If REMB support has not
@@ -37,6 +38,13 @@ public class RemoteBitrateEstimatorWrapper
     extends SinglePacketTransformerAdapter
     implements RemoteBitrateEstimator, TransformEngine
 {
+    /**
+     * The {@link Logger} used by the {@link RemoteBitrateEstimatorWrapper}
+     * class to print debug information.
+     */
+    private static final Logger logger
+        = Logger.getLogger(RemoteBitrateEstimatorWrapper.class);
+
     /**
      * The name of the property that determines whether or not to activate the
      * abs-send-time remote bitrate estimator.
@@ -198,6 +206,12 @@ public class RemoteBitrateEstimatorWrapper
                 usingAbsoluteSendTime = true;
 
                 this.rbe = new RemoteBitrateEstimatorAbsSendTime(observer);
+                if (logger.isTraceEnabled())
+                {
+                    logger.trace("created_rbe," + hashCode()
+                            + "," + System.currentTimeMillis()
+                            + "," + this.rbe.hashCode());
+                }
 
                 int minBitrateBps = this.minBitrateBps;
                 if (minBitrateBps > 0)
@@ -219,6 +233,12 @@ public class RemoteBitrateEstimatorWrapper
                 {
                     usingAbsoluteSendTime = false;
                     rbe = new RemoteBitrateEstimatorSingleStream(observer);
+                    if (logger.isTraceEnabled())
+                    {
+                        logger.trace("created_rbe," + hashCode()
+                                + "," + System.currentTimeMillis()
+                                + "," + this.rbe.hashCode());
+                    }
 
                     int minBitrateBps = this.minBitrateBps;
                     if (minBitrateBps > 0)

@@ -523,8 +523,10 @@ public class VideoMediaStreamImpl
         recurringRunnableExecutor.registerRecurringRunnable(rtcpFeedbackTermination);
         if (logger.isTraceEnabled())
         {
-            logger.trace("rtcp_termination," + hashCode()
-                    + "," + rtcpFeedbackTermination.hashCode());
+            logger.trace("created_vms," + hashCode()
+                    + "," + System.currentTimeMillis()
+                    + "," + rtcpFeedbackTermination.hashCode()
+                    + "," + remoteBitrateEstimator.hashCode());
         }
     }
 
