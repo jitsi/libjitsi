@@ -253,7 +253,7 @@ class OveruseEstimator
         if (logger.isTraceEnabled())
         {
             logger.trace("new_jitter_estimate" +
-                    "," + hashCode() +
+                "," + hashCode() +
                 "," + systemTimeMs +
                 "," + tDelta +
                 "," + tsDelta +
