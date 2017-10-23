@@ -282,7 +282,7 @@ public class RTCPExtendedReport
          * <tt>DataInputStream</tt>.
          *
          * @param blockLength the length of the extended report block to read,
-         * including the header, in bytes.
+         * not including the header, in bytes.
          * @param datainputstream the binary representation from which the new
          * instance is to be initialized. The <tt>datainputstream</tt> is asumed
          * to contain type-specific block contents without extended report block
@@ -300,7 +300,7 @@ public class RTCPExtendedReport
         {
             this();
 
-            // block length
+            // block length (RFC 3611, Section 4.7)
             if (blockLength != 8 * 4)
             {
                 throw new IOException(
@@ -1017,7 +1017,7 @@ public class RTCPExtendedReport
             {
                 addReportBlock(
                         new VoIPMetricsReportBlock(
-                                blockLength,
+                                blockLength - 4,
                                 datainputstream));
             }
             else
