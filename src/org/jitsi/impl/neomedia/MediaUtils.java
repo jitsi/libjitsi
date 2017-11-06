@@ -276,7 +276,7 @@ public class MediaUtils
 
         h264AdvancedAttributes.put("imageattr", createImageAttr(null, res));
 
-        if ((cfg == null)
+        /*if ((cfg == null)
                 || cfg
                     .getString(
                             "net.java.sip.communicator.impl.neomedia"
@@ -287,7 +287,7 @@ public class MediaUtils
             // main profile, common features, HD capable level 3.1
             h264FormatParams.put("profile-level-id", "4DE01f");
         }
-        else
+        else*/
         {
             // baseline profile, common features, HD capable level 3.1
             h264FormatParams.put("profile-level-id", "42E01f");
