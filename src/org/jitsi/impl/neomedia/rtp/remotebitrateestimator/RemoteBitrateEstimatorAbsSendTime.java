@@ -507,7 +507,7 @@ public class RemoteBitrateEstimatorAbsSendTime
                         sendDeltaMs = sendTimeMs - probes
                             .get(probes.size() - 1).sendTimeMs;
                         recvDeltaMs = arrivalTimeMs - probes
-                            .get(probes.size() - 1).sendTimeMs;
+                            .get(probes.size() - 1).recvTimeMs;
                     }
                     logger.warn("Probe packet received: send time="
                         + sendTimeMs
