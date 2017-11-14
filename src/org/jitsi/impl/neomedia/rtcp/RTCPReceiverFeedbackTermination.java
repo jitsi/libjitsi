@@ -410,7 +410,9 @@ public class RTCPReceiverFeedbackTermination
             {
                 ByteArrayBuffer baf = it.next();
                 int pt = RTCPHeaderUtils.getPacketType(baf);
-                if (pt == RTCPRRPacket.RR || RTCPREMBPacket.isREMBPacket(baf))
+                if (pt == RTCPRRPacket.RR
+                        || RTCPREMBPacket.isREMBPacket(baf)
+                        || RTCPTCCPacket.isTCCPacket(baf))
                 {
                     it.remove();
                 }

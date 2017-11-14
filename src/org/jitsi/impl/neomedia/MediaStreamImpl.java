@@ -1434,6 +1434,16 @@ public class MediaStreamImpl
     }
 
     /**
+     * Gets the {@link TransportCCEngine} instance, if any, for this
+     * {@link MediaStream}. The instance could be shared between more than one
+     * {@link MediaStream}, if they all use the same transport.
+     */
+    public TransportCCEngine getTransportCCEngine()
+    {
+        return this.transportCCEngine;
+    }
+
+    /**
      * Returns the ID currently assigned to a specific RTP extension.
      *
      * @param rtpExtension the RTP extension to get the currently assigned ID of

@@ -1018,10 +1018,6 @@ public class StatisticsEngine
                 }
                 else if (rtcp instanceof RTCPTCCPacket)
                 {
-                    /**
-                     * Intuition: Packet is RTCP, wakeup RTCPPacketListeners which may
-                     * include BWE workers
-                     */
                     streamStats.tccPacketReceived((RTCPTCCPacket)rtcp);
                 }
                 break;

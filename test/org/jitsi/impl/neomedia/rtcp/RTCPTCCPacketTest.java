@@ -59,15 +59,12 @@ public class RTCPTCCPacketTest
     public void parse()
         throws Exception
     {
-        RTCPTCCPacket tccPacket = new RTCPTCCPacket();
-        RTCPTCCPacket.parseFci(tccPacket, new ByteArrayBufferImpl(fci));
-        RTCPTCCPacket.PacketMap packetMap = tccPacket.getPackets();
+        RTCPTCCPacket.PacketMap packetMap = RTCPTCCPacket.getPacketsFci(new ByteArrayBufferImpl(fci));
 
         assertEquals(5929, packetMap.size());
         assertEquals(4, (int) packetMap.firstKey());
         assertEquals(4 + 5929 - 1, (int) packetMap.lastKey());
-        assertEquals((0x298710L << 8) + 0x2c, tccPacket.getReferenceTime()
-                + packetMap.firstEntry().getValue());
+        assertEquals((0x298710L << 8) + 0x2c, (long) packetMap.firstEntry().getValue());
     }
 
     @Test
@@ -91,9 +88,7 @@ public class RTCPTCCPacketTest
 
         RTCPTCCPacket packet = new RTCPTCCPacket(0, 0, before, (byte) 13);
 
-        RTCPTCCPacket tccPacket = new RTCPTCCPacket();
-        RTCPTCCPacket.parseFci(tccPacket, new ByteArrayBufferImpl(packet.fci));
-        RTCPTCCPacket.PacketMap after = tccPacket.getPackets();
+        RTCPTCCPacket.PacketMap after = RTCPTCCPacket.getPacketsFci(new ByteArrayBufferImpl(packet.fci));
 
         assertEquals(138 - 120 + 1, after.size());
         assertEquals(120, (int) after.firstKey());
