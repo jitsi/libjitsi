@@ -167,7 +167,7 @@ public class RTCPReceiverFeedbackTermination
             return -1;
         }
 
-        return stream.getStreamRTPManager().getLocalSSRC();
+        return streamRTPManager.getLocalSSRC();
     }
 
 
