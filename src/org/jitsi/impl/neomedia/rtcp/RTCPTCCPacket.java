@@ -337,7 +337,10 @@ public class RTCPTCCPacket
                 | (buf[off + 1] & 0xff);
         }
 
-        return -1;
+        // This should never happen.
+        throw new IllegalStateException(
+            "The one-bit chunk type is neither 0 nor 1. A superposition is "+
+                " not a valid chunk type.");
     }
 
     /**

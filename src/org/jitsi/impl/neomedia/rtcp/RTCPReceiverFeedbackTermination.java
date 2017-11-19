@@ -286,6 +286,17 @@ public class RTCPReceiverFeedbackTermination
                 RTCPReportBlock reportBlock
                     = info.makeReceiverReport(getLastProcessTime());
                 reportBlocks.add(reportBlock);
+
+                if (logger.isTraceEnabled())
+                {
+                    logger.trace("created_report_block," + hashCode()
+                            + "," + System.currentTimeMillis()
+                            + "," + reportBlock.getSSRC()
+                            + "," + reportBlock.getNumLost()
+                            + "," + (reportBlock.getFractionLost() / 256D)
+                            + "," + reportBlock.getJitter()
+                            + "," + reportBlock.getXtndSeqNum());
+                }
             }
         }
 

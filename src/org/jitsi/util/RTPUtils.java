@@ -188,7 +188,7 @@ public class RTPUtils
             | (0xFF & (buffer[offset + 1]));
         if ((ret & 0x8000) != 0)
         {
-            ret = (ret & 0x7fff) | 0x8000_0000;
+            ret = ret | 0xFFFF_0000;
         }
 
         return ret;

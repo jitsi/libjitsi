@@ -437,7 +437,7 @@ public class RemoteBitrateEstimatorAbsSendTime
     {
         if (logger.isTraceEnabled())
         {
-            logger.trace("incoming_packet," + remoteRate.hashCode()
+            logger.trace("incoming_packet," + hashCode()
                 + "," + arrivalTimeMs
                 + "," + sendTime24bits
                 + "," + payloadSize
@@ -507,7 +507,7 @@ public class RemoteBitrateEstimatorAbsSendTime
                         sendDeltaMs = sendTimeMs - probes
                             .get(probes.size() - 1).sendTimeMs;
                         recvDeltaMs = arrivalTimeMs - probes
-                            .get(probes.size() - 1).sendTimeMs;
+                            .get(probes.size() - 1).recvTimeMs;
                     }
                     logger.warn("Probe packet received: send time="
                         + sendTimeMs
@@ -539,7 +539,8 @@ public class RemoteBitrateEstimatorAbsSendTime
                 detector = new Detector(new OverUseDetectorOptions(), true);
                 if (logger.isTraceEnabled())
                 {
-                    logger.trace("new_detector," + remoteRate.hashCode()
+                    logger.trace("new_detector," + hashCode()
+                        + "," + remoteRate.hashCode()
                         + "," + detector.detector.hashCode()
                         + "," + detector.estimator.hashCode()
                         + "," + detector.interArrival.hashCode());
