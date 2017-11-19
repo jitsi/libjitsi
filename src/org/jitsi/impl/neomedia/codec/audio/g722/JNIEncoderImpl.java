@@ -42,11 +42,6 @@ public class JNIEncoderImpl
         inputFormats = JNIDecoderImpl.SUPPORTED_OUTPUT_FORMATS;
     }
 
-    /**
-     *
-     * @param length
-     * @return
-     */
     private long computeDuration(long length)
     {
         return (length * 1000000L) / 8L;
@@ -54,7 +49,7 @@ public class JNIEncoderImpl
 
     /**
      *
-     * @see AbstractCodecExt#doClose()
+     * @see AbstractCodec2#doClose()
      */
     @Override
     protected void doClose()
@@ -63,9 +58,7 @@ public class JNIEncoderImpl
     }
 
     /**
-     *
-     * @throws ResourceUnavailableException
-     * @see AbstractCodecExt#doOpen()
+     * @see AbstractCodec2#doOpen()
      */
     @Override
     protected void doOpen()
@@ -77,11 +70,7 @@ public class JNIEncoderImpl
     }
 
     /**
-     *
-     * @param inputBuffer
-     * @param outputBuffer
-     * @return
-     * @see AbstractCodecExt#doProcess(Buffer, Buffer)
+     * @see AbstractCodec2#doProcess(Buffer, Buffer)
      */
     @Override
     protected int doProcess(Buffer inputBuffer, Buffer outputBuffer)

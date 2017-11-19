@@ -67,7 +67,7 @@ public class JNIDecoderImpl
 
     /**
      *
-     * @see AbstractCodecExt#doClose()
+     * @see AbstractCodec2#doClose()
      */
     @Override
     protected void doClose()
@@ -76,9 +76,7 @@ public class JNIDecoderImpl
     }
 
     /**
-     *
-     * @throws ResourceUnavailableException
-     * @see AbstractCodecExt#doOpen()
+     * @see AbstractCodec2#doOpen()
      */
     @Override
     protected void doOpen()
@@ -90,11 +88,7 @@ public class JNIDecoderImpl
     }
 
     /**
-     *
-     * @param inputBuffer
-     * @param outputBuffer
-     * @return
-     * @see AbstractCodecExt#doProcess(Buffer, Buffer)
+     * @see AbstractCodec2#doProcess(Buffer, Buffer)
      */
     @Override
     protected int doProcess(Buffer inputBuffer, Buffer outputBuffer)
