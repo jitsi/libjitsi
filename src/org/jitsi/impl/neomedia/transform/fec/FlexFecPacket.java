@@ -60,11 +60,29 @@ public class FlexFecPacket
      */
     public int flexFecHeaderSizeBytes;
 
+    public static FlexFecPacket create(RawPacket p)
+    {
+        return create(p.getBuffer(), p.getOffset(), p.getLength());
+    }
+
+    public static FlexFecPacket create(byte[] buffer, int offset, int length)
+    {
+        FlexFecPacket flexFecPacket = new FlexFecPacket(buffer, offset, length);
+        if (FlexFecHeaderReader.readFlexFecHeader(flexFecPacket,
+            flexFecPacket.getBuffer(),
+            flexFecPacket.getFlexFecHeaderOffset(),
+            flexFecPacket.getLength() - flexFecPacket.getHeaderLength()))
+        {
+            return flexFecPacket;
+        }
+        return null;
+    }
+
     /**
      * Ctor
      * @param p a RawPacket representing a flex fec packet
      */
-    public FlexFecPacket(RawPacket p)
+    private FlexFecPacket(RawPacket p)
     {
         this(p.getBuffer(), p.getOffset(), p.getLength());
     }
@@ -76,14 +94,9 @@ public class FlexFecPacket
      * buffer
      * @param length length of the packet
      */
-    public FlexFecPacket(byte[] buffer, int offset, int length)
+    private FlexFecPacket(byte[] buffer, int offset, int length)
     {
         super(buffer, offset, length);
-        FlexFecHeaderReader.readFlexFecHeader(
-            this,
-            this.getBuffer(),
-            this.getFlexFecHeaderOffset(),
-            this.getLength() - this.getHeaderLength());
     }
 
     /**

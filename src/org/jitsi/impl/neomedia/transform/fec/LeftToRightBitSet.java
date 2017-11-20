@@ -25,17 +25,19 @@ public class LeftToRightBitSet
     /**
      * Translate a left-side least significant bit index to
      * a right-side least significant bit index.
-     * @param leftLSBBitIndex
+     * Translate an index between a left-side least-significant-bit index
+     * and a right-side least-significant-bit index
+     * @param bitIndex
      * @return
      */
-    private int translate(int leftLSBBitIndex)
+    private int translate(int bitIndex)
     {
-        if (leftLSBBitIndex < 0)
+        if (bitIndex < 0)
         {
-            return leftLSBBitIndex;
+            return bitIndex;
         }
         // Subtract 1 since we're 0-based
-        return this.numBits - leftLSBBitIndex - 1;
+        return this.numBits - bitIndex - 1;
     }
 
     @Override
@@ -178,6 +180,11 @@ public class LeftToRightBitSet
         }
 
         return bytes;
+    }
+
+    public int sizeBytes()
+    {
+        return numBits / 8;
     }
 
     @Override

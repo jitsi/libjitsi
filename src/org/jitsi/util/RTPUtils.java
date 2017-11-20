@@ -294,4 +294,53 @@ public class RTPUtils
     {
         return rtpTimestampDiff(a, b) > 0;
     }
+
+    private static String toHexString(byte b)
+    {
+        char[] hexes
+            = new char[]
+            {
+                '0', '1', '2', '3', '4', '5', '6', '7', '8',
+                '9', 'A', 'B', 'C', 'D', 'E', 'F'
+            };
+        StringBuilder hexStringBuilder
+            = new StringBuilder(2);
+
+        hexStringBuilder.append(hexes[(b & 0xF0) >> 4]);
+        hexStringBuilder.append(hexes[b & 0x0F]);
+
+        return hexStringBuilder.toString();
+    }
+    public static String toHexString(byte[] bytes)
+    {
+        return toHexString(bytes, 0, bytes.length);
+    }
+
+    public static String toHexString(byte[] bytes, int offset, int length)
+    {
+        if (bytes == null)
+            return null;
+        else
+        {
+            StringBuilder hexStringBuilder
+                = new StringBuilder(2 * bytes.length);
+
+            for (int i = 0; i < length; i++)
+            {
+                if (i % 16 == 0)
+                {
+                    hexStringBuilder.append("\n").append(toHexString((byte)i)).append("  ");
+                }
+                else if (i % 8 == 0)
+                {
+                    hexStringBuilder.append(" ");
+                }
+                byte b = bytes[offset + i];
+
+                hexStringBuilder.append(toHexString(b));
+                hexStringBuilder.append(" ");
+            }
+            return hexStringBuilder.toString();
+        }
+    }
 }
