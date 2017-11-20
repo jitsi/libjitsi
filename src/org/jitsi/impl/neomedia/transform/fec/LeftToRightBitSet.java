@@ -12,13 +12,13 @@ import java.util.stream.*;
  * bit (index 0).
  */
 public class LeftToRightBitSet
-    extends BitSet
 {
+    private BitSet bitSet;
     private int numBits = 0;
 
     public LeftToRightBitSet(int numBits)
     {
-        super(numBits);
+        bitSet = new BitSet(numBits);
         this.numBits = numBits;
     }
 
@@ -40,40 +40,34 @@ public class LeftToRightBitSet
         return this.numBits - bitIndex - 1;
     }
 
-    @Override
     public void clear(int bitIndex)
     {
-        super.clear(translate(bitIndex));
+        bitSet.clear(translate(bitIndex));
     }
 
-    @Override
     public void clear(int fromIndex, int toIndex)
     {
         // The inverting of the toIndex and fromIndex arguments
         // here is intentional.  We need to do this for the range
         // to be properly formed
-        super.clear(translate(toIndex), translate(fromIndex));
+        bitSet.clear(translate(toIndex), translate(fromIndex));
     }
 
-    @Override
     public void flip(int bitIndex)
     {
-        super.flip(translate(bitIndex));
+        bitSet.flip(translate(bitIndex));
     }
 
-    @Override
     public void flip(int fromIndex, int toIndex)
     {
-        super.flip(translate(toIndex), translate(fromIndex));
+        bitSet.flip(translate(toIndex), translate(fromIndex));
     }
 
-    @Override
     public boolean get(int bitIndex)
     {
-        return super.get(translate(bitIndex));
+        return bitSet.get(translate(bitIndex));
     }
 
-    @Override
     public LeftToRightBitSet get(int fromIndex, int toIndex)
     {
         LeftToRightBitSet b =
@@ -91,40 +85,36 @@ public class LeftToRightBitSet
         return b;
     }
 
-    @Override
     public int nextClearBit(int bitIndex)
     {
         // Implement this by completely inverting the call (translate the
         // index, call the inverse next/previous, then translate
         // the result back)
-        return translate(super.previousClearBit(translate(bitIndex)));
+        return translate(bitSet.previousClearBit(translate(bitIndex)));
     }
 
-    @Override
     public int nextSetBit(int bitIndex)
     {
-        return translate(super.previousSetBit(translate(bitIndex)));
+        return translate(bitSet.previousSetBit(translate(bitIndex)));
     }
 
-    @Override
     public int previousClearBit(int bitIndex)
     {
-        return translate(super.nextClearBit(translate(bitIndex)));
+        return translate(bitSet.nextClearBit(translate(bitIndex)));
     }
 
-    @Override
+
     public int previousSetBit(int bitIndex)
     {
-        return translate(super.nextSetBit(translate(bitIndex)));
+        return translate(bitSet.nextSetBit(translate(bitIndex)));
     }
 
-    @Override
+
     public void set(int bitIndex)
     {
-        super.set(translate(bitIndex));
+        bitSet.set(translate(bitIndex));
     }
 
-    @Override
     public void set(int bitIndex, boolean value)
     {
         if (value)
@@ -137,7 +127,6 @@ public class LeftToRightBitSet
         }
     }
 
-    @Override
     public void set(int fromIndex, int toIndex)
     {
         for (int i = fromIndex; i < toIndex; ++i)
@@ -146,7 +135,6 @@ public class LeftToRightBitSet
         }
     }
 
-    @Override
     public void set(int fromIndex, int toIndex, boolean value)
     {
         for (int i = fromIndex; i < toIndex; ++i)
@@ -155,13 +143,6 @@ public class LeftToRightBitSet
         }
     }
 
-    @Override
-    public IntStream stream()
-    {
-        throw new NotImplementedException();
-    }
-
-    @Override
     public byte[] toByteArray()
     {
         byte[] bytes = new byte[numBits / 8];
@@ -184,16 +165,19 @@ public class LeftToRightBitSet
 
     public int sizeBytes()
     {
-        return numBits / 8;
+        int numBytes = numBits / 8;
+        if (numBits % 8 != 0)
+        {
+            numBytes++;
+        }
+        return numBytes;
     }
 
-    @Override
-    public long[] toLongArray()
+    public int sizeBits()
     {
-        throw new NotImplementedException();
+        return numBits;
     }
 
-    @Override
     public String toString()
     {
         StringBuilder sb = new StringBuilder();
@@ -251,7 +235,7 @@ public class LeftToRightBitSet
 
     /**
      * Shift the bits (in place) from fromIndex (inclusive) to toIndex (inclusive)
-     * to the left by shiftAmount bits
+     * to the left by shiftAmount bits.
      * @param bitSet the set to shift (in place)
      * @param fromIndex the starting bit position (inclusive) of the chunk to shift
      * @param toIndex the end bit position (inclusive) of the chunk to shift
@@ -262,15 +246,34 @@ public class LeftToRightBitSet
     {
         for (int i = fromIndex; i <= toIndex; ++i)
         {
-            if (i == 0)
+            if ((i - shiftAmount) < 0)
             {
-                // This isn't a rotate: this bit will just get dropped
+                // Make sure we stay within bounds
                 continue;
             }
             bitSet.set(i - shiftAmount, bitSet.get(i));
         }
         // Set the positions we shifted out of to false
         for (int i = toIndex; i > toIndex - shiftAmount; --i)
+        {
+            bitSet.set(i, false);
+        }
+    }
+
+    public static void shiftBitsRight(LeftToRightBitSet bitSet, int fromIndex,
+                                      int toIndex, int shiftAmount)
+    {
+        for (int i = toIndex; i >= fromIndex; --i)
+        {
+            if ((i + shiftAmount) > (bitSet.numBits - 1))
+            {
+                // Make sure we stay within bounds
+                continue;
+            }
+            bitSet.set(i + shiftAmount, bitSet.get(i));
+        }
+        // Set the positions we shifted out of to false
+        for (int i = fromIndex; i < fromIndex + shiftAmount; ++i)
         {
             bitSet.set(i, false);
         }

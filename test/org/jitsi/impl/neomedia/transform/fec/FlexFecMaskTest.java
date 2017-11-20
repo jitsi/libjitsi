@@ -9,81 +9,98 @@ import static org.junit.Assert.*;
 /**
  * Created by bbaldino on 11/14/17.
  */
-//FIXME: manually writing out the list of expected protected seq nums is a pain
-//and is error-prone (and will require re-reading the spec/re-learning if we
-//need to add another test).  unfortunately, writing code that does the logic
-//for us would be complicated and worth testing on its own, however, we'll
-//have that logic once the send-side logic is in, so i'm hoping we can test
-//the send-side code (to generate a mask from a list of sequence numbers),
-// then use it to test this receive code and that will be more straightforward
 public class FlexFecMaskTest
 {
-    private static final byte K_BIT_0 = 0x0 << 7;
-    private static final byte K_BIT_1 = (byte)(0x1 << 7);
+    @Test
+    public void testCreateFlexFecMaskShort()
+    {
+        List<Integer> expectedProtectedSeqNums = Arrays.asList(0, 1, 3, 5, 14);
+        int baseSeqNum = 0;
+        FlexFecMask mask = new FlexFecMask(baseSeqNum, expectedProtectedSeqNums);
+
+        List<Integer> protectedSeqNums = mask.getProtectedSeqNums();
+        assertEquals(expectedProtectedSeqNums, protectedSeqNums);
+    }
 
     @Test
-    public void testFlexFecMaskShort()
+    public void testCreateFlexFecMaskMed()
     {
-        byte[] maskBytes = {
-            K_BIT_1 | 0x12, 0x34
-        };
+        List<Integer> expectedProtectedSeqNums = Arrays.asList(0, 1, 3, 5, 14, 15, 16, 20, 24, 45);
+        int baseSeqNum = 0;
+        FlexFecMask mask = new FlexFecMask(baseSeqNum, expectedProtectedSeqNums);
 
-        FlexFecMask mask = new FlexFecMask(maskBytes, 0, 0);
-        assertEquals(2, mask.lengthBytes());
         List<Integer> protectedSeqNums = mask.getProtectedSeqNums();
-        List<Integer> expectedProtectedSeqNums = Arrays.asList(
-            2, 5, 9, 10, 12
-        );
-        assertEquals(expectedProtectedSeqNums.size(), protectedSeqNums.size());
-        for (Integer expectedProtectedSeqNum : expectedProtectedSeqNums)
+        assertEquals(expectedProtectedSeqNums, protectedSeqNums);
+    }
+    @Test
+    public void testCreateFlexFecMaskLong()
+    {
+        List<Integer> expectedProtectedSeqNums =
+            Arrays.asList(0, 1, 3, 5, 14, 15, 20, 24, 45, 108);
+        int baseSeqNum = 0;
+        FlexFecMask mask = new FlexFecMask(baseSeqNum, expectedProtectedSeqNums);
+
+        List<Integer> protectedSeqNums = mask.getProtectedSeqNums();
+        assertEquals(expectedProtectedSeqNums, protectedSeqNums);
+    }
+
+    /**
+     * Since we've already verified that FlexFecMask generates a mask correctly
+     * from a given set of sequence numbers, we can use that in the following
+     * tests to create the expected mask from a set of sequence numbers via
+     * the FlexFecMask methods we tested above
+     */
+    private LeftToRightBitSet getMask(int baseSeqNum, List<Integer> protectedSeqNums)
+    {
+        FlexFecMask m = new FlexFecMask(baseSeqNum, protectedSeqNums);
+        return m.getMaskWithKBits();
+    }
+
+    private void verifyMask(LeftToRightBitSet expected, LeftToRightBitSet actual)
+    {
+        assertEquals(expected.sizeBits(), actual.sizeBits());
+        for (int i = 0; i < expected.sizeBits(); ++i)
         {
-            assertTrue(protectedSeqNums.contains(expectedProtectedSeqNum));
+            assertEquals(expected.get(i), actual.get(i));
         }
     }
 
     @Test
-    public void testFlexFecMaskMed()
+    public void testFlexFecMaskShortFromBuffer()
     {
-        byte[] maskBytes = {
-            K_BIT_0 | 0x32, 0x25,
-            K_BIT_1 | 0x0a, 0x14, 0x51, 0x45
-        };
-
-        FlexFecMask mask = new FlexFecMask(maskBytes, 0, 0);
-        assertEquals(6, mask.lengthBytes());
-        List<Integer> protectedSeqNums = mask.getProtectedSeqNums();
         List<Integer> expectedProtectedSeqNums = Arrays.asList(
-            1, 2, 5, 9, 12, 14, 18, 20, 25, 27, 31, 33, 37, 39, 43, 45
+            0, 2, 5, 9, 10, 12, 14
         );
-        assertEquals(expectedProtectedSeqNums.size(), protectedSeqNums.size());
-        for (Integer expectedProtectedSeqNum : expectedProtectedSeqNums)
-        {
-            assertTrue(protectedSeqNums.contains(expectedProtectedSeqNum));
-        }
+
+        LeftToRightBitSet expectedMask = getMask(0, expectedProtectedSeqNums);
+
+        FlexFecMask mask = new FlexFecMask(expectedMask.toByteArray(), 0, 0);
+        verifyMask(expectedMask, mask.getMaskWithKBits());
+    }
+
+    @Test
+    public void testFlexFecMaskMedFromBuffer()
+    {
+        List<Integer> expectedProtectedSeqNums = Arrays.asList(
+            0, 2, 5, 9, 10, 12, 14, 15, 22, 32, 45
+        );
+
+        LeftToRightBitSet expectedMask = getMask(0, expectedProtectedSeqNums);
+
+        FlexFecMask mask = new FlexFecMask(expectedMask.toByteArray(), 0, 0);
+        verifyMask(expectedMask, mask.getMaskWithKBits());
     }
 
     @Test
     public void testFlexFecMaskLong()
     {
-        byte[] maskBytes = {
-            K_BIT_0 | 0x12, 0x34,
-            K_BIT_0 | 0x12, 0x34, 0x45, 0x67,
-            K_BIT_1 | 0x12, 0x34, 0x45, 0x67, 0x12, 0x34, 0x45, 0x67
-
-        };
-
-        FlexFecMask mask = new FlexFecMask(maskBytes, 0, 0);
-        assertEquals(14, mask.lengthBytes());
-        List<Integer> protectedSeqNums = mask.getProtectedSeqNums();
         List<Integer> expectedProtectedSeqNums = Arrays.asList(
-            2, 5, 9, 10, 12,
-            17, 20, 24, 25, 27, 31, 35, 37, 39, 40, 43, 44, 45,
-            48, 51, 55, 56, 58, 62, 66, 68, 70, 71, 74, 75, 76, 80, 83, 87, 88, 90, 94, 98, 100, 102, 103, 106, 107
+            0, 2, 5, 9, 10, 12, 14, 15, 22, 32, 45, 46, 56, 66, 76, 90, 108
         );
-        assertEquals(expectedProtectedSeqNums.size(), protectedSeqNums.size());
-        for (Integer expectedProtectedSeqNum : expectedProtectedSeqNums)
-        {
-            assertTrue(protectedSeqNums.contains(expectedProtectedSeqNum));
-        }
+
+        LeftToRightBitSet expectedMask = getMask(0, expectedProtectedSeqNums);
+
+        FlexFecMask mask = new FlexFecMask(expectedMask.toByteArray(), 0, 0);
+        verifyMask(expectedMask, mask.getMaskWithKBits());
     }
 }
