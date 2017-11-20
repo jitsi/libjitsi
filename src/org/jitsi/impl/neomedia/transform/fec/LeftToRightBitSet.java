@@ -9,7 +9,7 @@ import java.util.stream.*;
  * Created by bbaldino on 11/14/17.
  *
  * A BitSet, but treats the leftmost bit as the least significant
- * bit.
+ * bit (index 0).
  */
 public class LeftToRightBitSet
     extends BitSet
@@ -215,11 +215,13 @@ public class LeftToRightBitSet
     }
 
     /**
-     * An extra method which allows taking the value of bytes at an offset
-     * from the given buffer
-     * @param bytes
-     * @param offset
-     * @return
+     * Parse the given bytes (at the given offset and length) into a
+     * LeftToRightBitSet
+     * @param bytes the byte buffer to parse
+     * @param offset the offset at which to start parsing
+     * @param length the length (in bytes) of the chunk to parse
+     * @return a LeftToRightBitSet representing the chunk of the given buffer
+     * based on the given offset and length
      */
     public static LeftToRightBitSet valueOf(byte[] bytes, int offset, int length)
     {
@@ -241,17 +243,17 @@ public class LeftToRightBitSet
     }
 
     /**
-     * Shift the bits from fromIndex (inclusive) to toIndex (exclusive)
+     * Shift the bits (in place) from fromIndex (inclusive) to toIndex (inclusive)
      * to the left by shiftAmount bits
-     * @param bitSet
-     * @param fromIndex
-     * @param toIndex
-     * @param shiftAmount
+     * @param bitSet the set to shift (in place)
+     * @param fromIndex the starting bit position (inclusive) of the chunk to shift
+     * @param toIndex the end bit position (inclusive) of the chunk to shift
+     * @param shiftAmount the amount of bits to shift
      */
     public static void shiftBitsLeft(LeftToRightBitSet bitSet, int fromIndex,
                                      int toIndex, int shiftAmount)
     {
-        for (int i = fromIndex; i < toIndex; ++i)
+        for (int i = fromIndex; i <= toIndex; ++i)
         {
             if (i == 0)
             {

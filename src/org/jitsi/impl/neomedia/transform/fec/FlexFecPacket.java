@@ -51,12 +51,6 @@ public class FlexFecPacket
     public int seqNumBase;
 
     /**
-     * The mask denoting which sequence numbers (relative to seqNumBase)
-     * of the media stream are protected by this fec packet
-     */
-    public BitSet packetMask;
-
-    /**
      * The list of sequence numbers of packets protected by this fec packet
      */
     public List<Integer> protectedSeqNums;
@@ -66,36 +60,57 @@ public class FlexFecPacket
      */
     public int flexFecHeaderSizeBytes;
 
+    /**
+     * Ctor
+     * @param p a RawPacket representing a flex fec packet
+     */
     public FlexFecPacket(RawPacket p)
     {
         this(p.getBuffer(), p.getOffset(), p.getLength());
-        FlexFecHeaderReader.readFlexFecHeader(
-            this,
-            this.getBuffer(),
-            this.getFlexFecBufOffset(),
-            this.getLength() - this.getHeaderLength());
     }
 
+    /**
+     * Ctor
+     * @param buffer rtp packet buffer
+     * @param offset offset at which the rtp packet starts in the given
+     * buffer
+     * @param length length of the packet
+     */
     public FlexFecPacket(byte[] buffer, int offset, int length)
     {
         super(buffer, offset, length);
+        FlexFecHeaderReader.readFlexFecHeader(
+            this,
+            this.getBuffer(),
+            this.getFlexFecHeaderOffset(),
+            this.getLength() - this.getHeaderLength());
     }
 
+    /**
+     * Get the list of media packet sequence numbers protected by this
+     * FlexFecPacket
+     * @return the list of media packet sequence numbers protected by this
+     * FlexFecPacket
+     */
     public List<Integer> getProtectedSequenceNumbers()
     {
         return this.protectedSeqNums;
     }
 
+    /**
+     * Returns the size of the FlexFEC payload, in bytes
+     * @return the size of the FlexFEC packet payload, in bytes
+     */
     public int getPayloadLength()
     {
         return this.getLength() - this.getHeaderLength() - this.flexFecHeaderSizeBytes;
     }
 
     /**
-     * Get the offset at which the flexfec header starts
-     * @return
+     * Get the offset at which the FlexFEC header starts
+     * @return the offset at which the FlexFEC header starts
      */
-    private int getFlexFecBufOffset()
+    private int getFlexFecHeaderOffset()
     {
         return this.getHeaderLength();
     }

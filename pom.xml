@@ -74,6 +74,13 @@
       <artifactId>junit</artifactId>
       <scope>test</scope>
     </dependency>
+    <!-- https://mvnrepository.com/artifact/io.pkts/pkts-core -->
+    <dependency>
+        <groupId>io.pkts</groupId>
+        <artifactId>pkts-core</artifactId>
+        <version>3.0.1</version>
+        <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
