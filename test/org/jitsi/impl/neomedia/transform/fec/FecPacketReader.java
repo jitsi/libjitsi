@@ -75,7 +75,8 @@ public class FecPacketReader
         }
     }
 
-    public void run(int videoPt, int flexFecPt, FlexFecReceiverTest.FecCaptureReadResult fecCaptureReadResult)
+    public void run(final int videoPt, final int flexFecPt,
+                    final FlexFecReceiverTest.FecCaptureReadResult fecCaptureReadResult)
         throws IOException
     {
         pcap.loop(new PacketHandler() {
