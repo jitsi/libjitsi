@@ -121,6 +121,7 @@ public abstract class AbstractFECReceiver
      * packet) we do an insert at one end and a delete from the other -- this
      * can be optimized. We very rarely (when we receive a packet out of order)
      * need to insert at an arbitrary location.
+     * FIXME: Look at using the existing packet cache instead of our own here
      */
     protected final SortedMap<Integer, RawPacket> mediaPackets
         = new TreeMap<Integer, RawPacket>(RTPUtils.sequenceNumberComparator);
@@ -140,6 +141,7 @@ public abstract class AbstractFECReceiver
      * packet) we do an insert at one end and a delete from the other -- this
      * can be optimized. We very rarely (when we receive a packet out of order)
      * need to insert at an arbitrary location.
+     * FIXME: Look at using the existing packet cache instead of our own here
      */
     protected final SortedMap<Integer,RawPacket> fecPackets
         = new TreeMap<Integer, RawPacket>(RTPUtils.sequenceNumberComparator);
