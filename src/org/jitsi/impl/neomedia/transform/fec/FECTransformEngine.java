@@ -33,6 +33,9 @@ public class FECTransformEngine
         implements TransformEngine,
         PacketTransformer
 {
+    public enum FecType {
+        ULPFEC,
+    }
     /**
      * The <tt>Logger</tt> used by the <tt>FECTransformEngine</tt> class and
      * its instances to print debug information.
@@ -52,6 +55,11 @@ public class FECTransformEngine
      * packets.
      */
     private byte incomingPT = -1;
+
+    /**
+     * The fec type this transform engine will instantiate
+     */
+    FecType fecType;
 
     /**
      * The payload type for outgoing ulpfec (RFC5109) packets.
@@ -84,18 +92,16 @@ public class FECTransformEngine
     private final Map<Long, FECSender> fecSenders
             = new HashMap<Long,FECSender>();
 
-    Class fecReceiverType;
-
     /**
      * Initializes a new <tt>FECTransformEngine</tt> instance.
      *
      * @param incomingPT the RTP payload type number for incoming ulpfec packet.
      * @param outgoingPT the RTP payload type number for outgoing ulpfec packet.
      */
-    public FECTransformEngine(Class fecReceiverType,
+    public FECTransformEngine(FecType fecType,
                               byte incomingPT, byte outgoingPT)
     {
-        this.fecReceiverType = fecReceiverType;
+        this.fecType = fecType;
         setIncomingPT(incomingPT);
         setOutgoingPT(outgoingPT);
     }
@@ -109,7 +115,7 @@ public class FECTransformEngine
      */
     public FECTransformEngine(byte incomingPT, byte outgoingPT)
     {
-        this(ULPFECReceiver.class, incomingPT, outgoingPT);
+        this(FecType.ULPFEC, incomingPT, outgoingPT);
     }
 
     /**
@@ -121,7 +127,7 @@ public class FECTransformEngine
      */
     public FECTransformEngine()
     {
-        this(ULPFECReceiver.class, (byte) -1, (byte) -1);
+        this(FecType.ULPFEC, (byte) -1, (byte) -1);
     }
 
     /**
@@ -150,19 +156,13 @@ public class FECTransformEngine
             fpt = fecReceivers.get(ssrc);
             if (fpt == null)
             {
-                try
+                if (fecType == FecType.ULPFEC)
                 {
-                    // NOTE(brian): Too hacky? Other option would be to define
-                    // factory interface/factories?
-                    Constructor ctor = fecReceiverType.getConstructor(long.class, byte.class);
-                    fpt = (AbstractFECReceiver)ctor.newInstance(ssrc, incomingPT);
-                    fecReceivers.put(ssrc, fpt);
-                } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e)
+                    fpt = new ULPFECReceiver(ssrc, incomingPT);
+                }
+                else
                 {
-                    logger.error("Error creating the FEC receiver " +
-                        "implementation (" + fecReceiverType.getName() + "): " +
-                        e.toString());
-                    return pkts;
+                    logger.error("Unknown fec type set: " + fecType);
                 }
             }
         }

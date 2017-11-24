@@ -23,8 +23,6 @@ import org.jitsi.util.*;
 
 import java.util.*;
 
-import static org.jitsi.util.RTPUtils.seqNumComparator;
-
 /**
  * A {@link PacketTransformer} which handles incoming fec packets.  This class
  * contains only the generic fec handling logic.
@@ -125,7 +123,7 @@ public abstract class AbstractFECReceiver
      * need to insert at an arbitrary location.
      */
     protected final SortedMap<Integer, RawPacket> mediaPackets
-        = new TreeMap<Integer, RawPacket>(seqNumComparator);
+        = new TreeMap<Integer, RawPacket>(RTPUtils.sequenceNumberComparator);
 
     /**
      * Buffer which keeps (copies of) received fec packets.
@@ -144,7 +142,7 @@ public abstract class AbstractFECReceiver
      * need to insert at an arbitrary location.
      */
     protected final SortedMap<Integer,RawPacket> fecPackets
-        = new TreeMap<Integer, RawPacket>(seqNumComparator);
+        = new TreeMap<Integer, RawPacket>(RTPUtils.sequenceNumberComparator);
 
 
     /**
@@ -201,6 +199,7 @@ public abstract class AbstractFECReceiver
         System.arraycopy(p.getBuffer(), p.getOffset(), newMedia.getBuffer(),
             0, pLen);
         newMedia.setLength(pLen);
+        newMedia.setOffset(0);
 
         mediaPackets.put(newMedia.getSequenceNumber(), newMedia);
     }
