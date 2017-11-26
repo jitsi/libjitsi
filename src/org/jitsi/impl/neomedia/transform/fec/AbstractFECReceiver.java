@@ -40,11 +40,6 @@ public abstract class AbstractFECReceiver
     private static final Logger logger
         = Logger.getLogger(AbstractFECReceiver.class);
 
-    class Statistics {
-        int numRxFecPackets;
-        int numRecoveredPackets;
-    }
-
     /**
      * Statistics for this fec receiver
      */
@@ -278,4 +273,9 @@ public abstract class AbstractFECReceiver
     }
 
     protected abstract RawPacket[] doReverseTransform(RawPacket[] pkts);
+
+    class Statistics {
+        int numRxFecPackets;
+        int numRecoveredPackets;
+    }
 }
