@@ -472,6 +472,15 @@ public class MediaStreamImpl
                 fecTransformEngine.setOutgoingPT(rtpPayloadType);
             }
         }
+        else if (Constants.FLEXFEC_03.equals(encoding))
+        {
+            logger.info("Creating FlexFEC transform engine");
+            FECTransformEngine flexFecTransformEngine =
+                new FECTransformEngine(FECTransformEngine.FecType.FLEXFEC_03,
+                    rtpPayloadType, rtpPayloadType);
+            setFecTransformEngine(flexFecTransformEngine);
+
+        }
 
         if (rtpManager != null)
         {
@@ -1611,6 +1620,17 @@ public class MediaStreamImpl
     protected FECTransformEngine getFecTransformEngine()
     {
         return null;
+    }
+
+    /**
+     * Sets the {@link FECTransformEngine} for this {@link MediaStream}
+     * By default, nothing is done with the passed engine, allowing extenders
+     * to implement it
+     * @param fecTransformEngine
+     */
+    protected void setFecTransformEngine(FECTransformEngine fecTransformEngine)
+    {
+        // no op
     }
 
     /**
