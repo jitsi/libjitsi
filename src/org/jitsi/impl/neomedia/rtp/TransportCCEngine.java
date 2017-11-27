@@ -384,16 +384,6 @@ public class TransportCCEngine
     @Override
     public void tccReceived(RTCPTCCPacket tccPacket)
     {
-        MediaStream videoStream = null;
-        for (MediaStream stream : mediaStreams)
-        {
-            if (stream instanceof VideoMediaStream)
-            {
-                videoStream = stream;
-                break;
-            }
-        }
-
         RTCPTCCPacket.PacketMap packetMap = tccPacket.getPackets();
         long previousArrivalTimeMs = -1;
         for (Map.Entry<Integer, Long> entry : packetMap.entrySet())
@@ -419,37 +409,39 @@ public class TransportCCEngine
                 packetDetail = sentPacketDetails.remove(entry.getKey());
             }
 
-            if (packetDetail != null && videoStream != null)
+            if (packetDetail == null)
             {
-                long arrivalTimeMs = arrivalTime250Us / 4
-                    - remoteReferenceTimeMs + localReferenceTimeMs;
-
-                if (logger.isDebugEnabled())
-                {
-                    if (previousArrivalTimeMs != -1)
-                    {
-                        long diff_ms = arrivalTimeMs - previousArrivalTimeMs;
-                        logger.debug("seq=" + entry.getKey()
-                                + ", arrival_time_ms=" + arrivalTimeMs
-                                + ", diff_ms=" + diff_ms);
-                    }
-                    else
-                    {
-                        logger.debug("seq=" + entry.getKey()
-                                + ", arrival_time_ms=" + arrivalTimeMs);
-                    }
-                }
-
-                previousArrivalTimeMs = arrivalTimeMs;
-                long sendTime24bits = RemoteBitrateEstimatorAbsSendTime
-                    .convertMsTo24Bits(packetDetail.packetSendTimeMs);
-
-                bitrateEstimatorAbsSendTime.incomingPacketInfo(
-                    arrivalTimeMs,
-                    sendTime24bits,
-                    packetDetail.packetLength,
-                    tccPacket.getSourceSSRC());
+                continue;
             }
+
+            long arrivalTimeMs = arrivalTime250Us / 4
+                - remoteReferenceTimeMs + localReferenceTimeMs;
+
+            if (logger.isDebugEnabled())
+            {
+                if (previousArrivalTimeMs != -1)
+                {
+                    long diff_ms = arrivalTimeMs - previousArrivalTimeMs;
+                    logger.debug("seq=" + entry.getKey()
+                            + ", arrival_time_ms=" + arrivalTimeMs
+                            + ", diff_ms=" + diff_ms);
+                }
+                else
+                {
+                    logger.debug("seq=" + entry.getKey()
+                            + ", arrival_time_ms=" + arrivalTimeMs);
+                }
+            }
+
+            previousArrivalTimeMs = arrivalTimeMs;
+            long sendTime24bits = RemoteBitrateEstimatorAbsSendTime
+                .convertMsTo24Bits(packetDetail.packetSendTimeMs);
+
+            bitrateEstimatorAbsSendTime.incomingPacketInfo(
+                arrivalTimeMs,
+                sendTime24bits,
+                packetDetail.packetLength,
+                tccPacket.getSourceSSRC());
         }
     }
 
