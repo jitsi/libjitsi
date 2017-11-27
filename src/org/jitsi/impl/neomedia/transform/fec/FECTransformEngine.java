@@ -34,6 +34,7 @@ public class FECTransformEngine
 {
     public enum FecType {
         ULPFEC,
+        FLEXFEC_03
     }
     /**
      * The <tt>Logger</tt> used by the <tt>FECTransformEngine</tt> class and
@@ -48,7 +49,7 @@ public class FECTransformEngine
     public static final int INITIAL_BUFFER_SIZE = 1500;
 
     /**
-     * The payload type for incoming ulpfec (RFC5109) packets.
+     * The payload type for incoming fec packets.
      *
      * The special value "-1" is used to effectively disable reverse-transforming
      * packets.
@@ -61,7 +62,7 @@ public class FECTransformEngine
     FecType fecType;
 
     /**
-     * The payload type for outgoing ulpfec (RFC5109) packets.
+     * The payload type for outgoing fec packets.
      *
      * The special value "-1" is used to effectively disable transforming
      * packets.
@@ -159,9 +160,14 @@ public class FECTransformEngine
                 {
                     fpt = new ULPFECReceiver(ssrc, incomingPT);
                 }
+                else if (fecType == FecType.FLEXFEC_03)
+                {
+                    fpt = new FlexFecReceiver(ssrc, incomingPT);
+                }
                 else
                 {
                     logger.error("Unknown fec type set: " + fecType);
+                    return pkts;
                 }
             }
         }
