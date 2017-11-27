@@ -1,6 +1,5 @@
 package org.jitsi.impl.neomedia.transform.fec;
 
-import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
@@ -12,12 +11,8 @@ import java.util.*;
  */
 //FIXME: anywhere we use getBuffer needs to take into account getOffset
 public class FlexFecReceiver
-    implements PacketTransformer
+    extends AbstractFECReceiver
 {
-    class Statistics {
-        int numFecPacketsReceived = 0;
-        int numPacketsRecovered = 0;
-    }
     /**
      * The <tt>Logger</tt> used by the <tt>FlexFecReceiver</tt> class and
      * its instances to print debug information.
@@ -26,208 +21,34 @@ public class FlexFecReceiver
         = Logger.getLogger(FlexFecReceiver.class);
 
     /**
-     * The number of media packets to keep.
-     */
-    private static final int MEDIA_BUF_SIZE;
-
-    /**
-     * The maximum number of ulpfec packets to keep.
-     */
-    private static final int FEC_BUF_SIZE;
-
-    /**
-     * The name of the <tt>ConfigurationService</tt> property which specifies
-     * the value of {@link #MEDIA_BUF_SIZE}.
-     */
-    private static final String MEDIA_BUF_SIZE_PNAME
-        = FECReceiver.class.getName() + ".MEDIA_BUFF_SIZE";
-
-    /**
-     * The name of the <tt>ConfigurationService</tt> property which specifies
-     * the value of {@link #FEC_BUF_SIZE}.
-     */
-    private static final String FEC_BUF_SIZE_PNAME
-        = FECReceiver.class.getName() + ".FEC_BUFF_SIZE";
-
-    static
-    {
-        //TODO: think this screws things for the unit test, so look at
-        // passing these in instead and having the caller retrieve them.
-        // or maybe can pass in a mock config service?
-        ConfigurationService cfg = null; //TODO: LibJitsi.getConfigurationService();
-        int fecBufSize = 32;
-        int mediaBufSize = 64;
-
-        if (cfg != null)
-        {
-            fecBufSize = cfg.getInt(FEC_BUF_SIZE_PNAME, fecBufSize);
-            mediaBufSize = cfg.getInt(MEDIA_BUF_SIZE_PNAME, mediaBufSize);
-        }
-        FEC_BUF_SIZE = fecBufSize;
-        MEDIA_BUF_SIZE = mediaBufSize;
-    }
-
-    /**
-     * The ssrc of the media stream the fec stream is protecting
-     */
-    private long mediaSsrc;
-
-    /**
-     * The ssrc of the fec stream
-     */
-    private long fecSsrc;
-
-    /**
      * FEC-related statistics
      */
     private Statistics statistics;
 
     /**
-     *
+     * Helper class to reconstruct missing packets
      */
     private Reconstructor reconstructor;
 
-    /**
-     * Buffer which keeps (copies of) received media packets.
-     *
-     * We keep them ordered by their RTP sequence numbers, so that
-     * we can easily select the oldest one to discard when the buffer is
-     * full (when the map has more than <tt>MEDIA_BUFF_SIZE</tt> entries).
-     *
-     * We keep them in a <tt>Map</tt> so that we can easily search for a
-     * packet with a specific sequence number.
-     *
-     * Note: This might turn out to be inefficient, especially with increased
-     * buffer sizes. In the vast majority of cases (e.g. on every received
-     * packet) we do an insert at one end and a delete from the other -- this
-     * can be optimized. We very rarely (when we receive a packet out of order)
-     * need to insert at an arbitrary location.
-     */
-    private final SortedMap<Integer, RawPacket> mediaPackets
-        = new TreeMap<>(FecUtils.seqNumComparator);
-
-    /**
-     * Buffer which keeps references to received fec packets.
-     *
-     * We keep them ordered by their RTP sequence numbers, so that
-     * we can easily select the oldest one to discard when the buffer is
-     * full (when the map has more than <tt>FEC_BUFF_SIZE</tt> entries.
-     *
-     * We keep them in a <tt>Map</tt> so that we can easily search for a
-     * packet with a specific sequence number.
-     *
-     * Note: This might turn out to be inefficient, especially with increased
-     * buffer sizes. In the vast majority of cases (e.g. on every received
-     * packet) we do an insert at one end and a delete from the other -- this
-     * can be optimized. We very rarely (when we receive a packet out of order)
-     * need to insert at an arbitrary location.
-     */
-    private final SortedMap<Integer, FlexFecPacket> fecPackets
-        = new TreeMap<>(FecUtils.seqNumComparator);
-
-
-    public FlexFecReceiver(long mediaSsrc, long fecSsrc)
+    public FlexFecReceiver(long mediaSsrc, byte fecPayloadType)
     {
-        this.mediaSsrc = mediaSsrc;
-        this.fecSsrc = fecSsrc;
+        super(mediaSsrc, fecPayloadType);
         this.statistics = new Statistics();
         this.reconstructor = new Reconstructor(mediaPackets);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public void close()
+    public synchronized RawPacket[] doReverseTransform(RawPacket[] pkts)
     {
-        if (logger.isInfoEnabled())
-        {
-            logger.info("Closing FlexFecReceiver stream " + this.fecSsrc
-                + " (protecting " + this.mediaSsrc + ")."
-                + "Recovered " + this.statistics.numPacketsRecovered +
-                " media packets");
-        }
-    }
-
-    /**
-     * Saves <tt>p</tt> into <tt>fecPackets</tt>. If the size of
-     * <tt>fecPackets</tt> has reached <tt>FEC_BUFF_SIZE</tt> discards the
-     * oldest packet from it.
-     * @param p the packet to save.
-     */
-    private void saveFec(RawPacket p)
-    {
-        FlexFecPacket flexFecPacket = FlexFecPacket.create(p);
-        if (flexFecPacket == null)
-        {
-            logger.error("Error parsing FlexFEC packet");
-            return;
-        }
-        if (fecPackets.size() >= FEC_BUF_SIZE)
-            fecPackets.remove(fecPackets.firstKey());
-
-        fecPackets.put(p.getSequenceNumber(), flexFecPacket);
-    }
-
-    /**
-     * Makes a copy of <tt>p</tt> into <tt>mediaPackets</tt>. If the size of
-     * <tt>mediaPackets</tt> has reached <tt>MEDIA_BUFF_SIZE</tt> discards
-     * the oldest packet from it and reuses it.
-     * @param p the packet to copy.
-     */
-    private void saveMedia(RawPacket p)
-    {
-        RawPacket newMedia;
-        if (mediaPackets.size() < MEDIA_BUF_SIZE)
-        {
-            newMedia = new RawPacket();
-            newMedia.setBuffer(new byte[FECTransformEngine.INITIAL_BUFFER_SIZE]);
-            newMedia.setOffset(0);
-        }
-        else
-        {
-            newMedia = mediaPackets.remove(mediaPackets.firstKey());
-        }
-
-        int pLen = p.getLength();
-        if (pLen > newMedia.getBuffer().length)
-        {
-            newMedia.setBuffer(new byte[pLen]);
-        }
-
-        System.arraycopy(p.getBuffer(), p.getOffset(), newMedia.getBuffer(),
-            0, pLen);
-        newMedia.setLength(pLen);
-
-        mediaPackets.put(newMedia.getSequenceNumber(), newMedia);
-    }
-
-    @Override
-    public synchronized RawPacket[] reverseTransform(RawPacket[] pkts)
-    {
-        for (int i = 0; i < pkts.length; ++i)
-        {
-            RawPacket pkt = pkts[i];
-            if (pkt.getSSRCAsLong() == this.fecSsrc)
-            {
-                // Don't forward it
-                pkts[i] = null;
-                logger.info("BRIAN: received a fec packet");
-                statistics.numFecPacketsReceived++;
-                saveFec(pkt);
-
-            }
-            else if (pkt.getSSRCAsLong() == this.mediaSsrc)
-            {
-                saveMedia(pkt);
-            }
-        }
-
         Set<Integer> flexFecPacketsToRemove = new HashSet<>();
         // Try to recover any missing media packets
-        for (Map.Entry<Integer, FlexFecPacket> entry : fecPackets.entrySet())
+        for (Map.Entry<Integer, RawPacket> entry : fecPackets.entrySet())
         {
-            FlexFecPacket flexFecPacket = entry.getValue();
+            FlexFecPacket flexFecPacket = FlexFecPacket.create(entry.getValue());
+            if (flexFecPacket == null)
+            {
+                continue;
+            }
             reconstructor.setFecPacket(flexFecPacket);
             if (reconstructor.complete())
             {
@@ -244,9 +65,7 @@ public class FlexFecReceiver
                 {
                     logger.info("Recovered packet " +
                         recovered.getSequenceNumber());
-                    logger.info("BRIAN: Recovered packet " +
-                        recovered.getSequenceNumber());
-                    statistics.numPacketsRecovered++;
+                    statistics.numRecoveredPackets++;
                     saveMedia(recovered);
                     pkts = insert(recovered, pkts);
                 }

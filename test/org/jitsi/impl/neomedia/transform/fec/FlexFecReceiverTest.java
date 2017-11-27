@@ -56,7 +56,7 @@ public class FlexFecReceiverTest
 
         FlexFecReceiver receiver =
             new FlexFecReceiver(lostMediaPacket.getSSRCAsLong(),
-                flexFecPacket.getSSRCAsLong());
+                (byte)107);
 
         receiver.reverseTransform(new RawPacket[] {flexFecPacket});
         RawPacket[] packets = null;
@@ -95,7 +95,7 @@ public class FlexFecReceiverTest
      * @throws Exception
      */
     @Test
-    public void reverseTransform()
+    public void testReverseTransform()
         throws
         Exception
     {
