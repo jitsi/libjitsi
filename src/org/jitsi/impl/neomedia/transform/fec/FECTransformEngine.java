@@ -26,11 +26,15 @@ import java.util.*;
  * {@link org.jitsi.impl.neomedia.transform.TransformEngine} for RFC5109.
  *
  * @author Boris Grozev
+ * @author bbaldino
  */
 public class FECTransformEngine
         implements TransformEngine,
         PacketTransformer
 {
+    public enum FecType {
+        ULPFEC,
+    }
     /**
      * The <tt>Logger</tt> used by the <tt>FECTransformEngine</tt> class and
      * its instances to print debug information.
@@ -52,6 +56,11 @@ public class FECTransformEngine
     private byte incomingPT = -1;
 
     /**
+     * The fec type this transform engine will instantiate
+     */
+    FecType fecType;
+
+    /**
      * The payload type for outgoing ulpfec (RFC5109) packets.
      *
      * The special value "-1" is used to effectively disable transforming
@@ -69,17 +78,17 @@ public class FECTransformEngine
     private int fecRate = 0;
 
     /**
-     * Maps an SSRC to a <tt>FECReceiver</tt> to be used for packets
+     * Maps an SSRC to a <tt>AbstractFECReceiver</tt> to be used for packets
      * with that SSRC.
      */
-    private final Map<Long,FECReceiver> fecReceivers
-            = new HashMap<Long,FECReceiver>();
+    private final Map<Long, AbstractFECReceiver> fecReceivers
+            = new HashMap<Long, AbstractFECReceiver>();
 
     /**
      * Maps an SSRC to a <tt>FECSender</tt> to be used for packets with that
      * SSRC.
      */
-    private final Map<Long,FECSender> fecSenders
+    private final Map<Long, FECSender> fecSenders
             = new HashMap<Long,FECSender>();
 
     /**
@@ -88,25 +97,43 @@ public class FECTransformEngine
      * @param incomingPT the RTP payload type number for incoming ulpfec packet.
      * @param outgoingPT the RTP payload type number for outgoing ulpfec packet.
      */
-    public FECTransformEngine(byte incomingPT, byte outgoingPT)
+    public FECTransformEngine(FecType fecType,
+                              byte incomingPT, byte outgoingPT)
     {
+        this.fecType = fecType;
         setIncomingPT(incomingPT);
         setOutgoingPT(outgoingPT);
     }
 
     /**
+     * FIXME: For backwards compatilibity from when ULPFEC was the only fec
+     * implementation.  Try and get rid of this and have all callers
+     * explicitly pick the right fec type
+     * @param incomingPT
+     * @param outgoingPT
+     */
+    public FECTransformEngine(byte incomingPT, byte outgoingPT)
+    {
+        this(FecType.ULPFEC, incomingPT, outgoingPT);
+    }
+
+    /**
      * Initializes a new <tt>FECTransformEngine</tt> instance.
+     * FIXME: ULPFEC is used as the default since it used to be the only
+     * fec implementation.  Callers should have to explicitly pass which
+     * fec implementation they want (or we should change it to have a setter
+     * to set the implementation after construction)
      */
     public FECTransformEngine()
     {
-        this((byte) -1, (byte) -1);
+        this(FecType.ULPFEC, (byte) -1, (byte) -1);
     }
 
     /**
      * {@inheritDoc}
      *
      * Assumes that all packets in <tt>pkts</tt> have the same SSRC. Reverse-
-     * transforms using the <tt>FECReceiver</tt> for the SSRC found in
+     * transforms using the <tt>AbstractFECReceiver</tt> for the SSRC found in
      * <tt>pkts</tt>.
      */
     @Override
@@ -118,16 +145,24 @@ public class FECTransformEngine
         // Assumption: all packets in pkts have the same SSRC
         Long ssrc = findSSRC(pkts);
         if (ssrc == null)
+        {
             return pkts;
+        }
 
-        FECReceiver fpt;
+        AbstractFECReceiver fpt;
         synchronized (fecReceivers)
         {
             fpt = fecReceivers.get(ssrc);
             if (fpt == null)
             {
-                fpt = new FECReceiver(ssrc, incomingPT);
-                fecReceivers.put(ssrc, fpt);
+                if (fecType == FecType.ULPFEC)
+                {
+                    fpt = new ULPFECReceiver(ssrc, incomingPT);
+                }
+                else
+                {
+                    logger.error("Unknown fec type set: " + fecType);
+                }
             }
         }
 
@@ -170,7 +205,7 @@ public class FECTransformEngine
     @Override
     public void close()
     {
-        Collection<FECReceiver> receivers;
+        Collection<AbstractFECReceiver> receivers;
         Collection<FECSender> senders;
 
         synchronized (fecReceivers)
@@ -184,10 +219,14 @@ public class FECTransformEngine
             fecSenders.clear();
         }
 
-        for (FECReceiver fecReceiver : receivers)
+        for (AbstractFECReceiver fecReceiver : receivers)
+        {
             fecReceiver.close();
+        }
         for (FECSender fecSender : senders)
+        {
             fecSender.close();
+        }
     }
 
     /**
@@ -219,8 +258,8 @@ public class FECTransformEngine
         this.incomingPT = incomingPT;
         synchronized (fecReceivers)
         {
-            for (FECReceiver f : fecReceivers.values())
-                f.setUlpfecPT(incomingPT);
+            for (AbstractFECReceiver f : fecReceivers.values())
+                f.setPayloadType(incomingPT);
         }
         if (logger.isDebugEnabled())
             logger.debug("Setting payload type for incoming ulpfec: "

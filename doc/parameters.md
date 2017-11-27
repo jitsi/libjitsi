@@ -78,11 +78,11 @@ Indicates whether protection against replay attacks is to be activated. The defa
 
 # FECReceiver
 
-##### org.jitsi.impl.neomedia.transform.fec.FECReceiver.FEC\_BUFF\_SIZE=*int*
+##### org.jitsi.impl.neomedia.transform.fec.AbstractFECReceiver.FEC\_BUFF\_SIZE=*int*
 
 Specifies the value of #FEC\_BUFF\_SIZE.
 
-##### org.jitsi.impl.neomedia.transform.fec.FECReceiver.MEDIA\_BUFF\_SIZE=*int*
+##### org.jitsi.impl.neomedia.transform.fec.AbstractFECReceiver.MEDIA\_BUFF\_SIZE=*int*
 
 Specifies the value of #MEDIA\_BUFF\_SIZE.
 
