@@ -577,9 +577,12 @@ public class RTPEncodingDesc
         {
             return true;
         }
-        if (rtxSsrc != -1 && rtxSsrc == ssrc)
+        for (long secondarySsrc : secondarySsrcs.keySet())
         {
-            return true;
+            if (secondarySsrc == ssrc)
+            {
+                return true;
+            }
         }
         return false;
     }
