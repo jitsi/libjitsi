@@ -572,7 +572,6 @@ public class RTPEncodingDesc
      */
     public boolean matches(long ssrc)
     {
-        long rtxSsrc = getSecondarySsrc(Constants.RTX);
         if (primarySSRC == ssrc)
         {
             return true;
