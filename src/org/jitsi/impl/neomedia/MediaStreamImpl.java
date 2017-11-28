@@ -479,7 +479,6 @@ public class MediaStreamImpl
                 new FECTransformEngine(FECTransformEngine.FecType.FLEXFEC_03,
                     rtpPayloadType, rtpPayloadType);
             setFecTransformEngine(flexFecTransformEngine);
-
         }
 
         if (rtpManager != null)

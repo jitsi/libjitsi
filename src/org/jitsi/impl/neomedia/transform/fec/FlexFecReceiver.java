@@ -1,6 +1,5 @@
 package org.jitsi.impl.neomedia.transform.fec;
 
-import org.jitsi.service.configuration.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
@@ -104,16 +103,6 @@ public class FlexFecReceiver
         System.arraycopy(pkts, 0, newPkts, 0, pkts.length);
         newPkts[pkts.length] = packet;
         return newPkts;
-    }
-
-    /**
-     * {@inheritDoc}
-     * No-op
-     */
-    @Override
-    public RawPacket[] transform(RawPacket[] pkts)
-    {
-        return pkts;
     }
 
     private static class Reconstructor

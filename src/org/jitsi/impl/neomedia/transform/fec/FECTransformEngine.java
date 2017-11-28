@@ -169,6 +169,7 @@ public class FECTransformEngine
                     logger.error("Unknown fec type set: " + fecType);
                     return pkts;
                 }
+                fecReceivers.put(ssrc, fpt);
             }
         }
 
