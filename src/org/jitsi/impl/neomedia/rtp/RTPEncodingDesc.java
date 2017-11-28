@@ -17,6 +17,7 @@ package org.jitsi.impl.neomedia.rtp;
 
 import org.ice4j.util.*;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.util.*;
 import org.jitsi.util.Logger;
 
@@ -68,9 +69,10 @@ public class RTPEncodingDesc
     private final long primarySSRC;
 
     /**
-     * The RTX SSRC for this layering/encoding.
+     * The ssrcs associated with this encoding (for example, RTX or FLEXFEC)
+     * Maps ssrc -> type {@link Constants} (rtx, etc.)
      */
-    private final long rtxSSRC;
+    private final Map<Long, String> secondarySsrcs = new HashMap<>();
 
     /**
      * The index of this instance in the track encodings array.
@@ -183,22 +185,10 @@ public class RTPEncodingDesc
      * @param track the {@link MediaStreamTrackDesc} that this instance belongs to.
      * @param primarySSRC The primary SSRC for this layering/encoding.
      */
-    public RTPEncodingDesc(MediaStreamTrackDesc track, long primarySSRC)
-    {
-        this(track, primarySSRC, -1 /* rtxSSRC */);
-    }
-
-    /**
-     * Ctor.
-     *
-     * @param track the {@link MediaStreamTrackDesc} that this instance belongs to.
-     * @param primarySSRC The primary SSRC for this layering/encoding.
-     * @param rtxSSRC The RTX SSRC for this layering/encoding.
-     */
     public RTPEncodingDesc(
-        MediaStreamTrackDesc track, long primarySSRC, long rtxSSRC)
+        MediaStreamTrackDesc track, long primarySSRC)
     {
-        this(track, 0, primarySSRC, rtxSSRC, -1 /* tid */, -1 /* sid */,
+        this(track, 0, primarySSRC, -1 /* tid */, -1 /* sid */,
             NO_HEIGHT /* height */, NO_FRAME_RATE /* frame rate */,
             null /* dependencies */);
     }
@@ -211,7 +201,6 @@ public class RTPEncodingDesc
      * @param idx the subjective quality index for this
      * layering/encoding.
      * @param primarySSRC The primary SSRC for this layering/encoding.
-     * @param rtxSSRC The RTX SSRC for this layering/encoding.
      * @param tid temporal layer ID for this layering/encoding.
      * @param sid spatial layer ID for this layering/encoding.
      * @param height the max height of this encoding
@@ -221,7 +210,7 @@ public class RTPEncodingDesc
      */
     public RTPEncodingDesc(
         MediaStreamTrackDesc track, int idx,
-        long primarySSRC, long rtxSSRC,
+        long primarySSRC,
         int tid, int sid,
         int height,
         double frameRate,
@@ -232,7 +221,6 @@ public class RTPEncodingDesc
         this.height = height;
         this.frameRate = frameRate;
         this.primarySSRC = primarySSRC;
-        this.rtxSSRC = rtxSSRC;
         this.track = track;
         this.idx = idx;
         this.tid = tid;
@@ -246,6 +234,11 @@ public class RTPEncodingDesc
         {
             this.base = dependencyEncodings[0].getBaseLayer();
         }
+    }
+
+    public void addSecondarySsrc(long ssrc, String type)
+    {
+        secondarySsrcs.put(ssrc, type);
     }
 
     /**
@@ -400,9 +393,23 @@ public class RTPEncodingDesc
      *
      * @return the RTX SSRC for this layering/encoding.
      */
-    public long getRTXSSRC()
+    /**
+     * Get the secondary ssrc for this stream that corresponds to the given
+     * type
+     * @param type the type of the secondary ssrc (e.g. RTX)
+     * @return the ssrc for the stream that corresponds to the given type,
+     * if it exists; otherwise -1
+     */
+    public long getSecondarySsrc(String type)
     {
-        return rtxSSRC;
+        for (Map.Entry<Long, String> e : secondarySsrcs.entrySet())
+        {
+            if (e.getValue().equals(type))
+            {
+                return e.getKey();
+            }
+        }
+        return -1;
     }
 
     /**
@@ -456,7 +463,7 @@ public class RTPEncodingDesc
     {
         return "subjective_quality=" + idx +
             ",primary_ssrc=" + getPrimarySSRC() +
-            ",rtx_ssrc=" + getRTXSSRC() +
+            ",secondary_ssrcs=" + secondarySsrcs +
             ",temporal_id=" + tid +
             ",spatial_id=" + sid +
             ",active=" + active +
@@ -532,7 +539,7 @@ public class RTPEncodingDesc
     {
         long ssrc = pkt.getSSRCAsLong();
 
-        if (primarySSRC != ssrc && rtxSSRC != ssrc)
+        if (!matches(ssrc))
         {
             return false;
         }
@@ -565,7 +572,16 @@ public class RTPEncodingDesc
      */
     public boolean matches(long ssrc)
     {
-        return primarySSRC == ssrc || rtxSSRC == ssrc;
+        long rtxSsrc = getSecondarySsrc(Constants.RTX);
+        if (primarySSRC == ssrc)
+        {
+            return true;
+        }
+        if (rtxSsrc != -1 && rtxSsrc == ssrc)
+        {
+            return true;
+        }
+        return false;
     }
 
     /**
