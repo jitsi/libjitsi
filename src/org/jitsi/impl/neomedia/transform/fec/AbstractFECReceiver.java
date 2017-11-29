@@ -268,7 +268,8 @@ public abstract class AbstractFECReceiver
         {
             logger.info("Closing AbstractFECReceiver for SSRC=" + ssrc
                 + ". Received " + statistics.numRxFecPackets +" fec packets, recovered "
-                + statistics.numRecoveredPackets + " media packets.");
+                + statistics.numRecoveredPackets + " media packets. Recovery "
+                + "failed " + statistics.failedRecoveries + " times");
         }
     }
 
@@ -277,5 +278,6 @@ public abstract class AbstractFECReceiver
     class Statistics {
         int numRxFecPackets;
         int numRecoveredPackets;
+        int failedRecoveries;
     }
 }

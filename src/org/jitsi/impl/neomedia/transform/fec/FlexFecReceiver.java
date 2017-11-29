@@ -68,6 +68,13 @@ public class FlexFecReceiver
                     saveMedia(recovered);
                     pkts = insert(recovered, pkts);
                 }
+                else
+                {
+                    logger.error("Recovery of packet " +
+                        reconstructor.missingSequenceNumber + " failed even" +
+                        " though it should have been possible");
+                    statistics.failedRecoveries++;
+                }
             }
         }
 
@@ -153,6 +160,7 @@ public class FlexFecReceiver
 
         public void setFecPacket(FlexFecPacket p)
         {
+            logger.debug("Have " + mediaPackets.size() + " saved media packets");
             numMissing = 0;
             logger.debug("Reconstructor checking if recovery is " +
                 "possible: fec packet " + p.getSequenceNumber() +

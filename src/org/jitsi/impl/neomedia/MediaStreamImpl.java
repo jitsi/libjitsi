@@ -477,7 +477,7 @@ public class MediaStreamImpl
             logger.info("Creating FlexFEC transform engine");
             FECTransformEngine flexFecTransformEngine =
                 new FECTransformEngine(FECTransformEngine.FecType.FLEXFEC_03,
-                    rtpPayloadType, rtpPayloadType);
+                    rtpPayloadType, rtpPayloadType, this);
             setFecTransformEngine(flexFecTransformEngine);
         }
 
