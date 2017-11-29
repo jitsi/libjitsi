@@ -387,12 +387,7 @@ public class RTPEncodingDesc
     {
         return primarySSRC;
     }
-
-    /**
-     * Gets the RTX SSRC for this layering/encoding.
-     *
-     * @return the RTX SSRC for this layering/encoding.
-     */
+    
     /**
      * Get the secondary ssrc for this stream that corresponds to the given
      * type
