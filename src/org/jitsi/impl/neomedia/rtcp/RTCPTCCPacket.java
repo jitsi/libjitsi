@@ -55,17 +55,18 @@ import java.util.*;
  * }</pre>
  *
  * @author Boris Grozev
+ * @author George Politis
  */
 public class RTCPTCCPacket
     extends RTCPFBPacket
 {
     /**
      * Gets a boolean indicating whether or not the RTCP packet specified in the
-     * {@link ByteArrayBuffer} that is passed as an argument is a NACK packet or
+     * {@link ByteArrayBuffer} that is passed as an argument is a TCC packet or
      * not.
      *
      * @param baf the {@link ByteArrayBuffer}
-     * @return true if the byte array buffer holds a NACK packet, otherwise
+     * @return true if the byte array buffer holds a TCC packet, otherwise
      * false.
      */
     public static boolean isTCCPacket(ByteArrayBuffer baf)
@@ -75,25 +76,58 @@ public class RTCPTCCPacket
     }
 
     /**
-     * Parses the FCI portion of an RTCP transport-cc feedback packet in the
-     * specified buffer.
+     * @return the packets represented in an RTCP transport-cc feedback packet.
      *
      * Warning: the timestamps are represented in the 250µs format used by the
      * on-the-wire format, and don't represent local time. This is different
      * than the timestamps expected as input when constructing a packet with
      * {@link RTCPTCCPacket#RTCPTCCPacket(long, long, PacketMap, byte)}.
      *
-     * @param tccPacket the {@link RTCPTCCPacket} that will hold the parsed FCI.
+     * @param baf the buffer which contains the RTCP packet.
+     */
+    public static PacketMap getPackets(ByteArrayBuffer baf)
+    {
+        return getPacketsFci(getFCI(baf));
+    }
+
+    /**
+     * @return the reference time of the FCI buffer of an RTCP TCC packet.
+     *
+     * The format is 32 bits with 250µs resolution. Note that the format in the
+     * transport-wide cc draft is 24bit with 2^6ms resolution. The change in the
+     * unit facilitates the arrival time computations, as the deltas have 250µs
+     * resolution.
+     */
+    public static long getReferenceTime(ByteArrayBuffer fciBuffer)
+    {
+        byte[] buf = fciBuffer.getBuffer();
+        int off = fciBuffer.getOffset();
+
+        // reference time. The 24 bit field uses increments of 2^6ms, and we
+        // shift by 8 to change the resolution to 250µs.
+        // FIXME this is supposed to be a signed int.
+        long referenceTime = RTPUtils.readUint24AsInt(buf, off + 4) << 8;
+
+        return referenceTime;
+    }
+
+    /**
+     * @return the packets represented in the FCI portion of an RTCP
+     * transport-cc feedback packet.
+     *
+     * Warning: the timestamps are represented in the 250µs format used by the
+     * on-the-wire format, and don't represent local time. This is different
+     * than the timestamps expected as input when constructing a packet with
+     * {@link RTCPTCCPacket#RTCPTCCPacket(long, long, PacketMap, byte)}.
+     *
      * @param fciBuffer the buffer which contains the FCI portion of the RTCP
      * feedback packet.
-     * @return true if parsing succeeded, false otherwise.
      */
-    public static boolean parseFci(
-        RTCPTCCPacket tccPacket, ByteArrayBuffer fciBuffer)
+    public static PacketMap getPacketsFci(ByteArrayBuffer fciBuffer)
     {
         if (fciBuffer == null)
         {
-            return false;
+            return null;
         }
 
         byte[] buf = fciBuffer.getBuffer();
@@ -103,18 +137,14 @@ public class RTCPTCCPacket
         if (len < MIN_FCI_LENGTH)
         {
             logger.warn(PARSE_ERROR + "length too small: " + len);
-            return false;
+            return null;
         }
 
         // The fixed fields
         int baseSeq = RTPUtils.readUint16AsInt(buf, off);
         int packetStatusCount = RTPUtils.readUint16AsInt(buf, off + 2);
 
-        // reference time. The 24 bit field uses increments of 2^6ms, and we
-        // shift by 8 to change the resolution to 250µs.
-        tccPacket.referenceTime = RTPUtils.readUint24AsInt(buf, off + 4) << 8;
-
-        long offsetUs = 0;
+        long referenceTime = getReferenceTime(fciBuffer);
 
         // The offset at which the packet status chunk list starts.
         int pscOff = off + 8;
@@ -126,7 +156,7 @@ public class RTCPTCCPacket
             if (pscOff + 2 > off + len)
             {
                 logger.warn(PARSE_ERROR + "reached the end while reading chunks");
-                return false;
+                return null;
             }
 
             int packetsInChunk = getPacketCount(buf, pscOff);
@@ -169,17 +199,17 @@ public class RTCPTCCPacket
                     {
                         logger.warn(PARSE_ERROR
                                 + "reached the end while reading delta.");
-                        return false;
+                        return null;
                     }
                     delta = buf[deltaOff++] & 0xff;
                     break;
                 case SYMBOL_LARGE_DELTA:
-                    // The delta is a 6-bit signed integer.
+                    // The delta is a 16-bit signed integer.
                     if (deltaOff + 1 >= off + len) // we're about to read 2 bytes
                     {
                         logger.warn(PARSE_ERROR
                                 + "reached the end while reading long delta.");
-                        return false;
+                        return null;
                     }
                     delta = RTPUtils.readInt16AsInt(buf, deltaOff);
                     deltaOff += 2;
@@ -196,11 +226,29 @@ public class RTCPTCCPacket
                     // but we push the packet in the map to indicate that it was
                     // marked as not received.
                     packets.put(baseSeq, NEGATIVE_ONE);
+                    if (logger.isDebugEnabled())
+                    {
+                        logger.debug("seq=" + baseSeq
+                                + ",reference_time=" + referenceTime
+                                + ",delta=" + -1
+                                + ",symbol=" + symbol);
+                    }
                 }
                 else
                 {
-                    offsetUs += delta;
-                    packets.put(baseSeq, offsetUs);
+                    // The draft is not clear about what the reference time for
+                    // each packet is. We adhere to the webrtc.org behavior so
+                    // that every packet for which there is a delta updates 
+                    // the reference (even if the delta is negative).
+                    if (logger.isDebugEnabled())
+                    {
+                        logger.debug("seq=" + baseSeq
+                                + ",reference_time=" + referenceTime
+                                + ",delta=" + delta
+                                + ",symbol=" + symbol);
+                    }
+                    referenceTime += delta;
+                    packets.put(baseSeq, referenceTime);
                 }
 
                 baseSeq = (baseSeq + 1) & 0xffff;
@@ -211,9 +259,7 @@ public class RTCPTCCPacket
             packetsRemaining -= packetsInChunk;
         }
 
-        tccPacket.packets = packets;
-
-        return true;
+        return packets;
     }
 
     /**
@@ -421,19 +467,6 @@ public class RTCPTCCPacket
     private PacketMap packets = null;
 
     /**
-     * The reference time of this TCC packet.
-     */
-    private long referenceTime = -1;
-
-    /**
-     * Ctor.
-     */
-    public RTCPTCCPacket()
-    {
-
-    }
-
-    /**
      * Initializes a new <tt>RTCPTCCPacket</tt> instance.
      * @param base
      */
@@ -622,20 +655,10 @@ public class RTCPTCCPacket
     {
         if (packets == null)
         {
-            parseFci(this, new ByteArrayBufferImpl(fci, 0, fci.length));
+            packets = getPacketsFci(new ByteArrayBufferImpl(fci, 0, fci.length));
         }
 
         return packets;
-    }
-
-    /**
-     * Gets the reference time of this TCC packet.
-     *
-     * @return the reference time of this TCC packet.
-     */
-    public long getReferenceTime()
-    {
-        return referenceTime;
     }
 
     /**

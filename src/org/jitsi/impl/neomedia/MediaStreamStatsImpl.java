@@ -1230,6 +1230,16 @@ public class MediaStreamStatsImpl
                     remoteBitrateEstimator.onRttUpdate(
                         /* avgRttMs */ rttMs,
                         /* maxRttMs*/ rttMs);
+
+                    TransportCCEngine tccEngine
+                        = mediaStream.getTransportCCEngine();
+
+                    if (tccEngine != null)
+                    {
+                        tccEngine.onRttUpdate(
+                                /* avgRttMs */ rttMs,
+                                /* maxRttMs*/ rttMs);
+                    }
                 }
             }
         }

@@ -61,11 +61,6 @@ public class RTCPFBPacket
      */
     public long sourceSSRC;
 
-    public RTCPFBPacket()
-    {
-
-    }
-
     public RTCPFBPacket(int fmt, int type, long senderSSRC, long sourceSSRC)
     {
         super.type = type;

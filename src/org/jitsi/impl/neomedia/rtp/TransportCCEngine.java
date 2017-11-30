@@ -20,6 +20,7 @@ import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.*;
 
 import java.io.*;
@@ -39,25 +40,9 @@ import java.util.concurrent.atomic.*;
 public class TransportCCEngine
     extends RTCPPacketListenerAdapter
     implements TransformEngine,
-    RemoteBitrateObserver
+               RemoteBitrateObserver,
+               CallStatsObserver
 {
-    /**
-     *
-     */
-    private static final int kDeltaScaleFactor = 250;
-
-    /**
-     *
-     */
-    private static final long kBaseTimestampScaleFactor
-        = kDeltaScaleFactor * (1 << 8);
-
-    /**
-     *
-     */
-    private static final long kBaseTimestampRangeSizeUs
-        = kBaseTimestampScaleFactor * (1 << 24);
-
     /**
      * The maximum number of received packets and their timestamps to save.
      */
@@ -105,6 +90,12 @@ public class TransportCCEngine
     private final List<MediaStream> mediaStreams = new LinkedList<>();
 
     /**
+     * Some {@link VideoMediaStream} that utilizes this instance. We use it to
+     * get the sender/media SSRC of the outgoing RTCP TCC packets.
+     */
+    private VideoMediaStream anyVideoMediaStream;
+
+    /**
      * Incoming transport-wide sequence numbers mapped to the timestamp of their
      * reception (in milliseconds since the epoch).
      */
@@ -116,12 +107,33 @@ public class TransportCCEngine
     private final Object incomingPacketsSyncRoot = new Object();
 
     /**
+     * Used to synchronize access to {@link #sentPacketDetails}.
+     */
+    private final Object sentPacketsSyncRoot = new Object();
+
+    /**
      * The time (in milliseconds since the epoch) at which the first received
-     * packet in {@link #incomingPackets} was received (or -1 if the map is empty).
+     * packet in {@link #incomingPackets} was received (or -1 if the map is
+     * empty).
      * Kept here for quicker access, because the map is ordered by sequence
      * number.
      */
     private long firstIncomingTs = -1;
+
+    /**
+     * The reference time of the remote clock. This is used to rebase the
+     * arrival times in the TCC packets to a meaningful time base (that of the
+     * sender). This is technically not necessary and it's done for convenience.
+     */
+    private long remoteReferenceTimeMs = -1;
+
+    /**
+     * Local time to map to the reference time of the remote clock. This is used
+     * to rebase the arrival times in the TCC packets to a meaningful time base
+     * (that of the sender). This is technically not necessary and it's done for
+     * convinience.
+     */
+    private long localReferenceTimeMs = -1;
 
     /**
      * Holds a key value pair of the packet sequence number and an object made
@@ -135,16 +147,6 @@ public class TransportCCEngine
      */
     private RemoteBitrateEstimatorAbsSendTime bitrateEstimatorAbsSendTime
         = new RemoteBitrateEstimatorAbsSendTime(this);
-
-    /**
-     * The latest receive timestamp the remote end has sent us (in micros).
-     */
-    private long lastTimestampUs = -1;
-
-    /**
-     * The artificial time offset (in millis) to base remote receipt times.
-     */
-    private long currentOffsetMs = -1;
 
     /**
      * Notifies this instance that a data packet with a specific transport-wide
@@ -184,6 +186,41 @@ public class TransportCCEngine
         }
 
         maybeSendRtcp(marked, now);
+    }
+
+    /**
+     * Gets the source SSRC to use for the outgoing RTCP TCC packets.
+     *
+     * @return the source SSRC to use for the outgoing RTCP TCC packets.
+     */
+    private long getSourceSSRC()
+    {
+        MediaStream stream = anyVideoMediaStream;
+        if (stream == null)
+        {
+            return -1;
+        }
+
+        MediaStreamTrackReceiver receiver
+            = stream.getMediaStreamTrackReceiver();
+        if (receiver == null)
+        {
+            return -1;
+        }
+
+        MediaStreamTrackDesc[] tracks = receiver.getMediaStreamTracks();
+        if (tracks == null || tracks.length == 0)
+        {
+            return -1;
+        }
+
+        RTPEncodingDesc[] encodings = tracks[0].getRTPEncodings();
+        if (encodings == null || encodings.length == 0)
+        {
+            return -1;
+        }
+
+        return encodings[0].getPrimarySSRC();
     }
 
     /**
@@ -234,14 +271,31 @@ public class TransportCCEngine
 
             try
             {
-                // TODO: use the correct SSRCs
-                RTCPTCCPacket rtcpPacket
-                    = new RTCPTCCPacket(
-                    -1, -1,
+                long senderSSRC
+                    = anyVideoMediaStream.getStreamRTPManager().getLocalSSRC();
+                if (senderSSRC == -1)
+                {
+                    logger.warn("No sender SSRC, can't send RTCP.");
+                    return;
+                }
+
+
+                long sourceSSRC = getSourceSSRC();
+                if (sourceSSRC == -1)
+                {
+                    logger.warn("No source SSRC, can't send RTCP.");
+                    return;
+                }
+                RTCPTCCPacket rtcpPacket = new RTCPTCCPacket(
+                    senderSSRC, sourceSSRC,
                     packets,
                     (byte) (outgoingFbPacketCount.getAndIncrement() & 0xff));
-                stream.injectPacket(rtcpPacket.toRawPacket(), false /* rtcp */,
-                    null);
+
+                // Inject the TCC packet *after* this engine. We don't want
+                // RTCP termination -which runs before this engine in the 
+                // egress- to drop the packet we just sent.
+                stream.injectPacket(
+                        rtcpPacket.toRawPacket(), false /* rtcp */, this);
             }
             catch (IllegalArgumentException iae)
             {
@@ -252,13 +306,23 @@ public class TransportCCEngine
                 // We currently don't do this, because it only happens if the
                 // receiver stops sending packets for over 8s. In this case
                 // we will fail to send one feedback message.
-                logger.warn("Not sending transport-cc feedback, delta too big.");
+                logger.warn(
+                        "Not sending transport-cc feedback, delta too big.");
             }
             catch (IOException | TransmissionFailedException e)
             {
                 logger.error("Failed to send transport feedback RTCP: ", e);
             }
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onRttUpdate(long avgRttMs, long maxRttMs)
+    {
+        bitrateEstimatorAbsSendTime.onRttUpdate(avgRttMs, maxRttMs);
     }
 
     /**
@@ -320,60 +384,64 @@ public class TransportCCEngine
     @Override
     public void tccReceived(RTCPTCCPacket tccPacket)
     {
-        MediaStream videoStream = null;
-        for (MediaStream stream : mediaStreams)
+        RTCPTCCPacket.PacketMap packetMap = tccPacket.getPackets();
+        long previousArrivalTimeMs = -1;
+        for (Map.Entry<Integer, Long> entry : packetMap.entrySet())
         {
-            if (stream instanceof VideoMediaStream)
+            long arrivalTime250Us = entry.getValue();
+            if (arrivalTime250Us == -1)
             {
-                videoStream = stream;
-                break;
-            }
-        }
-
-        long referenceTime = tccPacket.getReferenceTime();
-        if (lastTimestampUs == -1)
-        {
-            currentOffsetMs = System.currentTimeMillis();
-        }
-        else
-        {
-            long delta = referenceTime - lastTimestampUs;
-
-            // Detect and compensate for wrap-arounds in base time.
-            if (Math.abs(delta - kBaseTimestampRangeSizeUs) < Math.abs(delta))
-            {
-                delta -= kBaseTimestampRangeSizeUs;  // Wrap backwards.
-            }
-            else if (Math.abs(delta + kBaseTimestampRangeSizeUs) < Math.abs(delta))
-            {
-                delta += kBaseTimestampRangeSizeUs;  // Wrap forwards.
+                continue;
             }
 
-            currentOffsetMs += delta / 1000;
-        }
-
-        lastTimestampUs = referenceTime;
-
-        for (Map.Entry<Integer, Long> entry
-            : tccPacket.getPackets().entrySet())
-        {
-            PacketDetail packetDetail
-                = sentPacketDetails.remove(entry.getKey());
-
-            if (packetDetail != null && videoStream != null)
+            if (remoteReferenceTimeMs == -1)
             {
-                long arrivalTimeMs
-                    = currentOffsetMs + entry.getValue() / 1000;
+                remoteReferenceTimeMs = RTCPTCCPacket.getReferenceTime(
+                        new ByteArrayBufferImpl(
+                            tccPacket.fci, 0, tccPacket.fci.length)) / 4;
 
-                long sendTime24bits = RemoteBitrateEstimatorAbsSendTime
-                    .convertMsTo24Bits(packetDetail.packetSendTimeMs);
-
-                bitrateEstimatorAbsSendTime.incomingPacketInfo(
-                    arrivalTimeMs,
-                    sendTime24bits,
-                    packetDetail.packetLength,
-                    tccPacket.getSourceSSRC());
+                localReferenceTimeMs = System.currentTimeMillis();
             }
+
+            PacketDetail packetDetail;
+            synchronized (sentPacketsSyncRoot)
+            {
+                packetDetail = sentPacketDetails.remove(entry.getKey());
+            }
+
+            if (packetDetail == null)
+            {
+                continue;
+            }
+
+            long arrivalTimeMs = arrivalTime250Us / 4
+                - remoteReferenceTimeMs + localReferenceTimeMs;
+
+            if (logger.isDebugEnabled())
+            {
+                if (previousArrivalTimeMs != -1)
+                {
+                    long diff_ms = arrivalTimeMs - previousArrivalTimeMs;
+                    logger.debug("seq=" + entry.getKey()
+                            + ", arrival_time_ms=" + arrivalTimeMs
+                            + ", diff_ms=" + diff_ms);
+                }
+                else
+                {
+                    logger.debug("seq=" + entry.getKey()
+                            + ", arrival_time_ms=" + arrivalTimeMs);
+                }
+            }
+
+            previousArrivalTimeMs = arrivalTimeMs;
+            long sendTime24bits = RemoteBitrateEstimatorAbsSendTime
+                .convertMsTo24Bits(packetDetail.packetSendTimeMs);
+
+            bitrateEstimatorAbsSendTime.incomingPacketInfo(
+                arrivalTimeMs,
+                sendTime24bits,
+                packetDetail.packetLength,
+                tccPacket.getSourceSSRC());
         }
     }
 
@@ -415,7 +483,20 @@ public class TransportCCEngine
                     ext.getBuffer(),
                     ext.getOffset() + 1,
                     (short) seq);
-                sentPacketDetails.put(seq, new PacketDetail(pkt.getLength(), System.currentTimeMillis()));
+
+                if (logger.isDebugEnabled())
+                {
+                    logger.debug("rtp_seq=" + pkt.getSequenceNumber()
+                            + ",pt=" + pkt.getPayloadType()
+                            + ",tcc_seq=" + seq);
+                }
+
+                synchronized (sentPacketsSyncRoot)
+                {
+                    sentPacketDetails.put(seq, new PacketDetail(
+                                pkt.getLength(),
+                                System.currentTimeMillis()));
+                }
             }
             return pkt;
         }
@@ -456,6 +537,11 @@ public class TransportCCEngine
             // Hook us up to receive TCCs.
             MediaStreamStats stats = mediaStream.getMediaStreamStats();
             stats.addRTCPPacketListener(this);
+
+            if (mediaStream instanceof VideoMediaStream)
+            {
+                anyVideoMediaStream = (VideoMediaStream) mediaStream;
+            }
         }
     }
 
@@ -476,6 +562,11 @@ public class TransportCCEngine
             // Hook us up to receive TCCs.
             MediaStreamStats stats = mediaStream.getMediaStreamStats();
             stats.removeRTCPPacketListener(this);
+
+            if (mediaStream == anyVideoMediaStream)
+            {
+                anyVideoMediaStream = null;
+            }
         }
     }
 

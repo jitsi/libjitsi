@@ -167,7 +167,7 @@ public class RTCPReceiverFeedbackTermination
             return -1;
         }
 
-        return stream.getStreamRTPManager().getLocalSSRC();
+        return streamRTPManager.getLocalSSRC();
     }
 
 
@@ -410,9 +410,12 @@ public class RTCPReceiverFeedbackTermination
             {
                 ByteArrayBuffer baf = it.next();
                 int pt = RTCPHeaderUtils.getPacketType(baf);
-                if (pt == RTCPRRPacket.RR || RTCPREMBPacket.isREMBPacket(baf))
+                if (pt == RTCPRRPacket.RR
+                        || RTCPREMBPacket.isREMBPacket(baf)
+                        || RTCPTCCPacket.isTCCPacket(baf))
                 {
                     it.remove();
+                    continue;
                 }
 
                 if (!send)
@@ -429,6 +432,7 @@ public class RTCPReceiverFeedbackTermination
                             .requestKeyframe(source);
 
                         it.remove();
+                        continue;
                     }
                 }
             }
