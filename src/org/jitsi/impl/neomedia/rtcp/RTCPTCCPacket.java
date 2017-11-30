@@ -90,6 +90,14 @@ public class RTCPTCCPacket
         return getPacketsFci(getFCI(baf));
     }
 
+    /**
+     * @return the reference time of the FCI buffer of an RTCP TCC packet.
+     *
+     * The format is 32 bits with 250µs resolution. Note that the format in the
+     * transport-wide cc draft is 24bit with 2^6ms resolution. The change in the
+     * unit facilitates the arrival time computations, as the deltas have 250µs
+     * resolution.
+     */
     public static long getReferenceTime(ByteArrayBuffer fciBuffer)
     {
         byte[] buf = fciBuffer.getBuffer();
