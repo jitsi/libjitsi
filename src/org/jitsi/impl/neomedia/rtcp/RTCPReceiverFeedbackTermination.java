@@ -415,6 +415,7 @@ public class RTCPReceiverFeedbackTermination
                         || RTCPTCCPacket.isTCCPacket(baf))
                 {
                     it.remove();
+                    continue;
                 }
 
                 if (!send)
@@ -431,6 +432,7 @@ public class RTCPReceiverFeedbackTermination
                             .requestKeyframe(source);
 
                         it.remove();
+                        continue;
                     }
                 }
             }
