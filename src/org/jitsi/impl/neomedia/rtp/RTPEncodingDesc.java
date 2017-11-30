@@ -387,7 +387,7 @@ public class RTPEncodingDesc
     {
         return primarySSRC;
     }
-    
+
     /**
      * Get the secondary ssrc for this stream that corresponds to the given
      * type
@@ -571,14 +571,7 @@ public class RTPEncodingDesc
         {
             return true;
         }
-        for (long secondarySsrc : secondarySsrcs.keySet())
-        {
-            if (secondarySsrc == ssrc)
-            {
-                return true;
-            }
-        }
-        return false;
+        return secondarySsrcs.containsKey(ssrc);
     }
 
     /**
