@@ -243,6 +243,11 @@ public class Constants
     public static final String ULPFEC = "ulpfec";
 
     /**
+     * The name of the flexfec-03 rtp format
+     */
+    public static final String FLEXFEC_03 = "flexfec-03";
+
+    /**
      * The VP8 constant
      */
     public static final String VP8 = "VP8";
