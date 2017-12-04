@@ -219,7 +219,7 @@ public class RtxTransformer
             return -1;
         }
 
-        return encoding.getRTXSSRC();
+        return encoding.getSecondarySsrc(Constants.RTX);
     }
 
     /**
