@@ -44,12 +44,12 @@ public class RTCPFeedbackMessageEvent
     /**
      * The payload type (PT) of payload-specific RTCP feedback messages.
      */
-    public static final byte PT_PS = (byte) /* 206 */ 0xCE;
+    public static final int PT_PS = 206;
 
     /**
      * The payload type (PT) of transport layer RTCP feedback messages.
      */
-    public static final byte PT_TL = (byte) /* 205 */ 0xCD;
+    public static final int PT_TL = 205;
 
     /**
      * Feedback message type (FMT).
@@ -59,7 +59,7 @@ public class RTCPFeedbackMessageEvent
     /**
      * Payload type (PT).
      */
-    private final byte payloadType;
+    private final int payloadType;
 
     /**
      * Constructor.
@@ -71,7 +71,7 @@ public class RTCPFeedbackMessageEvent
     public RTCPFeedbackMessageEvent(
             Object source,
             int feedbackMessageType,
-            byte payloadType)
+            int payloadType)
     {
         super(source);
 
@@ -94,7 +94,7 @@ public class RTCPFeedbackMessageEvent
      *
      * @return payload type
      */
-    public byte getPayloadType()
+    public int getPayloadType()
     {
         return payloadType;
     }

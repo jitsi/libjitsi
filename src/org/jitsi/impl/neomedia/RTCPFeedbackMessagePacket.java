@@ -39,7 +39,7 @@ public class RTCPFeedbackMessagePacket
     /**
      * Packet type (PT).
      */
-    private byte pt;
+    private int pt;
 
     /**
      * SSRC of packet sender.
@@ -72,7 +72,7 @@ public class RTCPFeedbackMessagePacket
      */
     public RTCPFeedbackMessagePacket(
             int fmt,
-            byte pt,
+            int pt,
             long senderSSRC,
             long sourceSSRC)
     {
@@ -99,7 +99,7 @@ public class RTCPFeedbackMessagePacket
      *
      * @return the packet type (PT) of this <tt>RTCPFeedbackMessagePacket</tt>
      */
-    public byte getPayloadType()
+    public int getPayloadType()
     {
         return pt;
     }
@@ -163,7 +163,7 @@ public class RTCPFeedbackMessagePacket
      * @param pt the packet type (PT) to set on this
      * <tt>RTCPFeedbackMessagePacket</tt>
      */
-    public void setPayloadType(byte pt)
+    public void setPayloadType(int pt)
     {
         this.pt = pt;
     }
@@ -241,7 +241,7 @@ public class RTCPFeedbackMessagePacket
          * the header and any padding.
          */
         int fmt = getFeedbackMessageType();
-        byte pt = getPayloadType();
+        int pt = getPayloadType();
         boolean fir = pt == RTCPFeedbackMessageEvent.PT_PS
             && fmt == RTCPFeedbackMessageEvent.FMT_FIR;
         int rtcpPacketLength = 2;
@@ -268,7 +268,7 @@ public class RTCPFeedbackMessagePacket
          */
         buf[off++] = (byte) (0x80 /* RTP version */ | (fmt & 0x1F));
         // packet type (PT): 8 bits
-        buf[off++] = pt;
+        buf[off++] = (byte) pt;
 
         // length: 16 bits
         buf[off++] = (byte) ((rtcpPacketLength & 0xFF00) >> 8);
