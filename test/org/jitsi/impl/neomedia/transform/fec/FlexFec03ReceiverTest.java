@@ -70,11 +70,10 @@ public class FlexFec03ReceiverTest
         {
             if (lostMediaPacket.getBuffer()[i] != recoveredPacket.getBuffer()[i])
             {
-                System.err.println("Expected recoveredPacket[" + i + "]" +
+                fail("Expected recoveredPacket[" + i + "]" +
                     "(" + recoveredPacket.getBuffer()[i] + " to equal " +
                     "lostMediaPacket[" + i + "](" +
                     lostMediaPacket.getBuffer()[i] + ")");
-                assertTrue(false);
             }
         }
     }
@@ -107,8 +106,7 @@ public class FlexFec03ReceiverTest
 
         if (fecCaptureReadResult.flexFecPackets.isEmpty())
         {
-            System.out.println("Unable to find a fec packet with all of its corresponding media packets");
-            assertTrue(false);
+            fail("Unable to find a fec packet with all of its corresponding media packets");
         }
 
         for (FlexFec03Packet flexFecPacket : fecCaptureReadResult.flexFecPackets)

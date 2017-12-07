@@ -21,9 +21,10 @@ import org.jitsi.util.*;
 import java.util.*;
 
 /**
+ * Receive and process FlexFec03 packets, recovering missing packets where
+ * possible
  * @author bbaldino
  */
-//FIXME: anywhere we use getBuffer needs to take into account getOffset
 public class FlexFec03Receiver
     extends AbstractFECReceiver
 {
