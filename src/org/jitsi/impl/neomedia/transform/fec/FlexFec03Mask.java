@@ -1,11 +1,26 @@
+/*
+ * Copyright @ 2017 Atlassian Pty Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.jitsi.impl.neomedia.transform.fec;
 
 import java.util.*;
 
 /**
- * Models a FlexFec-03 maskWithoutKBits field
+ * Models a FlexFec-03 mask field
  */
-public class FlexFecMask
+public class FlexFec03Mask
 {
     private static final int MASK_0_K_BIT = 0;
     private static final int MASK_0_START_BIT = 1;
@@ -36,7 +51,7 @@ public class FlexFecMask
      * @param maskOffset maskOffset to the location of the start of the mask
      * @param baseSeqNum the base sequence number from the flexfec packet
      */
-    FlexFecMask(byte[] buffer, int maskOffset, int baseSeqNum)
+    FlexFec03Mask(byte[] buffer, int maskOffset, int baseSeqNum)
     {
         this.sizeBytes = getMaskSizeInBytes(buffer, maskOffset);
         this.maskWithKBits = LeftToRightBitSet.valueOf(buffer, maskOffset, this.sizeBytes);
@@ -50,7 +65,7 @@ public class FlexFecMask
      * @param protectedSeqNums the sequence numbers this mask should mark
      * as protected
      */
-    public FlexFecMask(int baseSeqNum, List<Integer> protectedSeqNums)
+    public FlexFec03Mask(int baseSeqNum, List<Integer> protectedSeqNums)
     {
         this.sizeBytes = getMaskSizeInBytes(baseSeqNum, protectedSeqNums);
         this.baseSeqNum = baseSeqNum;

@@ -9,14 +9,14 @@ import static org.junit.Assert.*;
 /**
  * Created by bbaldino on 11/14/17.
  */
-public class FlexFecMaskTest
+public class FlexFec03MaskTest
 {
     @Test
     public void testCreateFlexFecMaskShort()
     {
         List<Integer> expectedProtectedSeqNums = Arrays.asList(0, 1, 3, 5, 14);
         int baseSeqNum = 0;
-        FlexFecMask mask = new FlexFecMask(baseSeqNum, expectedProtectedSeqNums);
+        FlexFec03Mask mask = new FlexFec03Mask(baseSeqNum, expectedProtectedSeqNums);
 
         List<Integer> protectedSeqNums = mask.getProtectedSeqNums();
         assertEquals(expectedProtectedSeqNums, protectedSeqNums);
@@ -27,7 +27,7 @@ public class FlexFecMaskTest
     {
         List<Integer> expectedProtectedSeqNums = Arrays.asList(0, 1, 3, 5, 14, 15, 16, 20, 24, 45);
         int baseSeqNum = 0;
-        FlexFecMask mask = new FlexFecMask(baseSeqNum, expectedProtectedSeqNums);
+        FlexFec03Mask mask = new FlexFec03Mask(baseSeqNum, expectedProtectedSeqNums);
 
         List<Integer> protectedSeqNums = mask.getProtectedSeqNums();
         assertEquals(expectedProtectedSeqNums, protectedSeqNums);
@@ -38,21 +38,21 @@ public class FlexFecMaskTest
         List<Integer> expectedProtectedSeqNums =
             Arrays.asList(0, 1, 3, 5, 14, 15, 20, 24, 45, 108);
         int baseSeqNum = 0;
-        FlexFecMask mask = new FlexFecMask(baseSeqNum, expectedProtectedSeqNums);
+        FlexFec03Mask mask = new FlexFec03Mask(baseSeqNum, expectedProtectedSeqNums);
 
         List<Integer> protectedSeqNums = mask.getProtectedSeqNums();
         assertEquals(expectedProtectedSeqNums, protectedSeqNums);
     }
 
     /**
-     * Since we've already verified that FlexFecMask generates a mask correctly
+     * Since we've already verified that FlexFec03Mask generates a mask correctly
      * from a given set of sequence numbers, we can use that in the following
      * tests to create the expected mask from a set of sequence numbers via
-     * the FlexFecMask methods we tested above
+     * the FlexFec03Mask methods we tested above
      */
     private LeftToRightBitSet getMask(int baseSeqNum, List<Integer> protectedSeqNums)
     {
-        FlexFecMask m = new FlexFecMask(baseSeqNum, protectedSeqNums);
+        FlexFec03Mask m = new FlexFec03Mask(baseSeqNum, protectedSeqNums);
         return m.getMaskWithKBits();
     }
 
@@ -74,7 +74,7 @@ public class FlexFecMaskTest
 
         LeftToRightBitSet expectedMask = getMask(0, expectedProtectedSeqNums);
 
-        FlexFecMask mask = new FlexFecMask(expectedMask.toByteArray(), 0, 0);
+        FlexFec03Mask mask = new FlexFec03Mask(expectedMask.toByteArray(), 0, 0);
         verifyMask(expectedMask, mask.getMaskWithKBits());
     }
 
@@ -87,7 +87,7 @@ public class FlexFecMaskTest
 
         LeftToRightBitSet expectedMask = getMask(0, expectedProtectedSeqNums);
 
-        FlexFecMask mask = new FlexFecMask(expectedMask.toByteArray(), 0, 0);
+        FlexFec03Mask mask = new FlexFec03Mask(expectedMask.toByteArray(), 0, 0);
         verifyMask(expectedMask, mask.getMaskWithKBits());
     }
 
@@ -100,7 +100,7 @@ public class FlexFecMaskTest
 
         LeftToRightBitSet expectedMask = getMask(0, expectedProtectedSeqNums);
 
-        FlexFecMask mask = new FlexFecMask(expectedMask.toByteArray(), 0, 0);
+        FlexFec03Mask mask = new FlexFec03Mask(expectedMask.toByteArray(), 0, 0);
         verifyMask(expectedMask, mask.getMaskWithKBits());
     }
 }

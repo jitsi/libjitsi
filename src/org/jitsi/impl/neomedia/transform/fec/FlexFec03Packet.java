@@ -1,3 +1,18 @@
+/*
+ * Copyright @ 2017 Atlassian Pty Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.jitsi.impl.neomedia.transform.fec;
 
 import org.jitsi.service.neomedia.*;
@@ -6,7 +21,7 @@ import org.jitsi.util.*;
 import java.util.*;
 
 /**
- * Created by bbaldino on 11/9/17.
+ * @author bbaldino
  * Based on FlexFec draft -03
  * https://tools.ietf.org/html/draft-ietf-payload-flexible-fec-scheme-03
  *
@@ -33,11 +48,11 @@ import java.util.*;
  * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  */
 
-public class FlexFecPacket
+public class FlexFec03Packet
     extends RawPacket
 {
     private static final Logger logger
-        = Logger.getLogger(FlexFecPacket.class);
+        = Logger.getLogger(FlexFec03Packet.class);
 
     /**
      * The SSRC of the media stream protected by this FEC packet
@@ -60,15 +75,15 @@ public class FlexFecPacket
      */
     public int flexFecHeaderSizeBytes;
 
-    public static FlexFecPacket create(RawPacket p)
+    public static FlexFec03Packet create(RawPacket p)
     {
         return create(p.getBuffer(), p.getOffset(), p.getLength());
     }
 
-    public static FlexFecPacket create(byte[] buffer, int offset, int length)
+    public static FlexFec03Packet create(byte[] buffer, int offset, int length)
     {
-        FlexFecPacket flexFecPacket = new FlexFecPacket(buffer, offset, length);
-        if (FlexFecHeaderReader.readFlexFecHeader(flexFecPacket,
+        FlexFec03Packet flexFecPacket = new FlexFec03Packet(buffer, offset, length);
+        if (FlexFec03HeaderReader.readFlexFecHeader(flexFecPacket,
             flexFecPacket.getBuffer(),
             flexFecPacket.getFlexFecHeaderOffset(),
             flexFecPacket.getLength() - flexFecPacket.getHeaderLength()))
@@ -82,7 +97,7 @@ public class FlexFecPacket
      * Ctor
      * @param p a RawPacket representing a flex fec packet
      */
-    private FlexFecPacket(RawPacket p)
+    private FlexFec03Packet(RawPacket p)
     {
         this(p.getBuffer(), p.getOffset(), p.getLength());
     }
@@ -94,16 +109,16 @@ public class FlexFecPacket
      * buffer
      * @param length length of the packet
      */
-    private FlexFecPacket(byte[] buffer, int offset, int length)
+    private FlexFec03Packet(byte[] buffer, int offset, int length)
     {
         super(buffer, offset, length);
     }
 
     /**
      * Get the list of media packet sequence numbers protected by this
-     * FlexFecPacket
+     * FlexFec03Packet
      * @return the list of media packet sequence numbers protected by this
-     * FlexFecPacket
+     * FlexFec03Packet
      */
     public List<Integer> getProtectedSequenceNumbers()
     {

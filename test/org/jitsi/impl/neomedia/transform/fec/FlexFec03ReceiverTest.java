@@ -1,11 +1,8 @@
 package org.jitsi.impl.neomedia.transform.fec;
 
-import io.pkts.packet.rtp.*;
-import io.pkts.protocol.*;
 import org.jitsi.service.neomedia.*;
 import org.junit.*;
 
-import java.io.*;
 import java.util.*;
 
 import static org.junit.Assert.*;
@@ -13,11 +10,11 @@ import static org.junit.Assert.*;
 /**
  * Created by bbaldino on 11/15/17.
  */
-public class FlexFecReceiverTest
+public class FlexFec03ReceiverTest
 {
     public class FecCaptureReadResult
     {
-        Set<FlexFecPacket> flexFecPackets = new HashSet<>();
+        Set<FlexFec03Packet> flexFecPackets = new HashSet<>();
         Map<Integer, RawPacket> mediaPackets;
     }
 
@@ -41,7 +38,7 @@ public class FlexFecReceiverTest
         return null;
     }
 
-    private void verifyFlexFec(FlexFecPacket flexFecPacket, Map<Integer, RawPacket> mediaPackets)
+    private void verifyFlexFec(FlexFec03Packet flexFecPacket, Map<Integer, RawPacket> mediaPackets)
     {
         List<Integer> protectedSeqNums = flexFecPacket.getProtectedSequenceNumbers();
         List<RawPacket> protectedMediaPackets = new ArrayList<>();
@@ -50,12 +47,12 @@ public class FlexFecReceiverTest
             protectedMediaPackets.add(mediaPackets.get(protectedSeqNum));
         }
         // We'll treat the first one as the 'lost' packet we'll expect the
-        // FlexFecReceiver to recover
+        // FlexFec03Receiver to recover
         RawPacket lostMediaPacket = protectedMediaPackets.get(0);
         System.out.println("Withholding media packet " + lostMediaPacket.getSequenceNumber());
 
-        FlexFecReceiver receiver =
-            new FlexFecReceiver(lostMediaPacket.getSSRCAsLong(),
+        FlexFec03Receiver receiver =
+            new FlexFec03Receiver(lostMediaPacket.getSSRCAsLong(),
                 (byte)107);
 
         receiver.reverseTransform(new RawPacket[] {flexFecPacket});
@@ -90,7 +87,7 @@ public class FlexFecReceiverTest
      *
      * The test will read until it has found 1) a fec packet and 2) all the
      * media packets which it protects.  It will then feed the fec packets
-     * and all the media packets (except for 1) into the FlexFecReceiver
+     * and all the media packets (except for 1) into the FlexFec03Receiver
      * to verify it can correctly recover the withheld packet.
      * @throws Exception
      */
@@ -114,7 +111,7 @@ public class FlexFecReceiverTest
             assertTrue(false);
         }
 
-        for (FlexFecPacket flexFecPacket : fecCaptureReadResult.flexFecPackets)
+        for (FlexFec03Packet flexFecPacket : fecCaptureReadResult.flexFecPackets)
         {
             verifyFlexFec(flexFecPacket, fecCaptureReadResult.mediaPackets);
         }

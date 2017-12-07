@@ -1,11 +1,25 @@
+/*
+ * Copyright @ 2017 Atlassian Pty Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.jitsi.impl.neomedia.transform.fec;
 
 import org.jitsi.util.*;
 
-import java.util.*;
-
 /**
- * Created by bbaldino on 11/9/17.
+ * Parse a FlexFec header
+ * @author bbaldino
  * Based on FlexFec draft -03
  * https://tools.ietf.org/html/draft-ietf-payload-flexible-fec-scheme-03
  *
@@ -31,7 +45,7 @@ import java.util.*;
  * |                     ... next in SSRC_i ...                    |
  * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  */
-public class FlexFecHeaderReader
+public class FlexFec03HeaderReader
 {
     /**
      * The minimum size of the FlexFec header, in bytes.
@@ -48,14 +62,14 @@ public class FlexFecHeaderReader
 
     /**
      * Parse a buffer pointing to FlexFec data.
-     * @param flexFecPacket the (empty) FlexFecPacket which the parsed
+     * @param flexFecPacket the (empty) FlexFec03Packet which the parsed
      * values will be written into
      * @param buffer buffer which contains the flexfec data
      * @param flexFecOffset the flexFecOffset in buffer at which the flexfec header starts
      * @param length length of the buffer
      * @return true if parsing succeeded, false otherwise
      */
-    public static boolean readFlexFecHeader(FlexFecPacket flexFecPacket,
+    public static boolean readFlexFecHeader(FlexFec03Packet flexFecPacket,
                                             byte[] buffer, int flexFecOffset,
                                             int length)
     {
@@ -88,8 +102,8 @@ public class FlexFecHeaderReader
         int seqNumBase =
             RTPUtils.readUint16AsInt(buffer,flexFecOffset + 16);
 
-        FlexFecMask mask =
-            new FlexFecMask(buffer,
+        FlexFec03Mask mask =
+            new FlexFec03Mask(buffer,
                 flexFecOffset + MASK_START_OFFSET_BYTES, seqNumBase);
 
         // HEADER_MIN_SIZES_BYTES already includes the the size of the smallest

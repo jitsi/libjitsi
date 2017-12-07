@@ -1,8 +1,22 @@
+/*
+ * Copyright @ 2017 Atlassian Pty Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.jitsi.impl.neomedia.transform.fec;
 
 import io.pkts.*;
 import io.pkts.packet.*;
-import io.pkts.packet.rtp.*;
 import io.pkts.protocol.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
@@ -11,7 +25,10 @@ import java.io.*;
 import java.util.*;
 
 /**
- * Created by bbaldino on 11/15/17.
+ * Uses the pkts library to read a pcap file and extract complete sets of
+ * protected packets and their corresponding flexfec packet to be used
+ * for testing
+ * @author bbaldino
  */
 public class FecPacketReader
 {
@@ -23,7 +40,7 @@ public class FecPacketReader
         pcap = Pcap.openStream(file);
     }
 
-    private static boolean checkIfComplete(FlexFecPacket flexFecPacket,
+    private static boolean checkIfComplete(FlexFec03Packet flexFecPacket,
                                            Map<Integer, RawPacket> mediaPackets)
     {
         for (Integer protectedSeqNum : flexFecPacket.getProtectedSequenceNumbers())
@@ -36,11 +53,11 @@ public class FecPacketReader
         return true;
     }
 
-    private static Set<FlexFecPacket> checkIfAnyComplete(List<FlexFecPacket> flexFecPackets,
-                                                    Map<Integer, RawPacket> mediaPackets)
+    private static Set<FlexFec03Packet> checkIfAnyComplete(List<FlexFec03Packet> flexFecPackets,
+                                                           Map<Integer, RawPacket> mediaPackets)
     {
-        Set<FlexFecPacket> completeFlexFecPackets = new HashSet<>();
-        for (FlexFecPacket flexFecPacket : flexFecPackets)
+        Set<FlexFec03Packet> completeFlexFecPackets = new HashSet<>();
+        for (FlexFec03Packet flexFecPacket : flexFecPackets)
         {
             if (checkIfComplete(flexFecPacket, mediaPackets))
             {
@@ -76,11 +93,11 @@ public class FecPacketReader
     }
 
     public void run(final int videoPt, final int flexFecPt,
-                    final FlexFecReceiverTest.FecCaptureReadResult fecCaptureReadResult)
+                    final FlexFec03ReceiverTest.FecCaptureReadResult fecCaptureReadResult)
         throws IOException
     {
         pcap.loop(new PacketHandler() {
-            List<FlexFecPacket> flexFecPackets = new ArrayList<>();
+            List<FlexFec03Packet> flexFecPackets = new ArrayList<>();
             Map<Integer, RawPacket> mediaPackets = new HashMap<>();
 
             @Override
@@ -101,7 +118,7 @@ public class FecPacketReader
 
                     if (packet.getPayloadType() == flexFecPt)
                     {
-                        FlexFecPacket flexFecPacket = FlexFecPacket.create(packet);
+                        FlexFec03Packet flexFecPacket = FlexFec03Packet.create(packet);
                         if (flexFecPacket == null)
                         {
                             return true;
@@ -118,7 +135,7 @@ public class FecPacketReader
 
                     if (checkForComplete)
                     {
-                        Set<FlexFecPacket> flexFecPacketsWithAllMediaPackets =
+                        Set<FlexFec03Packet> flexFecPacketsWithAllMediaPackets =
                             checkIfAnyComplete(flexFecPackets, mediaPackets);
                         if (!flexFecPacketsWithAllMediaPackets.isEmpty())
                         {

@@ -162,7 +162,7 @@ public class FECTransformEngine
                 }
                 else if (fecType == FecType.FLEXFEC_03)
                 {
-                    fpt = new FlexFecReceiver(primarySsrc, incomingPT);
+                    fpt = new FlexFec03Receiver(primarySsrc, incomingPT);
                 }
                 else
                 {

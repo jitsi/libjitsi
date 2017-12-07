@@ -11,7 +11,7 @@ import static org.junit.Assert.*;
 /**
  * Created by bbaldino on 11/10/17.
  */
-public class FlexFecHeaderReaderTest
+public class FlexFec03HeaderReaderTest
 {
     private static byte[] snBaseToBytes(int seqNumBase)
     {
@@ -109,7 +109,7 @@ public class FlexFecHeaderReaderTest
 //            0x12 << 1, 0x34 << 1
 //        };
 //
-//        LeftToRightBitSet mask = FlexFecHeaderReader.getSeqNumMaskWithoutKBits(maskBytes, 0, 2);
+//        LeftToRightBitSet mask = FlexFec03HeaderReader.getSeqNumMaskWithoutKBits(maskBytes, 0, 2);
 //        assertEquals(expected[0], mask.toByteArray()[0]);
 //        assertEquals(expected[1], mask.toByteArray()[1]);
 //    }
@@ -128,7 +128,7 @@ public class FlexFecHeaderReaderTest
 //            (byte)0x08, (byte)0xd1, 0x59, (byte)0xe0
 //        };
 //
-//        LeftToRightBitSet mask = FlexFecHeaderReader.getSeqNumMaskWithoutKBits(maskBytes, 0, 6);
+//        LeftToRightBitSet mask = FlexFec03HeaderReader.getSeqNumMaskWithoutKBits(maskBytes, 0, 6);
 //        assertEquals(expected[0], mask.toByteArray()[0]);
 //        assertEquals(expected[1], mask.toByteArray()[1]);
 //        assertEquals(expected[2], mask.toByteArray()[2]);
@@ -153,7 +153,7 @@ public class FlexFecHeaderReaderTest
 //            (byte)0xd5,     (byte)0xe6,  0x6f,       0x78
 //        };
 //
-//        LeftToRightBitSet mask = FlexFecHeaderReader.getSeqNumMaskWithoutKBits(maskBytes, 0, 14);
+//        LeftToRightBitSet mask = FlexFec03HeaderReader.getSeqNumMaskWithoutKBits(maskBytes, 0, 14);
 //        assertEquals(expected[0], mask.toByteArray()[0]);
 //        assertEquals(expected[1], mask.toByteArray()[1]);
 //        assertEquals(expected[2], mask.toByteArray()[2]);
@@ -181,7 +181,7 @@ public class FlexFecHeaderReaderTest
 //        List<Integer> expectedSeqNums = Arrays.asList(10, 12, 14);
 //
 //        BitSet mask = BitSet.valueOf(seqNumsToMask(expectedSeqNums, baseSeqNum));
-//        List<Integer> seqNums = FlexFecHeaderReader.getProtectedSeqNums(mask, baseSeqNum);
+//        List<Integer> seqNums = FlexFec03HeaderReader.getProtectedSeqNums(mask, baseSeqNum);
 //        assertEquals(expectedSeqNums, seqNums);
 //    }
 //
@@ -192,7 +192,7 @@ public class FlexFecHeaderReaderTest
 //        List<Integer> expectedSeqNums = Arrays.asList(16, 18, 20);
 //
 //        BitSet mask = BitSet.valueOf(seqNumsToMask(expectedSeqNums, baseSeqNum));
-//        List<Integer> seqNums = FlexFecHeaderReader.getProtectedSeqNums(mask, baseSeqNum);
+//        List<Integer> seqNums = FlexFec03HeaderReader.getProtectedSeqNums(mask, baseSeqNum);
 //        assertEquals(expectedSeqNums, seqNums);
 //    }
 //
@@ -203,7 +203,7 @@ public class FlexFecHeaderReaderTest
 //        List<Integer> expectedSeqNums = Arrays.asList(48, 50, 52);
 //
 //        BitSet mask = BitSet.valueOf(seqNumsToMask(expectedSeqNums, baseSeqNum));
-//        List<Integer> seqNums = FlexFecHeaderReader.getProtectedSeqNums(mask, baseSeqNum);
+//        List<Integer> seqNums = FlexFec03HeaderReader.getProtectedSeqNums(mask, baseSeqNum);
 //        assertEquals(expectedSeqNums, seqNums);
 //    }
 
@@ -227,9 +227,9 @@ public class FlexFecHeaderReaderTest
             SN_BASE_BYTES[0],       SN_BASE_BYTES[1],   mask[0],                mask[1],
             PAYLOAD_BITS,           PAYLOAD_BITS,       PAYLOAD_BITS,           PAYLOAD_BITS
         };
-        FlexFecPacket packet = FlexFecPacket.create(new byte[12], 0, 12);
+        FlexFec03Packet packet = FlexFec03Packet.create(new byte[12], 0, 12);
         assertNotNull(packet);
-        FlexFecHeaderReader.readFlexFecHeader(packet, flexFecData, 0, flexFecData.length);
+        FlexFec03HeaderReader.readFlexFecHeader(packet, flexFecData, 0, flexFecData.length);
 
         assertEquals(RTPUtils.readUint32AsLong(PROTECTED_SSRC, 0), packet.protectedSsrc);
         assertEquals(SN_BASE, packet.seqNumBase);
@@ -259,9 +259,9 @@ public class FlexFecHeaderReaderTest
             mask[2],                mask[3],            mask[4],                mask[5],
             PAYLOAD_BITS,           PAYLOAD_BITS,       PAYLOAD_BITS,           PAYLOAD_BITS
         };
-        FlexFecPacket packet = FlexFecPacket.create(new byte[12], 0, 12);
+        FlexFec03Packet packet = FlexFec03Packet.create(new byte[12], 0, 12);
         assertNotNull(packet);
-        FlexFecHeaderReader.readFlexFecHeader(packet, flexFecData, 0, flexFecData.length);
+        FlexFec03HeaderReader.readFlexFecHeader(packet, flexFecData, 0, flexFecData.length);
 
         assertEquals(RTPUtils.readUint32AsLong(PROTECTED_SSRC, 0), packet.protectedSsrc);
         assertEquals(SN_BASE, packet.seqNumBase);
@@ -294,9 +294,9 @@ public class FlexFecHeaderReaderTest
             mask[10],               mask[11],           mask[12],                mask[13],
             PAYLOAD_BITS,           PAYLOAD_BITS,       PAYLOAD_BITS,           PAYLOAD_BITS
         };
-        FlexFecPacket packet = FlexFecPacket.create(new byte[12], 0, 12);
+        FlexFec03Packet packet = FlexFec03Packet.create(new byte[12], 0, 12);
         assertNotNull(packet);
-        FlexFecHeaderReader.readFlexFecHeader(packet, flexFecData, 0, flexFecData.length);
+        FlexFec03HeaderReader.readFlexFecHeader(packet, flexFecData, 0, flexFecData.length);
 
         assertEquals(RTPUtils.readUint32AsLong(PROTECTED_SSRC, 0), packet.protectedSsrc);
         assertEquals(SN_BASE, packet.seqNumBase);

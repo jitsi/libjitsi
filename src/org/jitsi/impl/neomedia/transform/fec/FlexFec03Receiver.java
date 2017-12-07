@@ -1,3 +1,18 @@
+/*
+ * Copyright @ 2017 Atlassian Pty Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.jitsi.impl.neomedia.transform.fec;
 
 import org.jitsi.service.neomedia.*;
@@ -6,18 +21,18 @@ import org.jitsi.util.*;
 import java.util.*;
 
 /**
- * Created by bbaldino on 11/9/17.
+ * @author bbaldino
  */
 //FIXME: anywhere we use getBuffer needs to take into account getOffset
-public class FlexFecReceiver
+public class FlexFec03Receiver
     extends AbstractFECReceiver
 {
     /**
-     * The <tt>Logger</tt> used by the <tt>FlexFecReceiver</tt> class and
+     * The <tt>Logger</tt> used by the <tt>FlexFec03Receiver</tt> class and
      * its instances to print debug information.
      */
     private static final Logger logger
-        = Logger.getLogger(FlexFecReceiver.class);
+        = Logger.getLogger(FlexFec03Receiver.class);
 
     /**
      * FEC-related statistics
@@ -29,7 +44,7 @@ public class FlexFecReceiver
      */
     private Reconstructor reconstructor;
 
-    public FlexFecReceiver(long mediaSsrc, byte fecPayloadType)
+    public FlexFec03Receiver(long mediaSsrc, byte fecPayloadType)
     {
         super(mediaSsrc, fecPayloadType);
         this.statistics = new Statistics();
@@ -43,7 +58,7 @@ public class FlexFecReceiver
         // Try to recover any missing media packets
         for (Map.Entry<Integer, RawPacket> entry : fecPackets.entrySet())
         {
-            FlexFecPacket flexFecPacket = FlexFecPacket.create(entry.getValue());
+            FlexFec03Packet flexFecPacket = FlexFec03Packet.create(entry.getValue());
             if (flexFecPacket == null)
             {
                 continue;
@@ -122,7 +137,7 @@ public class FlexFecReceiver
         /**
          * The FlexFEC packet to be used for recovery.
          */
-        private FlexFecPacket fecPacket = null;
+        private FlexFec03Packet fecPacket = null;
 
         /**
          * We can only recover a single missing packet, so when we check
@@ -158,7 +173,7 @@ public class FlexFecReceiver
             return numMissing == 1;
         }
 
-        public void setFecPacket(FlexFecPacket p)
+        public void setFecPacket(FlexFec03Packet p)
         {
             logger.debug("Have " + mediaPackets.size() + " saved media packets");
             numMissing = 0;
@@ -199,9 +214,9 @@ public class FlexFecReceiver
          * recovered packet in
          * @return true on success, false otherwise
          */
-        private boolean startPacketRecovery(FlexFecPacket fecPacket, RawPacket recoveredPacket)
+        private boolean startPacketRecovery(FlexFec03Packet fecPacket, RawPacket recoveredPacket)
         {
-            if (fecPacket.getLength() < FlexFecPacket.FIXED_HEADER_SIZE)
+            if (fecPacket.getLength() < FlexFec03Packet.FIXED_HEADER_SIZE)
             {
                 logger.error("Given FlexFEC packet is too small");
                 return false;
@@ -282,7 +297,7 @@ public class FlexFecReceiver
          * @param fecPacket the fec packet
          * @param recoveredPacket the media packet which was recovered
          */
-        private boolean finishPacketRecovery(FlexFecPacket fecPacket, RawPacket recoveredPacket)
+        private boolean finishPacketRecovery(FlexFec03Packet fecPacket, RawPacket recoveredPacket)
         {
             // Set the RTP version to 2.
             recoveredPacket.getBuffer()[0] |= 0x80; // Set the 1st bit
