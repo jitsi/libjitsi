@@ -1,17 +1,51 @@
 package org.jitsi.impl.neomedia.transform.fec;
 
+import org.easymock.*;
+import org.jitsi.service.configuration.*;
+import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.junit.*;
+import org.junit.runner.*;
+import org.powermock.api.easymock.*;
+import org.powermock.core.classloader.annotations.*;
+import org.powermock.modules.junit4.*;
 
 import java.util.*;
 
+import static org.easymock.EasyMock.expect;
 import static org.junit.Assert.*;
+import static org.powermock.api.easymock.PowerMock.*;
 
 /**
  * Created by bbaldino on 11/15/17.
  */
+@RunWith(PowerMockRunner.class)
+@PrepareForTest(LibJitsi.class)
 public class FlexFec03ReceiverTest
 {
+    private ConfigurationService mockConfigurationService;
+
+    @Before
+    public void setUp()
+    {
+        PowerMock.mockStatic(LibJitsi.class);
+        mockConfigurationService = PowerMock.createMock(ConfigurationService.class);
+        expect(mockConfigurationService.getInt(EasyMock.anyString(), EasyMock.anyInt())).andAnswer(new IAnswer<Integer>() {
+            public Integer answer()
+            {
+                return (Integer)EasyMock.getCurrentArguments()[1];
+            }
+
+        }).anyTimes();
+        expect(LibJitsi.getConfigurationService()).andReturn(mockConfigurationService).anyTimes();
+    }
+
+    @After
+    public void tearDown()
+    {
+        verifyAll();
+    }
+
     public class FecCaptureReadResult
     {
         Set<FlexFec03Packet> flexFecPackets = new HashSet<>();
@@ -95,8 +129,9 @@ public class FlexFec03ReceiverTest
         throws
         Exception
     {
-        //FecPacketReader reader = new FecPacketReader("/Users/bbaldino/Desktop/chrome_single_flexfec_packet.pcap");
-        FecPacketReader reader = new FecPacketReader("/Users/bbaldino/Desktop/chrome_flexfec_and_video_capture.pcap");
+        replayAll();
+        FecPacketReader reader = new FecPacketReader("test/org/jitsi/impl/neomedia/transform/fec/resources/chrome_flexfec_and_video_capture.pcap");
+
         int videoPt = 98;
         int flexFecPt = 107;
 
