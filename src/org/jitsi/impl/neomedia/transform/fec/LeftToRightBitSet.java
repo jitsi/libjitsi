@@ -232,7 +232,7 @@ public class LeftToRightBitSet
      */
     public static LeftToRightBitSet valueOf(byte[] bytes, int offset, int length)
     {
-        int numBits = bytes.length * 8;
+        int numBits = length * 8;
         LeftToRightBitSet b = new LeftToRightBitSet(numBits);
         for (int currBytePos = 0; currBytePos < length; ++currBytePos)
         {

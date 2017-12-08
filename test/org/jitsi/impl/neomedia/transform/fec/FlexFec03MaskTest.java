@@ -7,7 +7,7 @@ import java.util.*;
 import static org.junit.Assert.*;
 
 /**
- * Created by bbaldino on 11/14/17.
+ * @author bbaldino
  */
 public class FlexFec03MaskTest
 {

@@ -17,7 +17,7 @@ import static org.junit.Assert.*;
 import static org.powermock.api.easymock.PowerMock.*;
 
 /**
- * Created by bbaldino on 11/15/17.
+ * @author bbaldino
  */
 @RunWith(PowerMockRunner.class)
 @PrepareForTest(LibJitsi.class)
