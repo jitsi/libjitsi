@@ -12,6 +12,25 @@ import static org.junit.Assert.*;
 public class FlexFec03MaskTest
 {
     @Test
+    public void testTooShortBuffer()
+    {
+        final int K_BIT_0 = 0 << 7;
+        final byte[] maskData = {
+            K_BIT_0 | 0x00
+        };
+
+        try
+        {
+            FlexFec03Mask mask = new FlexFec03Mask(maskData, 0, 0);
+            fail("Expected MalformedMaskException");
+        }
+        catch (FlexFec03Mask.MalformedMaskException e)
+        {
+
+        }
+    }
+
+    @Test
     public void testCreateFlexFecMaskShort()
     {
         List<Integer> expectedProtectedSeqNums = Arrays.asList(0, 1, 3, 5, 14);
@@ -67,6 +86,7 @@ public class FlexFec03MaskTest
 
     @Test
     public void testFlexFecMaskShortFromBuffer()
+        throws Exception
     {
         List<Integer> expectedProtectedSeqNums = Arrays.asList(
             0, 2, 5, 9, 10, 12, 14
@@ -80,6 +100,7 @@ public class FlexFec03MaskTest
 
     @Test
     public void testFlexFecMaskMedFromBuffer()
+        throws Exception
     {
         List<Integer> expectedProtectedSeqNums = Arrays.asList(
             0, 2, 5, 9, 10, 12, 14, 15, 22, 32, 45
@@ -93,6 +114,7 @@ public class FlexFec03MaskTest
 
     @Test
     public void testFlexFecMaskLong()
+        throws Exception
     {
         List<Integer> expectedProtectedSeqNums = Arrays.asList(
             0, 2, 5, 9, 10, 12, 14, 15, 22, 32, 45, 46, 56, 66, 76, 90, 108

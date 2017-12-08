@@ -62,39 +62,36 @@ public class FlexFec03HeaderReader
 
     /**
      * Parse a buffer pointing to FlexFec data.
-     * @param flexFecPacket the (empty) FlexFec03Packet which the parsed
-     * values will be written into
      * @param buffer buffer which contains the flexfec data
      * @param flexFecOffset the flexFecOffset in buffer at which the flexfec header starts
      * @param length length of the buffer
      * @return true if parsing succeeded, false otherwise
      */
-    public static boolean readFlexFecHeader(FlexFec03Packet flexFecPacket,
-                                            byte[] buffer, int flexFecOffset,
-                                            int length)
+    public static FlexFec03Header readFlexFecHeader(byte[] buffer, int flexFecOffset,
+                                                    int length)
     {
         if (length < HEADER_MIN_SIZE_BYTES)
         {
-            return false;
+            return null;
         }
         boolean retransmissionBit = ((buffer[flexFecOffset] & 0x80) >> 7) == 1;
         if (retransmissionBit)
         {
             // We don't support flexfec retransmissions
-            return false;
+            return null;
         }
         int maskType = (buffer[flexFecOffset] & 0x40) >> 6;
         if (maskType != 0)
         {
             // We only support flexible (f == 0) mask type
-            return false;
+            return null;
         }
 
-        int ssrcCount = buffer[flexFecOffset + 8];
+        int ssrcCount = buffer[flexFecOffset + 8] & 0xFF;
         if (ssrcCount > 1)
         {
             // We only support a single protected ssrc
-            return false;
+            return null;
         }
 
         long protectedSsrc =
@@ -102,9 +99,16 @@ public class FlexFec03HeaderReader
         int seqNumBase =
             RTPUtils.readUint16AsInt(buffer,flexFecOffset + 16);
 
-        FlexFec03Mask mask =
-            new FlexFec03Mask(buffer,
+
+        FlexFec03Mask mask;
+        try
+        {
+            mask = new FlexFec03Mask(buffer,
                 flexFecOffset + MASK_START_OFFSET_BYTES, seqNumBase);
+        } catch (FlexFec03Mask.MalformedMaskException e)
+        {
+            return null;
+        }
 
         // HEADER_MIN_SIZES_BYTES already includes the the size of the smallest
         // possible packet mask, but maskSizeBytes will include that as well,
@@ -112,11 +116,7 @@ public class FlexFec03HeaderReader
         // here when we want to calculate the total.
         int flexFecHeaderSize = HEADER_MIN_SIZE_BYTES - 2 + mask.lengthBytes();
 
-        flexFecPacket.protectedSsrc = protectedSsrc;
-        flexFecPacket.seqNumBase = seqNumBase;
-        flexFecPacket.protectedSeqNums = mask.getProtectedSeqNums();
-        flexFecPacket.flexFecHeaderSizeBytes = flexFecHeaderSize;
-
-        return true;
+        return new FlexFec03Header(protectedSsrc, seqNumBase,
+            mask.getProtectedSeqNums(), flexFecHeaderSize);
     }
 }

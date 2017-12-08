@@ -36,6 +36,11 @@ public class FlexFec03Mask
     private static final int MASK_SIZE_MED = 6;
     private static final int MASK_SIZE_LARGE = 14;
 
+    public static class MalformedMaskException extends Exception
+    {
+
+    }
+
     private int sizeBytes;
     /**
      * The mask field (including k bits)
@@ -52,6 +57,7 @@ public class FlexFec03Mask
      * @param baseSeqNum the base sequence number from the flexfec packet
      */
     FlexFec03Mask(byte[] buffer, int maskOffset, int baseSeqNum)
+        throws MalformedMaskException
     {
         this.sizeBytes = getMaskSizeInBytes(buffer, maskOffset);
         this.maskWithKBits = LeftToRightBitSet.valueOf(buffer, maskOffset, this.sizeBytes);
@@ -127,17 +133,30 @@ public class FlexFec03Mask
      * @return the size of the mask, in bytes.
      */
     private static int getMaskSizeInBytes(byte[] buffer, int maskOffset)
+        throws MalformedMaskException
     {
+        if ((buffer.length - maskOffset) < MASK_SIZE_SMALL)
+        {
+            throw new MalformedMaskException();
+        }
         // The mask is always at least MASK_SIZE_SMALL bytes
         int maskSizeBytes = MASK_SIZE_SMALL;
         int kbit0 = (buffer[maskOffset] & 0x80) >> 7;
         if (kbit0 == 0)
         {
             maskSizeBytes = MASK_SIZE_MED;
+            if ((buffer.length - maskOffset) < MASK_SIZE_MED)
+            {
+                throw new MalformedMaskException();
+            }
             int kbit1 =
                 (buffer[maskOffset + 2] & 0x80) >> 7;
             if (kbit1 == 0)
             {
+                if ((buffer.length - maskOffset) < MASK_SIZE_LARGE)
+                {
+                    throw new MalformedMaskException();
+                }
                 maskSizeBytes = MASK_SIZE_LARGE;
             }
         }

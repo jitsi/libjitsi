@@ -16,7 +16,6 @@
 package org.jitsi.impl.neomedia.transform.fec;
 
 import org.jitsi.service.neomedia.*;
-import org.jitsi.util.*;
 
 import java.util.*;
 
@@ -51,29 +50,7 @@ import java.util.*;
 public class FlexFec03Packet
     extends RawPacket
 {
-    private static final Logger logger
-        = Logger.getLogger(FlexFec03Packet.class);
-
-    /**
-     * The SSRC of the media stream protected by this FEC packet
-     */
-    public long protectedSsrc;
-
-    /**
-     * The base sequence number from which the mask defines the sequence numbers
-     * of the media packets protected by this packet
-     */
-    public int seqNumBase;
-
-    /**
-     * The list of sequence numbers of packets protected by this fec packet
-     */
-    public List<Integer> protectedSeqNums;
-
-    /**
-     * The size of the FlexFec header (in bytes) in this packet
-     */
-    public int flexFecHeaderSizeBytes;
+    protected FlexFec03Header header;
 
     public static FlexFec03Packet create(RawPacket p)
     {
@@ -83,14 +60,16 @@ public class FlexFec03Packet
     public static FlexFec03Packet create(byte[] buffer, int offset, int length)
     {
         FlexFec03Packet flexFecPacket = new FlexFec03Packet(buffer, offset, length);
-        if (FlexFec03HeaderReader.readFlexFecHeader(flexFecPacket,
+        FlexFec03Header header = FlexFec03HeaderReader.readFlexFecHeader(
             flexFecPacket.getBuffer(),
             flexFecPacket.getFlexFecHeaderOffset(),
-            flexFecPacket.getLength() - flexFecPacket.getHeaderLength()))
+            flexFecPacket.getLength() - flexFecPacket.getHeaderLength());
+        if (header == null)
         {
-            return flexFecPacket;
+            return null;
         }
-        return null;
+        flexFecPacket.header = header;
+        return flexFecPacket;
     }
 
     /**
@@ -122,7 +101,25 @@ public class FlexFec03Packet
      */
     public List<Integer> getProtectedSequenceNumbers()
     {
-        return this.protectedSeqNums;
+        return this.header.protectedSeqNums;
+    }
+
+    /**
+     * Get the size of the flexfec header for this packet
+     * @return the size of the flexfec header for this packet
+     */
+    public int getFlexFecHeaderSize()
+    {
+        return this.header.size;
+    }
+
+    /**
+     * Get the media ssrc protected by this flexfec packet
+     * @return the media ssrc protected by this flexfec packet
+     */
+    public long getProtectedSsrc()
+    {
+        return this.header.protectedSsrc;
     }
 
     /**
@@ -131,7 +128,7 @@ public class FlexFec03Packet
      */
     public int getPayloadLength()
     {
-        return this.getLength() - this.getHeaderLength() - this.flexFecHeaderSizeBytes;
+        return this.getLength() - this.getHeaderLength() - this.header.size;
     }
 
     /**

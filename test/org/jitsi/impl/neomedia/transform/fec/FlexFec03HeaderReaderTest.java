@@ -49,10 +49,8 @@ public class FlexFec03HeaderReaderTest
     @Test
     public void testTooSmallPacketIsRejected()
     {
-        byte[] buf = new byte[1500];
-        FlexFec03Packet packet = FlexFec03Packet.create(buf, 0, buf.length);
         byte[] tooSmallPacket = new byte[12];
-        assertFalse(FlexFec03HeaderReader.readFlexFecHeader(packet, tooSmallPacket, 0, tooSmallPacket.length));
+        assertNull(FlexFec03HeaderReader.readFlexFecHeader(tooSmallPacket, 0, tooSmallPacket.length));
     }
 
     @Test
@@ -68,9 +66,7 @@ public class FlexFec03HeaderReaderTest
             PAYLOAD_BITS,           PAYLOAD_BITS,       PAYLOAD_BITS,               PAYLOAD_BITS
         };
 
-        byte[] buf = new byte[1500];
-        FlexFec03Packet packet = FlexFec03Packet.create(buf, 0, buf.length);
-        assertFalse(FlexFec03HeaderReader.readFlexFecHeader(packet, flexFecData, 0, flexFecData.length));
+        assertNull(FlexFec03HeaderReader.readFlexFecHeader(flexFecData, 0, flexFecData.length));
     }
 
 
@@ -87,9 +83,7 @@ public class FlexFec03HeaderReaderTest
             PAYLOAD_BITS,           PAYLOAD_BITS,       PAYLOAD_BITS,               PAYLOAD_BITS
         };
 
-        byte[] buf = new byte[1500];
-        FlexFec03Packet packet = FlexFec03Packet.create(buf, 0, buf.length);
-        assertFalse(FlexFec03HeaderReader.readFlexFecHeader(packet, flexFecData, 0, flexFecData.length));
+        assertNull(FlexFec03HeaderReader.readFlexFecHeader(flexFecData, 0, flexFecData.length));
     }
 
     @Test
@@ -106,9 +100,41 @@ public class FlexFec03HeaderReaderTest
             PAYLOAD_BITS,           PAYLOAD_BITS,       PAYLOAD_BITS,               PAYLOAD_BITS
         };
 
-        byte[] buf = new byte[1500];
-        FlexFec03Packet packet = FlexFec03Packet.create(buf, 0, buf.length);
-        assertFalse(FlexFec03HeaderReader.readFlexFecHeader(packet, flexFecData, 0, flexFecData.length));
+        assertNull(FlexFec03HeaderReader.readFlexFecHeader(flexFecData, 0, flexFecData.length));
+    }
+
+    @Test
+    public void testSignedNegativeSsrcCount()
+    {
+        final byte BAD_SSRC_COUNT = (byte)255;
+        byte[] mask0 = { 0x00, 0x00 };
+        final byte[] flexFecData = {
+            NO_R_BIT | NO_F_BIT,    PT_RECOVERY,        LENGTH_RECOVERY[0],         LENGTH_RECOVERY[1],
+            TS_RECOVERY[0],         TS_RECOVERY[1],     TS_RECOVERY[2],             TS_RECOVERY[3],
+            BAD_SSRC_COUNT,         RESERVED_BITS,      RESERVED_BITS,              RESERVED_BITS,
+            PROTECTED_SSRC[0],      PROTECTED_SSRC[1],  PROTECTED_SSRC[2],          PROTECTED_SSRC[3],
+            SN_BASE_BYTES[0],       SN_BASE_BYTES[1],   (byte)(K_BIT_1 | mask0[0]), mask0[1],
+            PAYLOAD_BITS,           PAYLOAD_BITS,       PAYLOAD_BITS,               PAYLOAD_BITS
+        };
+
+        assertNull(FlexFec03HeaderReader.readFlexFecHeader(flexFecData, 0, flexFecData.length));
+    }
+
+    @Test
+    public void testTooShortBufferIsRejected()
+    {
+        byte[] mask0 = { 0x00, 0x00 };
+        byte[] mask1 = { 0x00, 0x00, (byte)0x00, (byte)0x00 };
+        final byte[] flexFecData = {
+            NO_R_BIT | NO_F_BIT,        PT_RECOVERY,        LENGTH_RECOVERY[0],         LENGTH_RECOVERY[1],
+            TS_RECOVERY[0],             TS_RECOVERY[1],     TS_RECOVERY[2],             TS_RECOVERY[3],
+            SSRC_COUNT,                 RESERVED_BITS,      RESERVED_BITS,              RESERVED_BITS,
+            PROTECTED_SSRC[0],          PROTECTED_SSRC[1],  PROTECTED_SSRC[2],          PROTECTED_SSRC[3],
+            SN_BASE_BYTES[0],           SN_BASE_BYTES[1],   (byte)(K_BIT_0 | mask0[0]), mask0[1],
+            (byte)(K_BIT_1 | mask1[0]), mask1[1]
+        };
+
+        assertNull(FlexFec03HeaderReader.readFlexFecHeader(flexFecData, 0, flexFecData.length));
     }
 
     @Test
@@ -124,13 +150,12 @@ public class FlexFec03HeaderReaderTest
             PAYLOAD_BITS,           PAYLOAD_BITS,       PAYLOAD_BITS,               PAYLOAD_BITS
         };
 
-        byte[] buf = new byte[1500];
-        FlexFec03Packet packet = FlexFec03Packet.create(buf, 0, buf.length);
-        assertTrue(FlexFec03HeaderReader.readFlexFecHeader(packet, flexFecData, 0, flexFecData.length));
-        assertEquals(NUM_BITS_IN_SMALL_MASK, packet.getProtectedSequenceNumbers().size());
+        FlexFec03Header header = FlexFec03HeaderReader.readFlexFecHeader(flexFecData, 0, flexFecData.length);
+        assertNotNull(header);
+        assertEquals(NUM_BITS_IN_SMALL_MASK, header.protectedSeqNums.size());
         for (int i = 0; i < NUM_BITS_IN_SMALL_MASK; ++i)
         {
-            assertEquals(SN_BASE + i, (long)packet.getProtectedSequenceNumbers().get(i));
+            assertEquals(SN_BASE + i, (long)header.protectedSeqNums.get(i));
         }
     }
 
@@ -149,13 +174,12 @@ public class FlexFec03HeaderReaderTest
             PAYLOAD_BITS,               PAYLOAD_BITS,       PAYLOAD_BITS,               PAYLOAD_BITS
         };
 
-        byte[] buf = new byte[1500];
-        FlexFec03Packet packet = FlexFec03Packet.create(buf, 0, buf.length);
-        assertTrue(FlexFec03HeaderReader.readFlexFecHeader(packet, flexFecData, 0, flexFecData.length));
-        assertEquals(NUM_BITS_IN_MED_MASK, packet.getProtectedSequenceNumbers().size());
+        FlexFec03Header header = FlexFec03HeaderReader.readFlexFecHeader(flexFecData, 0, flexFecData.length);
+        assertNotNull(header);
+        assertEquals(NUM_BITS_IN_MED_MASK, header.protectedSeqNums.size());
         for (int i = 0; i < NUM_BITS_IN_MED_MASK; ++i)
         {
-            assertEquals(SN_BASE + i, (long)packet.getProtectedSequenceNumbers().get(i));
+            assertEquals(SN_BASE + i, (long)header.protectedSeqNums.get(i));
         }
     }
 
@@ -180,13 +204,12 @@ public class FlexFec03HeaderReaderTest
             PAYLOAD_BITS,               PAYLOAD_BITS,       PAYLOAD_BITS,               PAYLOAD_BITS
         };
 
-        byte[] buf = new byte[1500];
-        FlexFec03Packet packet = FlexFec03Packet.create(buf, 0, buf.length);
-        assertTrue(FlexFec03HeaderReader.readFlexFecHeader(packet, flexFecData, 0, flexFecData.length));
-        assertEquals(NUM_BITS_IN_LARGE_MASK, packet.getProtectedSequenceNumbers().size());
+        FlexFec03Header header = FlexFec03HeaderReader.readFlexFecHeader(flexFecData, 0, flexFecData.length);
+        assertNotNull(header);
+        assertEquals(NUM_BITS_IN_LARGE_MASK, header.protectedSeqNums.size());
         for (int i = 0; i < NUM_BITS_IN_LARGE_MASK; ++i)
         {
-            assertEquals(SN_BASE + i, (long)packet.getProtectedSequenceNumbers().get(i));
+            assertEquals(SN_BASE + i, (long)header.protectedSeqNums.get(i));
         }
     }
 }

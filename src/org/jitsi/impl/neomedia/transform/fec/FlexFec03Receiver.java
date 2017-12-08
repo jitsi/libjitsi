@@ -236,7 +236,7 @@ public class FlexFec03Receiver
             // Copy over the recovery rtp payload data from the fec packet
             System.arraycopy(
                 fecPacket.getBuffer(),
-                fecPacket.getHeaderLength() + fecPacket.flexFecHeaderSizeBytes,
+                fecPacket.getHeaderLength() + fecPacket.getFlexFecHeaderSize(),
                 recoveredPacket.getBuffer(),
                 RawPacket.FIXED_HEADER_SIZE,
                 fecPacket.getPayloadLength());
@@ -323,7 +323,7 @@ public class FlexFec03Receiver
 
             // Set the SSRC field.
             RTPUtils.writeInt(recoveredPacket.getBuffer(), 8,
-                (int)fecPacket.protectedSsrc);
+                (int)fecPacket.getProtectedSsrc());
 
             return true;
         }
