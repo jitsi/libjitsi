@@ -2,13 +2,13 @@ package org.jitsi.impl.neomedia.transform.fec;
 
 import java.util.*;
 
-public class FlexFec03BitMask
+public class FlexFec03BitSet
 {
     private BitSet bitSet;
 
     private int numBits = 0;
 
-    public FlexFec03BitMask(int numBits)
+    public FlexFec03BitSet(int numBits)
     {
         bitSet = new BitSet(numBits);
         this.numBits = numBits;
@@ -95,24 +95,24 @@ public class FlexFec03BitMask
         numBits = newNumBits;
     }
 
-    public static FlexFec03BitMask valueOf(byte[] bytes)
+    public static FlexFec03BitSet valueOf(byte[] bytes)
     {
         return valueOf(bytes, 0, bytes.length);
     }
 
     /**
      * Parse the given bytes (at the given offset and length) into a
-     * FlexFec03BitMask
+     * FlexFec03BitSet
      * @param bytes the byte buffer to parse
      * @param offset the offset at which to start parsing
      * @param length the length (in bytes) of the chunk to parse
-     * @return a FlexFec03BitMask representing the chunk of the given buffer
+     * @return a FlexFec03BitSet representing the chunk of the given buffer
      * based on the given offset and length
      */
-    public static FlexFec03BitMask valueOf(byte[] bytes, int offset, int length)
+    public static FlexFec03BitSet valueOf(byte[] bytes, int offset, int length)
     {
         int numBits = length * 8;
-        FlexFec03BitMask b = new FlexFec03BitMask(numBits);
+        FlexFec03BitSet b = new FlexFec03BitSet(numBits);
         for (int currBytePos = 0; currBytePos < length; ++currBytePos)
         {
             byte currByte = bytes[offset + currBytePos];

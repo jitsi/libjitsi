@@ -41,7 +41,7 @@ public class FlexFec03Mask
     /**
      * The mask field (including k bits)
      */
-    private FlexFec03BitMask maskWithKBits;
+    private FlexFec03BitSet maskWithKBits;
     private int baseSeqNum;
 
     /**
@@ -56,7 +56,7 @@ public class FlexFec03Mask
         throws MalformedMaskException
     {
         this.sizeBytes = getMaskSizeInBytes(buffer, maskOffset);
-        this.maskWithKBits = FlexFec03BitMask.valueOf(buffer, maskOffset, this.sizeBytes);
+        this.maskWithKBits = FlexFec03BitSet.valueOf(buffer, maskOffset, this.sizeBytes);
         this.baseSeqNum = baseSeqNum;
     }
 
@@ -88,14 +88,14 @@ public class FlexFec03Mask
         return numBits - 1;
     }
 
-    private static FlexFec03BitMask createMaskWithKBits(int sizeBytes, int baseSeqNum, List<Integer> protectedSeqNums)
+    private static FlexFec03BitSet createMaskWithKBits(int sizeBytes, int baseSeqNum, List<Integer> protectedSeqNums)
     {
         // The sizeBytes we are given will be the entire size of the mask (including
         // k bits).  We're going to insert the k bits later, so subtract
         // those bits from the size of the mask we'll create now
         int numBits = getNumBitsExcludingKBits(sizeBytes);
 
-        FlexFec03BitMask mask = new FlexFec03BitMask(numBits);
+        FlexFec03BitSet mask = new FlexFec03BitSet(numBits);
         // First create a mask without the k bits
         for (Integer protectedSeqNum : protectedSeqNums)
         {
@@ -123,7 +123,7 @@ public class FlexFec03Mask
         return mask;
     }
 
-    public FlexFec03BitMask getMaskWithKBits()
+    public FlexFec03BitSet getMaskWithKBits()
     {
         return maskWithKBits;
     }
@@ -214,7 +214,7 @@ public class FlexFec03Mask
      */
     public List<Integer> getProtectedSeqNums()
     {
-        FlexFec03BitMask maskWithoutKBits = getMaskWithoutKBits(maskWithKBits);
+        FlexFec03BitSet maskWithoutKBits = getMaskWithoutKBits(maskWithKBits);
         List<Integer> protectedSeqNums = new ArrayList<>();
         for (int i = 0; i < maskWithoutKBits.sizeBits(); ++i)
         {
@@ -230,18 +230,18 @@ public class FlexFec03Mask
      * Extract the mask containing just the protected sequence number
      * bits (not the k bits) from the given buffer
      * @param maskWithKBits the mask with the k bits included
-     * @return a {@link FlexFec03BitMask} which contains the bits of
+     * @return a {@link FlexFec03BitSet} which contains the bits of
      * the packet mask WITHOUT the k bits (the packet location bits are
      * 'collapsed' so that their bit index correctly represents the delta
      * from baseSeqNum)
      */
-    private static FlexFec03BitMask getMaskWithoutKBits(FlexFec03BitMask maskWithKBits)
+    private static FlexFec03BitSet getMaskWithoutKBits(FlexFec03BitSet maskWithKBits)
     {
         // Copy the given mask
-        FlexFec03BitMask maskWithoutKBits =
-            FlexFec03BitMask.valueOf(maskWithKBits.toByteArray());
+        FlexFec03BitSet maskWithoutKBits =
+            FlexFec03BitSet.valueOf(maskWithKBits.toByteArray());
         int maskSizeBytes = maskWithKBits.sizeBytes();
-        // We now have a FlexFec03BitMask of the entire mask, including the k
+        // We now have a FlexFec03BitSet of the entire mask, including the k
         // bits.  Now shift away the k bits
 
         // Note that it's important we remove the k bits in this order

@@ -82,13 +82,13 @@ public class FlexFec03MaskTest
      * tests to create the expected mask from a set of sequence numbers via
      * the FlexFec03Mask methods we tested above
      */
-    private FlexFec03BitMask getMask(int baseSeqNum, List<Integer> protectedSeqNums)
+    private FlexFec03BitSet getMask(int baseSeqNum, List<Integer> protectedSeqNums)
     {
         FlexFec03Mask m = new FlexFec03Mask(baseSeqNum, protectedSeqNums);
         return m.getMaskWithKBits();
     }
 
-    private void verifyMask(FlexFec03BitMask expected, FlexFec03BitMask actual)
+    private void verifyMask(FlexFec03BitSet expected, FlexFec03BitSet actual)
     {
         assertEquals(expected.sizeBits(), actual.sizeBits());
         for (int i = 0; i < expected.sizeBits(); ++i)
@@ -105,7 +105,7 @@ public class FlexFec03MaskTest
             0, 2, 5, 9, 10, 12, 14
         );
 
-        FlexFec03BitMask expectedMask = getMask(0, expectedProtectedSeqNums);
+        FlexFec03BitSet expectedMask = getMask(0, expectedProtectedSeqNums);
 
         FlexFec03Mask mask = new FlexFec03Mask(expectedMask.toByteArray(), 0, 0);
         verifyMask(expectedMask, mask.getMaskWithKBits());
@@ -119,7 +119,7 @@ public class FlexFec03MaskTest
             0, 2, 5, 9, 10, 12, 14, 15, 22, 32, 45
         );
 
-        FlexFec03BitMask expectedMask = getMask(0, expectedProtectedSeqNums);
+        FlexFec03BitSet expectedMask = getMask(0, expectedProtectedSeqNums);
 
         FlexFec03Mask mask = new FlexFec03Mask(expectedMask.toByteArray(), 0, 0);
         verifyMask(expectedMask, mask.getMaskWithKBits());
@@ -133,7 +133,7 @@ public class FlexFec03MaskTest
             0, 2, 5, 9, 10, 12, 14, 15, 22, 32, 45, 46, 56, 66, 76, 90, 108
         );
 
-        FlexFec03BitMask expectedMask = getMask(0, expectedProtectedSeqNums);
+        FlexFec03BitSet expectedMask = getMask(0, expectedProtectedSeqNums);
 
         FlexFec03Mask mask = new FlexFec03Mask(expectedMask.toByteArray(), 0, 0);
         verifyMask(expectedMask, mask.getMaskWithKBits());

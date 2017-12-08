@@ -4,7 +4,7 @@ import org.junit.*;
 
 import static org.junit.Assert.*;
 
-public class FlexFec03BitMaskTest
+public class FlexFec03BitSetTest
 {
     @Test
     public void testValueOfOneByte()
@@ -13,7 +13,7 @@ public class FlexFec03BitMaskTest
             (byte)0b11110000
         };
 
-        FlexFec03BitMask bitSet = FlexFec03BitMask.valueOf(bytes);
+        FlexFec03BitSet bitSet = FlexFec03BitSet.valueOf(bytes);
         // The the bytes should have been completely flipped, such that the
         // overall MSB in the bytes we gave it is now the overall LSB.
         assertTrue(bitSet.get(0));
@@ -33,7 +33,7 @@ public class FlexFec03BitMaskTest
             (byte)0b11110000, (byte)0b11110000
         };
 
-        FlexFec03BitMask bitSet = FlexFec03BitMask.valueOf(bytes);
+        FlexFec03BitSet bitSet = FlexFec03BitSet.valueOf(bytes);
         // The the bytes should have been completely flipped, such that the
         // overall MSB in the bytes we gave it is now the overall LSB.
         assertTrue(bitSet.get(0));
@@ -62,7 +62,7 @@ public class FlexFec03BitMaskTest
             (byte)0b11110000
         };
 
-        FlexFec03BitMask bitSet = FlexFec03BitMask.valueOf(bytes);
+        FlexFec03BitSet bitSet = FlexFec03BitSet.valueOf(bytes);
         byte[] result = bitSet.toByteArray();
 
         assertArrayEquals(bytes, result);
@@ -75,7 +75,7 @@ public class FlexFec03BitMaskTest
             (byte)0b11110000, (byte)0b11110000
         };
 
-        FlexFec03BitMask bitSet = FlexFec03BitMask.valueOf(bytes);
+        FlexFec03BitSet bitSet = FlexFec03BitSet.valueOf(bytes);
         byte[] result = bitSet.toByteArray();
 
         assertArrayEquals(bytes, result);
@@ -88,7 +88,7 @@ public class FlexFec03BitMaskTest
             (byte)0b01110000
         };
 
-        FlexFec03BitMask bitSet = FlexFec03BitMask.valueOf(bytes);
+        FlexFec03BitSet bitSet = FlexFec03BitSet.valueOf(bytes);
         bitSet.set(6);
         // Make the same change in the expected array
         bytes[0] |= (0x80 >> 6);
@@ -104,7 +104,7 @@ public class FlexFec03BitMaskTest
             (byte)0b01110000, (byte)0b01110000
         };
 
-        FlexFec03BitMask bitSet = FlexFec03BitMask.valueOf(bytes);
+        FlexFec03BitSet bitSet = FlexFec03BitSet.valueOf(bytes);
         bitSet.set(8);
         // Make the same change in the expected array
         bytes[1] |= 0x80;
@@ -119,7 +119,7 @@ public class FlexFec03BitMaskTest
         byte[] bytes = new byte[] {
             (byte)0b11110000
         };
-        FlexFec03BitMask bitSet = FlexFec03BitMask.valueOf(bytes);
+        FlexFec03BitSet bitSet = FlexFec03BitSet.valueOf(bytes);
         bitSet.addBit(4, true);
         assertEquals(9, bitSet.sizeBits());
         assertEquals(2, bitSet.sizeBytes());
@@ -141,7 +141,7 @@ public class FlexFec03BitMaskTest
         byte[] bytes = new byte[] {
             (byte)0b11110000
         };
-        FlexFec03BitMask bitSet = FlexFec03BitMask.valueOf(bytes);
+        FlexFec03BitSet bitSet = FlexFec03BitSet.valueOf(bytes);
         bitSet.addBit(4, true);
         bitSet.addBit(6, false);
         assertEquals(10, bitSet.sizeBits());
@@ -165,7 +165,7 @@ public class FlexFec03BitMaskTest
         byte[] bytes = new byte[] {
             (byte)0b11110000
         };
-        FlexFec03BitMask bitSet = FlexFec03BitMask.valueOf(bytes);
+        FlexFec03BitSet bitSet = FlexFec03BitSet.valueOf(bytes);
         bitSet.removeBit(0);
         assertEquals(7, bitSet.sizeBits());
         assertEquals(1, bitSet.sizeBytes());
