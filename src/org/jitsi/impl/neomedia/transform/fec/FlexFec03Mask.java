@@ -23,14 +23,8 @@ import java.util.*;
 public class FlexFec03Mask
 {
     private static final int MASK_0_K_BIT = 0;
-    private static final int MASK_0_START_BIT = 1;
-    private static final int MASK_0_END_BIT = 15;
     private static final int MASK_1_K_BIT = 16;
-    private static final int MASK_1_START_BIT = 17;
-    private static final int MASK_1_END_BIT = 47;
     private static final int MASK_2_K_BIT = 48;
-    private static final int MASK_2_START_BIT = 49;
-    private static final int MASK_2_END_BIT = 111;
 
     private static final int MASK_SIZE_SMALL = 2;
     private static final int MASK_SIZE_MED = 6;
@@ -45,7 +39,7 @@ public class FlexFec03Mask
     /**
      * The mask field (including k bits)
      */
-    private LeftToRightBitSet maskWithKBits;
+    private FlexFec03BitMask maskWithKBits;
     private int baseSeqNum;
 
     /**
@@ -60,7 +54,7 @@ public class FlexFec03Mask
         throws MalformedMaskException
     {
         this.sizeBytes = getMaskSizeInBytes(buffer, maskOffset);
-        this.maskWithKBits = LeftToRightBitSet.valueOf(buffer, maskOffset, this.sizeBytes);
+        this.maskWithKBits = FlexFec03BitMask.valueOf(buffer, maskOffset, this.sizeBytes);
         this.baseSeqNum = baseSeqNum;
     }
 
@@ -78,10 +72,28 @@ public class FlexFec03Mask
         this.maskWithKBits = createMaskWithKBits(this.sizeBytes, this.baseSeqNum, protectedSeqNums);
     }
 
-    private static LeftToRightBitSet createMaskWithKBits(int sizeBytes, int baseSeqNum, List<Integer> protectedSeqNums)
+    private static int getNumBitsExcludingKBits(int maskSizeBytes)
     {
-        int numBits = sizeBytes * 8;
-        LeftToRightBitSet mask = new LeftToRightBitSet(numBits);
+        int numBits = maskSizeBytes * 8;
+        if (maskSizeBytes > MASK_SIZE_MED)
+        {
+            return numBits - 3;
+        }
+        if (maskSizeBytes > MASK_SIZE_SMALL)
+        {
+            return numBits - 2;
+        }
+        return numBits - 1;
+    }
+
+    private static FlexFec03BitMask createMaskWithKBits(int sizeBytes, int baseSeqNum, List<Integer> protectedSeqNums)
+    {
+        // The sizeBytes we are given will be the entire size of the mask (including
+        // k bits).  We're going to insert the k bits later, so subtract
+        // those bits from the size of the mask we'll create now
+        int numBits = getNumBitsExcludingKBits(sizeBytes);
+
+        FlexFec03BitMask mask = new FlexFec03BitMask(numBits);
         // First create a mask without the k bits
         for (Integer protectedSeqNum : protectedSeqNums)
         {
@@ -89,37 +101,27 @@ public class FlexFec03Mask
             mask.set(delta);
         }
 
-        // Shift the mask bits
-        if (sizeBytes > MASK_SIZE_SMALL)
-        {
-            if (sizeBytes > MASK_SIZE_MED)
-            {
-                // Shift to make room for the k bit
-                // We subtract one from the mask start constants here since they
-                // include the k bit
-                LeftToRightBitSet.shiftBitsRight(mask, MASK_2_START_BIT - 3, numBits - 1, 1);
-            }
-            LeftToRightBitSet.shiftBitsRight(mask, MASK_1_START_BIT - 2, numBits - 1, 1);
-        }
-        LeftToRightBitSet.shiftBitsRight(mask, MASK_0_START_BIT - 1, numBits - 1, 1);
-        // Set the k bits themselves
+        // Now insert the appropriate k bits
         if (sizeBytes > MASK_SIZE_MED)
         {
-            mask.set(MASK_2_K_BIT);
+            mask.addBit(MASK_0_K_BIT, false);
+            mask.addBit(MASK_1_K_BIT, false);
+            mask.addBit(MASK_2_K_BIT, true);
         }
         else if (sizeBytes > MASK_SIZE_SMALL)
         {
-            mask.set(MASK_1_K_BIT);
+            mask.addBit(MASK_0_K_BIT, false);
+            mask.addBit(MASK_1_K_BIT, true);
         }
         else
         {
-            mask.set(MASK_0_K_BIT);
+            mask.addBit(MASK_0_K_BIT, true);
         }
 
         return mask;
     }
 
-    public LeftToRightBitSet getMaskWithKBits()
+    public FlexFec03BitMask getMaskWithKBits()
     {
         return maskWithKBits;
     }
@@ -149,8 +151,7 @@ public class FlexFec03Mask
             {
                 throw new MalformedMaskException();
             }
-            int kbit1 =
-                (buffer[maskOffset + 2] & 0x80) >> 7;
+            int kbit1 = (buffer[maskOffset + 2] & 0x80) >> 7;
             if (kbit1 == 0)
             {
                 if ((buffer.length - maskOffset) < MASK_SIZE_LARGE)
@@ -204,7 +205,7 @@ public class FlexFec03Mask
      */
     public List<Integer> getProtectedSeqNums()
     {
-        LeftToRightBitSet maskWithoutKBits = getMaskWithoutKBits(maskWithKBits);
+        FlexFec03BitMask maskWithoutKBits = getMaskWithoutKBits(maskWithKBits);
         List<Integer> protectedSeqNums = new ArrayList<>();
         for (int i = 0; i < this.sizeBytes * 8; ++i)
         {
@@ -220,39 +221,33 @@ public class FlexFec03Mask
      * Extract the mask containing just the protected sequence number
      * bits (not the k bits) from the given buffer
      * @param maskWithKBits the mask with the k bits included
-     * @return a {@link LeftToRightBitSet} which contains the bits of
+     * @return a {@link FlexFec03BitMask} which contains the bits of
      * the packet mask WITHOUT the k bits (the packet location bits are
      * 'collapsed' so that their bit index correctly represents the delta
      * from baseSeqNum)
      */
-    private static LeftToRightBitSet getMaskWithoutKBits(LeftToRightBitSet maskWithKBits)
+    private static FlexFec03BitMask getMaskWithoutKBits(FlexFec03BitMask maskWithKBits)
     {
         // Copy the given mask
-        LeftToRightBitSet maskWithoutKBits =
-            LeftToRightBitSet.valueOf(maskWithKBits.toByteArray());
+        FlexFec03BitMask maskWithoutKBits =
+            FlexFec03BitMask.valueOf(maskWithKBits.toByteArray());
         int maskSizeBytes = maskWithKBits.sizeBytes();
-        // We now have a LeftToRightBitset of the entire mask, including the k
+        // We now have a FlexFec03BitMask of the entire mask, including the k
         // bits.  Now shift away the k bits
 
-        // Shift away the first k bit
-        LeftToRightBitSet.shiftBitsLeft(maskWithoutKBits, MASK_0_START_BIT,
-            MASK_0_END_BIT, 1);
+        // Note that it's important we remove the k bits in this order
+        // (otherwise the bit we remove in the k bit position won't be the right
+        // one).
+        if (maskSizeBytes > MASK_SIZE_MED)
+        {
+            maskWithoutKBits.removeBit(MASK_2_K_BIT);
+        }
         if (maskSizeBytes > MASK_SIZE_SMALL)
         {
-            // Shift away the second k bit (this data hasn't shifted at all
-            // though, so we need to account for the first k bit in this
-            // shift as well, so we shift to the left by 2 bits)
-            LeftToRightBitSet.shiftBitsLeft(maskWithoutKBits, MASK_1_START_BIT,
-                MASK_1_END_BIT, 2);
-            if (maskSizeBytes > MASK_SIZE_MED)
-            {
-                // Shift away the third k bit (this data has to shift by 3
-                // bits to take into account the shift of the previous 2
-                // k bits)
-                LeftToRightBitSet.shiftBitsLeft(maskWithoutKBits, MASK_2_START_BIT,
-                    MASK_2_END_BIT, 3);
-            }
+            maskWithoutKBits.removeBit(MASK_1_K_BIT);
         }
+        maskWithoutKBits.removeBit(MASK_0_K_BIT);
+
         return maskWithoutKBits;
     }
 }
