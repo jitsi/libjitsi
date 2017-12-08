@@ -42,6 +42,18 @@ public class FlexFec03MaskTest
     }
 
     @Test
+    public void testSeqNumRollover()
+    {
+        List<Integer> expectedProtectedSeqNums = Arrays.asList(65530, 65531, 65533, 65535, 5, 6);
+        int baseSeqNum = 65530;
+
+        FlexFec03Mask mask = new FlexFec03Mask(baseSeqNum, expectedProtectedSeqNums);
+
+        List<Integer> protectedSeqNums = mask.getProtectedSeqNums();
+        assertEquals(expectedProtectedSeqNums, protectedSeqNums);
+    }
+
+    @Test
     public void testCreateFlexFecMaskMed()
     {
         List<Integer> expectedProtectedSeqNums = Arrays.asList(0, 1, 3, 5, 14, 15, 16, 20, 24, 45);

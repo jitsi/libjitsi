@@ -102,11 +102,11 @@ public class FlexFec03BitMask
 
     /**
      * Parse the given bytes (at the given offset and length) into a
-     * LeftToRightBitSet
+     * FlexFec03BitMask
      * @param bytes the byte buffer to parse
      * @param offset the offset at which to start parsing
      * @param length the length (in bytes) of the chunk to parse
-     * @return a LeftToRightBitSet representing the chunk of the given buffer
+     * @return a FlexFec03BitMask representing the chunk of the given buffer
      * based on the given offset and length
      */
     public static FlexFec03BitMask valueOf(byte[] bytes, int offset, int length)

@@ -15,6 +15,8 @@
  */
 package org.jitsi.impl.neomedia.transform.fec;
 
+import org.jitsi.util.*;
+
 import java.util.*;
 
 /**
@@ -97,7 +99,7 @@ public class FlexFec03Mask
         // First create a mask without the k bits
         for (Integer protectedSeqNum : protectedSeqNums)
         {
-            int delta = protectedSeqNum - baseSeqNum;
+            int delta = RTPUtils.getSequenceNumberDelta(protectedSeqNum , baseSeqNum);
             mask.set(delta);
         }
 
@@ -175,8 +177,15 @@ public class FlexFec03Mask
      */
     private static int getMaskSizeInBytes(int baseSeqNum, List<Integer> sortedProtectedSeqNums)
     {
-        int largestSeqNum = sortedProtectedSeqNums.get(sortedProtectedSeqNums.size() - 1);
-        int largestDelta = largestSeqNum - baseSeqNum;
+        int largestDelta = -1;
+        for (Integer protectedSeqNum : sortedProtectedSeqNums)
+        {
+            int delta = RTPUtils.getSequenceNumberDelta(protectedSeqNum, baseSeqNum);
+            if (delta > largestDelta)
+            {
+                largestDelta = delta;
+            }
+        }
         if (largestDelta <= 14)
         {
             return MASK_SIZE_SMALL;
@@ -211,7 +220,7 @@ public class FlexFec03Mask
         {
             if (maskWithoutKBits.get(i))
             {
-                protectedSeqNums.add(baseSeqNum + i);
+                protectedSeqNums.add(RTPUtils.applySequenceNumberDelta(baseSeqNum, i));
             }
         }
         return protectedSeqNums;
