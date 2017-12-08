@@ -72,29 +72,32 @@ public class FlexFec03ReceiverTest
         return null;
     }
 
-    private void verifyFlexFec(FlexFec03Packet flexFecPacket, Map<Integer, RawPacket> mediaPackets)
+    /**
+     * Given a flexfec packet, a COMPLETE set of its protected media packets
+     * and the sequence number of the protected packet to 'drop', make sure the
+     * dropped packet can be recreated correctly
+     * @param flexFecPacket
+     * @param missingSeqNum
+     * @param protectedMediaPackets
+     */
+    private void verifyFlexFec(FlexFec03Packet flexFecPacket, int missingSeqNum, List<RawPacket> protectedMediaPackets)
     {
-        List<Integer> protectedSeqNums = flexFecPacket.getProtectedSequenceNumbers();
-        List<RawPacket> protectedMediaPackets = new ArrayList<>();
-        for (Integer protectedSeqNum : protectedSeqNums)
-        {
-            protectedMediaPackets.add(mediaPackets.get(protectedSeqNum));
-        }
-        // We'll treat the first one as the 'lost' packet we'll expect the
-        // FlexFec03Receiver to recover
-        RawPacket lostMediaPacket = protectedMediaPackets.get(0);
-        System.out.println("Withholding media packet " + lostMediaPacket.getSequenceNumber());
-
         FlexFec03Receiver receiver =
-            new FlexFec03Receiver(lostMediaPacket.getSSRCAsLong(),
+            new FlexFec03Receiver(flexFecPacket.getProtectedSsrc(),
                 (byte)107);
 
-        receiver.reverseTransform(new RawPacket[] {flexFecPacket});
-        RawPacket[] packets = null;
-        for (int i = 1; i < protectedMediaPackets.size(); ++i)
+        RawPacket lostMediaPacket = null;
+        for (RawPacket proectedMediaPacket : protectedMediaPackets)
         {
-            packets = receiver.reverseTransform(new RawPacket[] { protectedMediaPackets.get(i) });
+            if (proectedMediaPacket.getSequenceNumber() == missingSeqNum)
+            {
+                lostMediaPacket = proectedMediaPacket;
+                continue;
+            }
+            receiver.reverseTransform(new RawPacket[] { proectedMediaPacket });
         }
+        RawPacket[] packets = receiver.reverseTransform(new RawPacket[] {flexFecPacket});
+
         // The last time we called reverseTransform, we should've gotten 2
         // packets back (the one we put in and the one that was recovered)
         RawPacket recoveredPacket = getRecoveredPacket(packets, lostMediaPacket.getSequenceNumber());
@@ -109,6 +112,28 @@ public class FlexFec03ReceiverTest
                     "lostMediaPacket[" + i + "](" +
                     lostMediaPacket.getBuffer()[i] + ")");
             }
+        }
+    }
+
+    /**
+     * For a given flexFecPacket and a map of media packets, verify each one of
+     * the protected media packets (one by one) can be recovered if dropped
+     * @param flexFecPacket
+     * @param mediaPackets
+     */
+    private void verifyFlexFec(FlexFec03Packet flexFecPacket, Map<Integer, RawPacket> mediaPackets)
+    {
+        List<Integer> protectedSeqNums = flexFecPacket.getProtectedSequenceNumbers();
+        List<RawPacket> protectedMediaPackets = new ArrayList<>();
+        for (Integer protectedSeqNum : protectedSeqNums)
+        {
+            protectedMediaPackets.add(mediaPackets.get(protectedSeqNum));
+        }
+        // We'll test multiple times, each time 'dropping' a different protected
+        // packet
+        for (RawPacket p : protectedMediaPackets)
+        {
+            verifyFlexFec(flexFecPacket, p.getSequenceNumber(), protectedMediaPackets);
         }
     }
 
