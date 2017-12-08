@@ -22,7 +22,6 @@ import javax.media.format.*;
 import javax.sdp.*;
 
 import org.jitsi.impl.neomedia.codec.*;
-import org.jitsi.impl.neomedia.codec.video.h264.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.format.*;
 import org.jitsi.service.configuration.*;
@@ -920,7 +919,7 @@ public class MediaUtils
         for (Map.Entry<String, String> jmfEncodingToEncoding
                 : jmfEncodingToEncodings.entrySet())
         {
-            if (jmfEncodingToEncoding.getValue().equals(encoding))
+            if (jmfEncodingToEncoding.getValue().equalsIgnoreCase(encoding))
             {
                 jmfEncoding = jmfEncodingToEncoding.getKey();
                 break;
