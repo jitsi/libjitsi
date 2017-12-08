@@ -230,16 +230,16 @@ public class FlexFec03Receiver
             // Copy over the recovery RTP header data from the fec packet
             // (fecPacket contains the RTP header, so we need to copy from it
             // starting after that)
-            System.arraycopy(fecPacket.getBuffer(), fecPacket.getHeaderLength(),
+            System.arraycopy(fecPacket.getBuffer(), fecPacket.getFlexFecHeaderOffset(),
                 recoveredPacket.getBuffer(), 0, RawPacket.FIXED_HEADER_SIZE);
 
             // Copy over the recovery rtp payload data from the fec packet
             System.arraycopy(
                 fecPacket.getBuffer(),
-                fecPacket.getHeaderLength() + fecPacket.getFlexFecHeaderSize(),
+                fecPacket.getFlexFecHeaderOffset() + fecPacket.getFlexFecHeaderSize(),
                 recoveredPacket.getBuffer(),
                 RawPacket.FIXED_HEADER_SIZE,
-                fecPacket.getPayloadLength());
+                fecPacket.getFlexFecPayloadLength());
 
             return true;
         }
@@ -306,24 +306,20 @@ public class FlexFec03Receiver
 
             // Recover the packet length, from temporary location.
             int length = RTPUtils.readUint16AsInt(recoveredPacket.getBuffer(), 2);
-            if (length > recoveredPacket.getBuffer().length)
+            // The length field used in the xor does not include the header
+            // length, but we want to include the fixed header length when
+            // setting the length on the packet object
+            int lengthWithFixedHeader = length + RawPacket.FIXED_HEADER_SIZE;
+            if (lengthWithFixedHeader > recoveredPacket.getBuffer().length)
             {
                 logger.error("Length field of recovered packet is larger" +
                     " than its buffer");
                 return false;
             }
-            // The length field used in the xor does not include the header
-            // length, but we want to include the fixed header length when
-            // setting the length on the packet object
-            recoveredPacket.setLength(length + RawPacket.FIXED_HEADER_SIZE);
 
-            // Set the SN field.
-            RTPUtils.writeShort(recoveredPacket.getBuffer(), 2,
-                (short)missingSequenceNumber);
-
-            // Set the SSRC field.
-            RTPUtils.writeInt(recoveredPacket.getBuffer(), 8,
-                (int)fecPacket.getProtectedSsrc());
+            recoveredPacket.setLength(lengthWithFixedHeader);
+            recoveredPacket.setSequenceNumber(missingSequenceNumber);
+            recoveredPacket.setSSRC((int)fecPacket.getProtectedSsrc());
 
             return true;
         }

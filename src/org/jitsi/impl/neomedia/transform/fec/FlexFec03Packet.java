@@ -74,15 +74,6 @@ public class FlexFec03Packet
 
     /**
      * Ctor
-     * @param p a RawPacket representing a flex fec packet
-     */
-    private FlexFec03Packet(RawPacket p)
-    {
-        this(p.getBuffer(), p.getOffset(), p.getLength());
-    }
-
-    /**
-     * Ctor
      * @param buffer rtp packet buffer
      * @param offset offset at which the rtp packet starts in the given
      * buffer
@@ -126,7 +117,7 @@ public class FlexFec03Packet
      * Returns the size of the FlexFEC payload, in bytes
      * @return the size of the FlexFEC packet payload, in bytes
      */
-    public int getPayloadLength()
+    public int getFlexFecPayloadLength()
     {
         return this.getLength() - this.getHeaderLength() - this.header.size;
     }
@@ -135,8 +126,8 @@ public class FlexFec03Packet
      * Get the offset at which the FlexFEC header starts
      * @return the offset at which the FlexFEC header starts
      */
-    private int getFlexFecHeaderOffset()
+    public int getFlexFecHeaderOffset()
     {
-        return this.getHeaderLength();
+        return getOffset() + this.getHeaderLength();
     }
 }

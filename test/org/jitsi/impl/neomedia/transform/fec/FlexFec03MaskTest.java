@@ -134,10 +134,8 @@ public class FlexFec03MaskTest
         );
 
         FlexFec03BitMask expectedMask = getMask(0, expectedProtectedSeqNums);
-        System.out.println(expectedMask);
 
         FlexFec03Mask mask = new FlexFec03Mask(expectedMask.toByteArray(), 0, 0);
-        System.out.println(mask.getMaskWithKBits());
         verifyMask(expectedMask, mask.getMaskWithKBits());
     }
 }

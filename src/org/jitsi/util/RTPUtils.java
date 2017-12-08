@@ -295,14 +295,23 @@ public class RTPUtils
         return rtpTimestampDiff(a, b) > 0;
     }
 
+    /**
+     * Hex characters for converting bytes to readable hex strings
+     */
+    private static char[] hexes = new char[]
+        {
+            '0', '1', '2', '3', '4', '5', '6', '7', '8',
+            '9', 'A', 'B', 'C', 'D', 'E', 'F'
+        };
+
+    /**
+     * Return a string containing the hex string version of the given byte
+     * @param b
+     * @return
+     */
     private static String toHexString(byte b)
     {
-        char[] hexes
-            = new char[]
-            {
-                '0', '1', '2', '3', '4', '5', '6', '7', '8',
-                '9', 'A', 'B', 'C', 'D', 'E', 'F'
-            };
+
         StringBuilder hexStringBuilder
             = new StringBuilder(2);
 
@@ -311,11 +320,24 @@ public class RTPUtils
 
         return hexStringBuilder.toString();
     }
+
+    /**
+     * Return a string containing the hex string version of the given bytes
+     * @param bytes
+     * @return
+     */
     public static String toHexString(byte[] bytes)
     {
         return toHexString(bytes, 0, bytes.length);
     }
 
+    /**
+     * Return a string containing the hex string version of the given byte
+     * @param bytes
+     * @param offset
+     * @param length
+     * @return
+     */
     public static String toHexString(byte[] bytes, int offset, int length)
     {
         if (bytes == null)

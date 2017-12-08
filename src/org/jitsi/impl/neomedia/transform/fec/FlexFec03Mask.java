@@ -216,7 +216,7 @@ public class FlexFec03Mask
     {
         FlexFec03BitMask maskWithoutKBits = getMaskWithoutKBits(maskWithKBits);
         List<Integer> protectedSeqNums = new ArrayList<>();
-        for (int i = 0; i < this.sizeBytes * 8; ++i)
+        for (int i = 0; i < maskWithoutKBits.sizeBits(); ++i)
         {
             if (maskWithoutKBits.get(i))
             {
