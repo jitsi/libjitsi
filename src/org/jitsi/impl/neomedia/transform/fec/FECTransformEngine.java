@@ -110,8 +110,13 @@ public class FECTransformEngine
         setOutgoingPT(outgoingPT);
     }
 
-    private long getPrimarySsrc(long ssrc)
+    private long getPrimarySsrc(Long ssrc)
     {
+        if (ssrc == null)
+        {
+            return -1;
+        }
+
         MediaStreamTrackReceiver receiver
             = mediaStream.getMediaStreamTrackReceiver();
 
@@ -150,30 +155,30 @@ public class FECTransformEngine
             return pkts;
         }
 
-        AbstractFECReceiver fpt;
+        AbstractFECReceiver fecReceiver;
         synchronized (fecReceivers)
         {
-            fpt = fecReceivers.get(primarySsrc);
-            if (fpt == null)
+            fecReceiver = fecReceivers.get(primarySsrc);
+            if (fecReceiver == null)
             {
                 if (fecType == FecType.ULPFEC)
                 {
-                    fpt = new ULPFECReceiver(primarySsrc, incomingPT);
+                    fecReceiver = new ULPFECReceiver(primarySsrc, incomingPT);
                 }
                 else if (fecType == FecType.FLEXFEC_03)
                 {
-                    fpt = new FlexFec03Receiver(primarySsrc, incomingPT);
+                    fecReceiver = new FlexFec03Receiver(primarySsrc, incomingPT);
                 }
                 else
                 {
                     logger.error("Unknown fec type set: " + fecType);
                     return pkts;
                 }
-                fecReceivers.put(primarySsrc, fpt);
+                fecReceivers.put(primarySsrc, fecReceiver);
             }
         }
 
-        return fpt.reverseTransform(pkts);
+        return fecReceiver.reverseTransform(pkts);
     }
 
     /**
