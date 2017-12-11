@@ -97,7 +97,7 @@ public class RTCPConnectorInputStream
          */
         if ((length >= 12) && !listeners.isEmpty())
         {
-            byte pt = buffer[offset + 1];
+            int pt = buffer[offset + 1] & 0xFF;
 
             if ((pt == RTCPFeedbackMessageEvent.PT_PS)
                     || (pt == RTCPFeedbackMessageEvent.PT_TL))
