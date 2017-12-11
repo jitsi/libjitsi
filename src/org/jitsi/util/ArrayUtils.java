@@ -63,6 +63,25 @@ public final class ArrayUtils
         return array;
     }
 
+    public static <T> T[] insert(T element, T[] array, Class<T> componentType)
+    {
+        boolean inserted = false;
+        for (int i = 0; i < array.length; ++i)
+        {
+            if (array[i] == null)
+            {
+                array[i] = element;
+                inserted = true;
+            }
+        }
+
+        if (!inserted)
+        {
+            add(array, componentType, element);
+        }
+        return array;
+    }
+
     /** Prevents the initialization of new {@code ArrayUtils} instances. */
     private ArrayUtils()
     {

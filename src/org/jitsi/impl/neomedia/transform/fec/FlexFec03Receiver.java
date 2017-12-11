@@ -82,7 +82,7 @@ public class FlexFec03Receiver
                         recovered.getSequenceNumber());
                     statistics.numRecoveredPackets++;
                     saveMedia(recovered);
-                    pkts = insert(recovered, pkts);
+                    pkts = ArrayUtils.insert(recovered, pkts, RawPacket.class);
                 }
                 else
                 {
@@ -99,33 +99,6 @@ public class FlexFec03Receiver
             fecPackets.remove(flexFecSeqNum);
         }
         return pkts;
-    }
-
-    /**
-     * Inserts packet into an empty slot in pkts, or allocates a new
-     * array and inserts packet into it.  Returns either the original
-     * array (with packet insert) or a new array containing the original contents
-     * of pkts and with packet inserted
-     * @param packet the packet to be inserted
-     * @param pkts the array in which to insert packet
-     * @return the original pkts array with packet inserted, or, a new array
-     * containing all elements in pkts as well as packet
-     */
-    private RawPacket[] insert(RawPacket packet, RawPacket[] pkts)
-    {
-        for (int i = 0; i < pkts.length; ++i)
-        {
-            if (pkts[i] == null)
-            {
-                pkts[i] = packet;
-                return pkts;
-            }
-        }
-
-        RawPacket[] newPkts = new RawPacket[pkts.length + 1];
-        System.arraycopy(pkts, 0, newPkts, 0, pkts.length);
-        newPkts[pkts.length] = packet;
-        return newPkts;
     }
 
     private static class Reconstructor
