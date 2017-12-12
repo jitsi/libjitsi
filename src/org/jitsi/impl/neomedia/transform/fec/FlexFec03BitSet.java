@@ -1,13 +1,47 @@
+/*
+ * Copyright @ 2017 Atlassian Pty Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.jitsi.impl.neomedia.transform.fec;
 
 import java.util.*;
 
+/**
+ * A bit-set class which is similar to a standard bitset, but with 2 differences:
+ * 1) The size of this set is preserved.  Unlike the standard bitset, which will
+ * not include leading 0's in its size (which doesn't work well for a bitmask),
+ * this one will always report the size it was allocated for
+ * 2) When reading (valueOf) and writing (toByteArray) it inverts the order
+ * of the bits.  This is because in FlexFEC-03, the left-most bit of the mask
+ * represents a delta value of '0'.
+ */
 public class FlexFec03BitSet
 {
+    /**
+     * The underlying bitset used to store the bits
+     */
     private BitSet bitSet;
 
+    /**
+     * The size of the mask this bitset is representing
+     */
     private int numBits = 0;
 
+    /**
+     * Ctor
+     * @param numBits the size, in bits, of this set
+     */
     public FlexFec03BitSet(int numBits)
     {
         bitSet = new BitSet(numBits);
@@ -95,6 +129,11 @@ public class FlexFec03BitSet
         numBits = newNumBits;
     }
 
+    /**
+     * Parse the value of the given byte buffer into the bitset
+     * @param bytes
+     * @return
+     */
     public static FlexFec03BitSet valueOf(byte[] bytes)
     {
         return valueOf(bytes, 0, bytes.length);
@@ -128,6 +167,10 @@ public class FlexFec03BitSet
         return b;
     }
 
+    /**
+     * Get the size of this set, in bytes
+     * @return the size of this set, in bytes
+     */
     public int sizeBytes()
     {
         int numBytes = numBits / 8;
@@ -138,6 +181,10 @@ public class FlexFec03BitSet
         return numBytes;
     }
 
+    /**
+     * Get the size of this set, in bits
+     * @return the size of this set, in bits
+     */
     public int sizeBits()
     {
         return numBits;
