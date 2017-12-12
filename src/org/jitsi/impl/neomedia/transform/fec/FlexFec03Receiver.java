@@ -36,11 +36,6 @@ public class FlexFec03Receiver
         = Logger.getLogger(FlexFec03Receiver.class);
 
     /**
-     * FEC-related statistics
-     */
-    private Statistics statistics;
-
-    /**
      * Helper class to reconstruct missing packets
      */
     private Reconstructor reconstructor;
@@ -53,7 +48,7 @@ public class FlexFec03Receiver
     }
 
     @Override
-    public synchronized RawPacket[] doReverseTransform(RawPacket[] pkts)
+    protected synchronized RawPacket[] doReverseTransform(RawPacket[] pkts)
     {
         Set<Integer> flexFecPacketsToRemove = new HashSet<>();
         // Try to recover any missing media packets
@@ -149,17 +144,17 @@ public class FlexFec03Receiver
 
         public void setFecPacket(FlexFec03Packet p)
         {
-            logger.debug("Have " + mediaPackets.size() + " saved media packets");
-            numMissing = 0;
-            logger.debug("Reconstructor checking if recovery is " +
-                "possible: fec packet " + p.getSequenceNumber() +
-                " protects packets:\n" + p.getProtectedSequenceNumbers());
-            this.fecPacket = p;
             if (p == null)
             {
                 logger.error("Error creating flexfec packet");
                 return;
             }
+            this.fecPacket = p;
+            logger.debug("Have " + mediaPackets.size() + " saved media packets");
+            numMissing = 0;
+            logger.debug("Reconstructor checking if recovery is " +
+                "possible: fec packet " + p.getSequenceNumber() +
+                " protects packets:\n" + p.getProtectedSequenceNumbers());
 
             for (Integer protectedSeqNum : fecPacket.getProtectedSequenceNumbers())
             {
@@ -190,12 +185,12 @@ public class FlexFec03Receiver
          */
         private boolean startPacketRecovery(FlexFec03Packet fecPacket, RawPacket recoveredPacket)
         {
-            if (fecPacket.getLength() < FlexFec03Packet.FIXED_HEADER_SIZE)
+            if (fecPacket.getLength() < RawPacket.FIXED_HEADER_SIZE)
             {
                 logger.error("Given FlexFEC packet is too small");
                 return false;
             }
-            if (recoveredPacket.getBuffer().length < RawPacket.FIXED_HEADER_SIZE)
+            if (recoveredPacket.getBuffer().length < fecPacket.getLength())
             {
                 logger.error("Given RawPacket buffer is too small");
                 return false;
@@ -225,8 +220,8 @@ public class FlexFec03Receiver
         private void xorHeaders(RawPacket source, RawPacket dest)
         {
             // XOR the first 2 bytes of the header: V, P, X, CC, M, PT fields.
-            dest.getBuffer()[0] ^= source.getBuffer()[0];
-            dest.getBuffer()[1] ^= source.getBuffer()[1];
+            dest.getBuffer()[0] ^= source.getBuffer()[source.getOffset() + 0];
+            dest.getBuffer()[1] ^= source.getBuffer()[source.getOffset() + 1];
 
             // XOR the length recovery field.
             int length = (source.getLength() & 0xffff) - RawPacket.FIXED_HEADER_SIZE;
@@ -234,10 +229,10 @@ public class FlexFec03Receiver
             dest.getBuffer()[3] ^= (length & 0x00ff);
 
             // XOR the 5th to 8th bytes of the header: the timestamp field.
-            dest.getBuffer()[4] ^= source.getBuffer()[4];
-            dest.getBuffer()[5] ^= source.getBuffer()[5];
-            dest.getBuffer()[6] ^= source.getBuffer()[6];
-            dest.getBuffer()[7] ^= source.getBuffer()[7];
+            dest.getBuffer()[4] ^= source.getBuffer()[source.getOffset() + 4];
+            dest.getBuffer()[5] ^= source.getBuffer()[source.getOffset() + 5];
+            dest.getBuffer()[6] ^= source.getBuffer()[source.getOffset() + 6];
+            dest.getBuffer()[7] ^= source.getBuffer()[source.getOffset() + 7];
 
             // Skip the 9th to 12th bytes of the header.
         }
@@ -254,14 +249,14 @@ public class FlexFec03Receiver
          * begins
          * @param payloadLength the length of the source's payload
          */
-        private void xorPayloads(RawPacket source, int sourceOffset,
-                                 RawPacket dest, int destOffset,
+        private void xorPayloads(byte[] source, int sourceOffset,
+                                 byte[] dest, int destOffset,
                                  int payloadLength)
         {
             for (int i = 0; i < payloadLength; ++i)
             {
-                dest.getBuffer()[destOffset + i] ^=
-                    source.getBuffer()[sourceOffset + i];
+                dest[destOffset + i] ^=
+                    source[sourceOffset + i];
             }
         }
 
@@ -323,9 +318,9 @@ public class FlexFec03Receiver
                     RawPacket mediaPacket = mediaPackets.get(protectedSeqNum);
                     xorHeaders(mediaPacket, recoveredPacket);
                     xorPayloads(
-                        mediaPacket,
-                        RawPacket.FIXED_HEADER_SIZE,
-                        recoveredPacket,
+                        mediaPacket.getBuffer(),
+                        mediaPacket.getOffset() + RawPacket.FIXED_HEADER_SIZE,
+                        recoveredPacket.getBuffer(),
                         RawPacket.FIXED_HEADER_SIZE,
                         mediaPacket.getLength() - RawPacket.FIXED_HEADER_SIZE);
                 }

@@ -50,13 +50,25 @@ import java.util.*;
 public class FlexFec03Packet
     extends RawPacket
 {
-    protected FlexFec03Header header;
-
+    /**
+     * Create a {@link FlexFec03Packet}
+     * @param p the RawPacket to attempt parsing as a FlexFEC packet
+     * @return a {@link FlexFec03Packet} if 'p' is successfully parsed
+     * as a {@link FlexFec03Packet}, null otherwise
+     */
     public static FlexFec03Packet create(RawPacket p)
     {
         return create(p.getBuffer(), p.getOffset(), p.getLength());
     }
 
+    /**
+     * Create a {@link FlexFec03Packet}
+     * @param buffer
+     * @param offset
+     * @param length
+     * @return a {@link FlexFec03Packet} if 'p' is successfully parsed
+     * as a {@link FlexFec03Packet}, null otherwise
+     */
     public static FlexFec03Packet create(byte[] buffer, int offset, int length)
     {
         FlexFec03Packet flexFecPacket = new FlexFec03Packet(buffer, offset, length);
@@ -71,6 +83,11 @@ public class FlexFec03Packet
         flexFecPacket.header = header;
         return flexFecPacket;
     }
+
+    /**
+     * The FlexFEC03 header
+     */
+    protected FlexFec03Header header;
 
     /**
      * Ctor

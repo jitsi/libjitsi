@@ -37,43 +37,6 @@ public class FlexFec03Mask
 
     }
 
-    private int sizeBytes;
-    /**
-     * The mask field (including k bits)
-     */
-    private FlexFec03BitSet maskWithKBits;
-    private int baseSeqNum;
-
-    /**
-     * Initialize this maskWithoutKBits with a received buffer.
-     * buffer + maskOffset should point to the location of the start
-     * of the mask
-     * @param buffer the flexfec packet buffer
-     * @param maskOffset maskOffset to the location of the start of the mask
-     * @param baseSeqNum the base sequence number from the flexfec packet
-     */
-    FlexFec03Mask(byte[] buffer, int maskOffset, int baseSeqNum)
-        throws MalformedMaskException
-    {
-        this.sizeBytes = getMaskSizeInBytes(buffer, maskOffset);
-        this.maskWithKBits = FlexFec03BitSet.valueOf(buffer, maskOffset, this.sizeBytes);
-        this.baseSeqNum = baseSeqNum;
-    }
-
-    /**
-     * Create a mask from a base sequence number and a list of protected
-     * sequence numbers
-     * @param baseSeqNum the base sequence number to use for the mask
-     * @param protectedSeqNums the sequence numbers this mask should mark
-     * as protected
-     */
-    public FlexFec03Mask(int baseSeqNum, List<Integer> protectedSeqNums)
-    {
-        this.sizeBytes = getMaskSizeInBytes(baseSeqNum, protectedSeqNums);
-        this.baseSeqNum = baseSeqNum;
-        this.maskWithKBits = createMaskWithKBits(this.sizeBytes, this.baseSeqNum, protectedSeqNums);
-    }
-
     private static int getNumBitsExcludingKBits(int maskSizeBytes)
     {
         int numBits = maskSizeBytes * 8;
@@ -121,11 +84,6 @@ public class FlexFec03Mask
         }
 
         return mask;
-    }
-
-    public FlexFec03BitSet getMaskWithKBits()
-    {
-        return maskWithKBits;
     }
 
     /**
@@ -198,35 +156,6 @@ public class FlexFec03Mask
     }
 
     /**
-     * Get the length of the mask, in bytes
-     * @return the length of the mask, in bytes
-     */
-    public int lengthBytes()
-    {
-        return sizeBytes;
-    }
-
-    /**
-     * Get the list of media packet sequence numbers which are marked
-     * as protected in this mask
-     * @return a list of sequence numbers of the media packets marked as
-     * protected by this mask
-     */
-    public List<Integer> getProtectedSeqNums()
-    {
-        FlexFec03BitSet maskWithoutKBits = getMaskWithoutKBits(maskWithKBits);
-        List<Integer> protectedSeqNums = new ArrayList<>();
-        for (int i = 0; i < maskWithoutKBits.sizeBits(); ++i)
-        {
-            if (maskWithoutKBits.get(i))
-            {
-                protectedSeqNums.add(RTPUtils.applySequenceNumberDelta(baseSeqNum, i));
-            }
-        }
-        return protectedSeqNums;
-    }
-
-    /**
      * Extract the mask containing just the protected sequence number
      * bits (not the k bits) from the given buffer
      * @param maskWithKBits the mask with the k bits included
@@ -258,5 +187,76 @@ public class FlexFec03Mask
         maskWithoutKBits.removeBit(MASK_0_K_BIT);
 
         return maskWithoutKBits;
+    }
+
+    private int sizeBytes;
+    /**
+     * The mask field (including k bits)
+     */
+    private FlexFec03BitSet maskWithKBits;
+    private int baseSeqNum;
+
+    /**
+     * Initialize this maskWithoutKBits with a received buffer.
+     * buffer + maskOffset should point to the location of the start
+     * of the mask
+     * @param buffer the flexfec packet buffer
+     * @param maskOffset maskOffset to the location of the start of the mask
+     * @param baseSeqNum the base sequence number from the flexfec packet
+     */
+    FlexFec03Mask(byte[] buffer, int maskOffset, int baseSeqNum)
+        throws MalformedMaskException
+    {
+        this.sizeBytes = getMaskSizeInBytes(buffer, maskOffset);
+        this.maskWithKBits = FlexFec03BitSet.valueOf(buffer, maskOffset, this.sizeBytes);
+        this.baseSeqNum = baseSeqNum;
+    }
+
+    /**
+     * Create a mask from a base sequence number and a list of protected
+     * sequence numbers
+     * @param baseSeqNum the base sequence number to use for the mask
+     * @param protectedSeqNums the sequence numbers this mask should mark
+     * as protected
+     */
+    public FlexFec03Mask(int baseSeqNum, List<Integer> protectedSeqNums)
+    {
+        this.sizeBytes = getMaskSizeInBytes(baseSeqNum, protectedSeqNums);
+        this.baseSeqNum = baseSeqNum;
+        this.maskWithKBits = createMaskWithKBits(this.sizeBytes, this.baseSeqNum, protectedSeqNums);
+    }
+
+    public FlexFec03BitSet getMaskWithKBits()
+    {
+        return maskWithKBits;
+    }
+
+    /**
+     * Get the length of the mask, in bytes
+     * @return the length of the mask, in bytes
+     */
+    public int lengthBytes()
+    {
+        return sizeBytes;
+    }
+
+    /**
+     * Get the list of media packet sequence numbers which are marked
+     * as protected in this mask
+     * @return a list of sequence numbers of the media packets marked as
+     * protected by this mask
+     */
+    public List<Integer> getProtectedSeqNums()
+    {
+        FlexFec03BitSet maskWithoutKBits = getMaskWithoutKBits(maskWithKBits);
+        List<Integer> protectedSeqNums = new ArrayList<>();
+        for (int i = 0; i < maskWithoutKBits.sizeBits(); ++i)
+        {
+            if (maskWithoutKBits.get(i))
+            {
+                protectedSeqNums.add(RTPUtils.applySequenceNumberDelta(baseSeqNum, i));
+            }
+        }
+        return protectedSeqNums;
     }
 }
