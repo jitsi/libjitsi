@@ -151,7 +151,7 @@ public class FlexFec03MaskTest
         List<Integer> expectedProtectedSeqNums = Arrays.asList(
             109
         );
-        
+
         try
         {
             FlexFec03BitSet expectedMask = getMask(0, expectedProtectedSeqNums);

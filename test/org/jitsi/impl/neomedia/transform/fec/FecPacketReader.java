@@ -111,23 +111,10 @@ public class FecPacketReader
                 if (pkt.hasProtocol(Protocol.UDP))
                 {
                     UDPPacket udpPacket = (UDPPacket)pkt.getPacket(Protocol.UDP);
-                    RawPacket packet;
-                    // To run the test with offsets, can change this to true
-                    boolean doOffset = false;
-                    if (doOffset)
-                    {
-                        byte[] packBuf = new byte[udpPacket.getPayload().getArray().length + 50];
-                        System.arraycopy(udpPacket.getPayload().getArray(), 0, packBuf, 50, udpPacket.getPayload().getArray().length);
-                        packet = new RawPacket(packBuf, 50, udpPacket.getPayload().getArray().length);
-                    }
-                    else
-                    {
-                        packet = new RawPacket(udpPacket.getPayload().getArray(),
+                    RawPacket packet = new RawPacket(udpPacket.getPayload().getArray(),
                             0, udpPacket.getPayload().getArray().length);
-                    }
 
                     boolean checkForComplete = false;
-
                     if (packet.getPayloadType() == flexFecPt)
                     {
                         FlexFec03Packet flexFecPacket = FlexFec03Packet.create(packet);

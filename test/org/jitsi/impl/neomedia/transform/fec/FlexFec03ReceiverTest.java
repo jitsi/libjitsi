@@ -105,7 +105,7 @@ public class FlexFec03ReceiverTest
         assertEquals(lostMediaPacket.getLength(), recoveredPacket.getLength());
         for (int i = 0; i < lostMediaPacket.getLength(); ++i)
         {
-            if (lostMediaPacket.getBuffer()[i] != recoveredPacket.getBuffer()[i])
+            if (lostMediaPacket.getBuffer()[lostMediaPacket.getOffset() + i] != recoveredPacket.getBuffer()[recoveredPacket.getOffset() + i])
             {
                 fail("Expected recoveredPacket[" + i + "]" +
                     "(" + recoveredPacket.getBuffer()[i] + " to equal " +
@@ -173,6 +173,62 @@ public class FlexFec03ReceiverTest
         {
             verifyFlexFec(flexFecPacket, fecCaptureReadResult.mediaPackets);
         }
+    }
 
+    private static void addOffsetToPacket(int offset, RawPacket packet)
+    {
+        byte[] newBuf = new byte[packet.getLength() + offset];
+        System.arraycopy(
+            packet.getBuffer(), packet.getOffset(),
+            newBuf, offset,
+            packet.getLength());
+        packet.setBuffer(newBuf);
+        packet.setOffset(offset);
+    }
+
+    private static void addOffsetToPackets(int offset, FecCaptureReadResult fecCaptureReadResult)
+    {
+        for (FlexFec03Packet fecPacket : fecCaptureReadResult.flexFecPackets)
+        {
+            addOffsetToPacket(offset, fecPacket);
+        }
+
+        for (RawPacket packet : fecCaptureReadResult.mediaPackets.values())
+        {
+            addOffsetToPacket(offset, packet);
+        }
+    }
+
+    /**
+     * Same as the above test, but re-create packets so that the
+     * data in the buffer starts at a non-zero offset
+     * @throws Exception
+     */
+    @Test
+    public void testReverseTransformWithOffset()
+        throws
+        Exception
+    {
+        replayAll();
+        FecPacketReader reader = new FecPacketReader("test/org/jitsi/impl/neomedia/transform/fec/resources/chrome_flexfec_and_video_capture.pcap");
+
+        int videoPt = 98;
+        int flexFecPt = 107;
+
+        FecCaptureReadResult fecCaptureReadResult = new FecCaptureReadResult();
+
+        reader.run(videoPt, flexFecPt, fecCaptureReadResult);
+
+        if (fecCaptureReadResult.flexFecPackets.isEmpty())
+        {
+            fail("Unable to find a fec packet with all of its corresponding media packets");
+        }
+
+        addOffsetToPackets(50, fecCaptureReadResult);
+
+        for (FlexFec03Packet flexFecPacket : fecCaptureReadResult.flexFecPackets)
+        {
+            verifyFlexFec(flexFecPacket, fecCaptureReadResult.mediaPackets);
+        }
     }
 }
