@@ -160,6 +160,29 @@ public class FlexFec03HeaderReaderTest
     }
 
     @Test
+    public void testParsesSmallMaskWithOffset()
+    {
+        byte[] mask0 = { 0x7F, (byte)0xFF }; // All possible packets in the small mask protected
+        final byte[] flexFecData = {
+            0x00,                   0x00,
+            NO_R_BIT | NO_F_BIT,    PT_RECOVERY,        LENGTH_RECOVERY[0],         LENGTH_RECOVERY[1],
+            TS_RECOVERY[0],         TS_RECOVERY[1],     TS_RECOVERY[2],             TS_RECOVERY[3],
+            SSRC_COUNT,             RESERVED_BITS,      RESERVED_BITS,              RESERVED_BITS,
+            PROTECTED_SSRC[0],      PROTECTED_SSRC[1],  PROTECTED_SSRC[2],          PROTECTED_SSRC[3],
+            SN_BASE_BYTES[0],       SN_BASE_BYTES[1],   (byte)(K_BIT_1 | mask0[0]), mask0[1],
+            PAYLOAD_BITS,           PAYLOAD_BITS,       PAYLOAD_BITS,               PAYLOAD_BITS
+        };
+
+        FlexFec03Header header = FlexFec03HeaderReader.readFlexFecHeader(flexFecData, 2, flexFecData.length - 2);
+        assertNotNull(header);
+        assertEquals(NUM_BITS_IN_SMALL_MASK, header.protectedSeqNums.size());
+        for (int i = 0; i < NUM_BITS_IN_SMALL_MASK; ++i)
+        {
+            assertEquals(SN_BASE + i, (long)header.protectedSeqNums.get(i));
+        }
+    }
+
+    @Test
     public void testParsesMedMask()
     {
         byte[] mask0 = { 0x7F, (byte)0xFF }; // All possible packets in the small mask protected
@@ -205,6 +228,37 @@ public class FlexFec03HeaderReaderTest
         };
 
         FlexFec03Header header = FlexFec03HeaderReader.readFlexFecHeader(flexFecData, 0, flexFecData.length);
+        assertNotNull(header);
+        assertEquals(NUM_BITS_IN_LARGE_MASK, header.protectedSeqNums.size());
+        for (int i = 0; i < NUM_BITS_IN_LARGE_MASK; ++i)
+        {
+            assertEquals(SN_BASE + i, (long)header.protectedSeqNums.get(i));
+        }
+    }
+
+    @Test
+    public void testParsesLargeMaskWithOffset()
+    {
+        byte[] mask0 = { 0x7F, (byte)0xFF }; // All possible packets in the small mask protected
+        byte[] mask1 = { 0x7F, (byte)0xFF, (byte)0xFF, (byte)0xFF }; // All possible packets in the med mask protected
+        byte[] mask2 = {
+            0x7F,       (byte)0xFF, (byte)0xFF, (byte)0xFF,
+            (byte)0xFF, (byte)0xFF, (byte)0xFF, (byte)0xFF
+        }; // All possible packets in the med mask protected
+        final byte[] flexFecData = {
+            0x00,                       0x00,
+            NO_R_BIT | NO_F_BIT,        PT_RECOVERY,        LENGTH_RECOVERY[0],         LENGTH_RECOVERY[1],
+            TS_RECOVERY[0],             TS_RECOVERY[1],     TS_RECOVERY[2],             TS_RECOVERY[3],
+            SSRC_COUNT,                 RESERVED_BITS,      RESERVED_BITS,              RESERVED_BITS,
+            PROTECTED_SSRC[0],          PROTECTED_SSRC[1],  PROTECTED_SSRC[2],          PROTECTED_SSRC[3],
+            SN_BASE_BYTES[0],           SN_BASE_BYTES[1],   (byte)(K_BIT_0 | mask0[0]), mask0[1],
+            (byte)(K_BIT_0 | mask1[0]), mask1[1],           mask1[2],                   mask1[3],
+            (byte)(K_BIT_1 | mask2[0]), mask2[1],           mask2[2],                   mask2[3],
+            mask2[4],                   mask2[5],           mask2[6],                   mask2[7],
+            PAYLOAD_BITS,               PAYLOAD_BITS,       PAYLOAD_BITS,               PAYLOAD_BITS
+        };
+
+        FlexFec03Header header = FlexFec03HeaderReader.readFlexFecHeader(flexFecData, 2, flexFecData.length - 2);
         assertNotNull(header);
         assertEquals(NUM_BITS_IN_LARGE_MASK, header.protectedSeqNums.size());
         for (int i = 0; i < NUM_BITS_IN_LARGE_MASK; ++i)
