@@ -32,6 +32,7 @@ public class FlexFec03MaskTest
 
     @Test
     public void testCreateFlexFecMaskShort()
+        throws Exception
     {
         List<Integer> expectedProtectedSeqNums = Arrays.asList(0, 1, 3, 5, 14);
         int baseSeqNum = 0;
@@ -43,6 +44,7 @@ public class FlexFec03MaskTest
 
     @Test
     public void testSeqNumRollover()
+        throws Exception
     {
         List<Integer> expectedProtectedSeqNums = Arrays.asList(65530, 65531, 65533, 65535, 5, 6);
         int baseSeqNum = 65530;
@@ -55,6 +57,7 @@ public class FlexFec03MaskTest
 
     @Test
     public void testCreateFlexFecMaskMed()
+        throws Exception
     {
         List<Integer> expectedProtectedSeqNums = Arrays.asList(0, 1, 3, 5, 14, 15, 16, 20, 24, 45);
         int baseSeqNum = 0;
@@ -66,6 +69,7 @@ public class FlexFec03MaskTest
 
     @Test
     public void testCreateFlexFecMaskLong()
+        throws Exception
     {
         List<Integer> expectedProtectedSeqNums =
             Arrays.asList(0, 1, 3, 5, 14, 15, 20, 24, 45, 108);
@@ -83,6 +87,7 @@ public class FlexFec03MaskTest
      * the FlexFec03Mask methods we tested above
      */
     private FlexFec03BitSet getMask(int baseSeqNum, List<Integer> protectedSeqNums)
+        throws Exception
     {
         FlexFec03Mask m = new FlexFec03Mask(baseSeqNum, protectedSeqNums);
         return m.getMaskWithKBits();
@@ -137,5 +142,24 @@ public class FlexFec03MaskTest
 
         FlexFec03Mask mask = new FlexFec03Mask(expectedMask.toByteArray(), 0, 0);
         verifyMask(expectedMask, mask.getMaskWithKBits());
+    }
+
+    @Test
+    public void testFlexFecTooBigDelta()
+        throws Exception
+    {
+        List<Integer> expectedProtectedSeqNums = Arrays.asList(
+            109
+        );
+        
+        try
+        {
+            FlexFec03BitSet expectedMask = getMask(0, expectedProtectedSeqNums);
+            fail("Should have thrown MalformedMaskException");
+        }
+        catch (FlexFec03Mask.MalformedMaskException e)
+        {
+
+        }
     }
 }

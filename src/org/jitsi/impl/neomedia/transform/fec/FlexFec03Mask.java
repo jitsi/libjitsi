@@ -134,6 +134,7 @@ public class FlexFec03Mask
      * the given protected sequence numbers
      */
     private static int getMaskSizeInBytes(int baseSeqNum, List<Integer> sortedProtectedSeqNums)
+        throws MalformedMaskException
     {
         int largestDelta = -1;
         for (Integer protectedSeqNum : sortedProtectedSeqNums)
@@ -143,6 +144,10 @@ public class FlexFec03Mask
             {
                 largestDelta = delta;
             }
+        }
+        if (largestDelta > 108)
+        {
+            throw new MalformedMaskException();
         }
         if (largestDelta <= 14)
         {
@@ -220,6 +225,7 @@ public class FlexFec03Mask
      * as protected
      */
     public FlexFec03Mask(int baseSeqNum, List<Integer> protectedSeqNums)
+        throws MalformedMaskException
     {
         this.sizeBytes = getMaskSizeInBytes(baseSeqNum, protectedSeqNums);
         this.baseSeqNum = baseSeqNum;
