@@ -464,9 +464,10 @@ public class MediaStreamImpl
         }
         else if (Constants.ULPFEC.equals(encoding))
         {
-            FECTransformEngine fecTransformEngine = getFecTransformEngine();
-            if (fecTransformEngine != null)
+            TransformEngineWrapper<FECTransformEngine> fecTransformEngineWrapper = getFecTransformEngine();
+            if (fecTransformEngineWrapper.getWrapped() != null)
             {
+                FECTransformEngine fecTransformEngine = fecTransformEngineWrapper.getWrapped();
                 fecTransformEngine.setIncomingPT(rtpPayloadType);
                 // TODO ULPFEC without RED doesn't make sense.
                 fecTransformEngine.setOutgoingPT(rtpPayloadType);
@@ -512,9 +513,10 @@ public class MediaStreamImpl
             redTransformEngine.setOutgoingPT((byte) -1);
         }
 
-        FECTransformEngine fecTransformEngine = getFecTransformEngine();
-        if (fecTransformEngine != null)
+        TransformEngineWrapper<FECTransformEngine> fecTransformEngineWrapper = getFecTransformEngine();
+        if (fecTransformEngineWrapper.getWrapped() != null)
         {
+            FECTransformEngine fecTransformEngine = fecTransformEngineWrapper.getWrapped();
             fecTransformEngine.setIncomingPT((byte) -1);
             fecTransformEngine.setOutgoingPT((byte) -1);
         }
@@ -1115,9 +1117,7 @@ public class MediaStreamImpl
         engineChain.add(ptTransformEngine);
 
         // FEC
-        FECTransformEngine fecTransformEngine = getFecTransformEngine();
-        if (fecTransformEngine != null)
-            engineChain.add(fecTransformEngine);
+        engineChain.add(this.getFecTransformEngine());
 
         // RED
         REDTransformEngine redTransformEngine = getRedTransformEngine();
@@ -1614,9 +1614,11 @@ public class MediaStreamImpl
     /**
      * Creates the <tt>FECTransformEngine</tt> for this <tt>MediaStream</tt>.
      * By default none is created, allows extenders to implement it.
-     * @return the <tt>FECTransformEngine</tt> created.
+     * @return a TransformEngineWrapper around a FECTransformEngine.  The
+     * wrapper is necessary as we may not have created the {@link FECTransformEngine}
+     * in time
      */
-    protected FECTransformEngine getFecTransformEngine()
+    protected TransformEngineWrapper<FECTransformEngine> getFecTransformEngine()
     {
         return null;
     }

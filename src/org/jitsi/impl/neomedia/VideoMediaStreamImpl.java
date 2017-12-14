@@ -437,7 +437,8 @@ public class VideoMediaStreamImpl
     /**
      * The transformer which handles incoming and outgoing fec
      */
-    private FECTransformEngine fecTransformEngine;
+    private TransformEngineWrapper<FECTransformEngine> fecTransformEngineWrapper =
+        new TransformEngineWrapper<>();
 
     /**
      * The instance that terminates RRs and REMBs.
@@ -549,9 +550,9 @@ public class VideoMediaStreamImpl
      * {@inheritDoc}
      */
     @Override
-    protected FECTransformEngine getFecTransformEngine()
+    protected TransformEngineWrapper<FECTransformEngine> getFecTransformEngine()
     {
-        return fecTransformEngine;
+        return this.fecTransformEngineWrapper;
     }
 
     /**
@@ -561,7 +562,7 @@ public class VideoMediaStreamImpl
     @Override
     protected void setFecTransformEngine(FECTransformEngine fecTransformEngine)
     {
-        this.fecTransformEngine = fecTransformEngine;
+        this.fecTransformEngineWrapper.setWrapped(fecTransformEngine);
     }
 
     /**

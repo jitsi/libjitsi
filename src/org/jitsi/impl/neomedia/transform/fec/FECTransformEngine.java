@@ -60,7 +60,7 @@ public class FECTransformEngine
     /**
      * The fec type this transform engine will instantiate
      */
-    FecType fecType;
+    protected FecType fecType;
 
     /**
      * The payload type for outgoing fec packets.
