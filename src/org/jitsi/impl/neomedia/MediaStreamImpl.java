@@ -1117,7 +1117,11 @@ public class MediaStreamImpl
         engineChain.add(ptTransformEngine);
 
         // FEC
-        engineChain.add(this.getFecTransformEngine());
+        TransformEngineWrapper<FECTransformEngine> fecTransformEngineWrapper = getFecTransformEngine();
+        if (fecTransformEngineWrapper != null)
+        {
+            engineChain.add(fecTransformEngineWrapper);
+        }
 
         // RED
         REDTransformEngine redTransformEngine = getRedTransformEngine();

@@ -148,7 +148,9 @@ public class FlexFec03Receiver
         }
 
         /**
-         * Set the {@link FlexFec03Packet} to be used for this reconstruction
+         * Set the {@link FlexFec03Packet} to be used for this reconstruction,
+         * and check if any media packets protected by this fec packet are missing
+         * and can be recovered
          * @param p the {@link FlexFec03Packet} to be used for this reconstruction
          */
         public void setFecPacket(FlexFec03Packet p)
