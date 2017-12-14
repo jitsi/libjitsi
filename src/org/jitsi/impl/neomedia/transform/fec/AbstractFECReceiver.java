@@ -43,7 +43,7 @@ public abstract class AbstractFECReceiver
     /**
      * Statistics for this fec receiver
      */
-    protected Statistics statistics = new Statistics();
+    protected final Statistics statistics = new Statistics();
 
     /**
      * The SSRC of the fec stream
@@ -273,6 +273,12 @@ public abstract class AbstractFECReceiver
         }
     }
 
+    /**
+     * Perform fec receive logic specific to the fec implementation
+     * @param pkts the input media packets
+     * @return a RawPacket[] containing the given media packets as well as any
+     * media packets that were recovered
+     */
     protected abstract RawPacket[] doReverseTransform(RawPacket[] pkts);
 
     class Statistics {

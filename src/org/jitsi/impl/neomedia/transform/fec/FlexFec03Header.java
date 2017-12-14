@@ -45,6 +45,15 @@ public class FlexFec03Header
      */
     public int size;
 
+    /**
+     * Ctor.  This constructor is intended to be used when parsing an existing
+     * FlexFEC-03 packet
+     * @param protectedSsrc the media ssrc this fec packet protects
+     * @param seqNumBase the base sequence number for this flexfec packet
+     * @param protectedSeqNums the list of media sequence numbers this flexfec
+     * packet protects
+     * @param size the size of the header (in bytes)
+     */
     public FlexFec03Header(long protectedSsrc, int seqNumBase,
                            List<Integer> protectedSeqNums, int size)
     {

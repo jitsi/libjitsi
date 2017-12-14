@@ -43,10 +43,12 @@ public class FlexFec03Receiver
     public FlexFec03Receiver(long mediaSsrc, byte fecPayloadType)
     {
         super(mediaSsrc, fecPayloadType);
-        this.statistics = new Statistics();
         this.reconstructor = new Reconstructor(mediaPackets);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected synchronized RawPacket[] doReverseTransform(RawPacket[] pkts)
     {
@@ -67,8 +69,11 @@ public class FlexFec03Receiver
             }
             if (reconstructor.canRecover())
             {
-                logger.debug("Attemping recovery of missing sequence " +
-                    "number " + reconstructor.missingSequenceNumber);
+                if (logger.isDebugEnabled())
+                {
+                    logger.debug("Attempting recovery of missing sequence " +
+                        "number " + reconstructor.missingSequenceNumber);
+                }
                 flexFecPacketsToRemove.add(flexFecPacket.getSequenceNumber());
                 RawPacket recovered = reconstructor.recover();
                 if (recovered != null)
@@ -142,33 +147,52 @@ public class FlexFec03Receiver
             return numMissing == 1;
         }
 
+        /**
+         * Set the {@link FlexFec03Packet} to be used for this reconstruction
+         * @param p the {@link FlexFec03Packet} to be used for this reconstruction
+         */
         public void setFecPacket(FlexFec03Packet p)
         {
             if (p == null)
             {
-                logger.error("Error creating flexfec packet");
+                logger.error("Error setting flexfec packet");
                 return;
             }
             this.fecPacket = p;
-            logger.debug("Have " + mediaPackets.size() + " saved media packets");
+            if (logger.isDebugEnabled())
+            {
+                logger.debug("Have " + mediaPackets.size() + " saved media packets");
+            }
             numMissing = 0;
-            logger.debug("Reconstructor checking if recovery is " +
-                "possible: fec packet " + p.getSequenceNumber() +
-                " protects packets:\n" + p.getProtectedSequenceNumbers());
+            if (logger.isDebugEnabled())
+            {
+                logger.debug("Reconstructor checking if recovery is " +
+                    "possible: fec packet " + p.getSequenceNumber() +
+                    " protects packets:\n" + p.getProtectedSequenceNumbers());
+            }
 
             for (Integer protectedSeqNum : fecPacket.getProtectedSequenceNumbers())
             {
-                logger.debug("Checking if we've received media " +
-                    "packet " + protectedSeqNum);
+                if (logger.isDebugEnabled())
+                {
+                    logger.debug("Checking if we've received media " +
+                        "packet " + protectedSeqNum);
+                }
                 if (!mediaPackets.containsKey(protectedSeqNum))
                 {
-                    logger.debug("We haven't, mark as missing");
+                    if (logger.isDebugEnabled())
+                    {
+                        logger.debug("We haven't, mark as missing");
+                    }
                     numMissing++;
                     missingSequenceNumber = protectedSeqNum;
                 }
             }
-            logger.debug("There were " + numMissing + " missing media " +
-                "packets for flexfec " + p.getSequenceNumber());
+            if (logger.isDebugEnabled())
+            {
+                logger.debug("There were " + numMissing + " missing media " +
+                    "packets for flexfec " + p.getSequenceNumber());
+            }
             if (numMissing > 1)
             {
                 missingSequenceNumber = -1;
