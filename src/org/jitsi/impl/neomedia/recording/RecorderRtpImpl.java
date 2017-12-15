@@ -1269,7 +1269,8 @@ public class RecorderRtpImpl
                                     packetBuffer,
                                     new TransformEngineImpl(),
                                     new CompoundPacketEngine(),
-                                    new FECTransformEngine(ulpfecPT, (byte)-1),
+                                    new FECTransformEngine(FECTransformEngine.FecType.ULPFEC,
+                                        ulpfecPT, (byte)-1, mediaStream),
                                     new REDTransformEngine(redPT, (byte)-1)
                             });
 

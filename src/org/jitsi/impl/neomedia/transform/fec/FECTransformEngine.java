@@ -15,6 +15,7 @@
  */
 package org.jitsi.impl.neomedia.transform.fec;
 
+import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
@@ -34,6 +35,7 @@ public class FECTransformEngine
 {
     public enum FecType {
         ULPFEC,
+        FLEXFEC_03
     }
     /**
      * The <tt>Logger</tt> used by the <tt>FECTransformEngine</tt> class and
@@ -48,7 +50,7 @@ public class FECTransformEngine
     public static final int INITIAL_BUFFER_SIZE = 1500;
 
     /**
-     * The payload type for incoming ulpfec (RFC5109) packets.
+     * The payload type for incoming fec packets.
      *
      * The special value "-1" is used to effectively disable reverse-transforming
      * packets.
@@ -58,10 +60,10 @@ public class FECTransformEngine
     /**
      * The fec type this transform engine will instantiate
      */
-    FecType fecType;
+    protected FecType fecType;
 
     /**
-     * The payload type for outgoing ulpfec (RFC5109) packets.
+     * The payload type for outgoing fec packets.
      *
      * The special value "-1" is used to effectively disable transforming
      * packets.
@@ -91,42 +93,45 @@ public class FECTransformEngine
     private final Map<Long, FECSender> fecSenders
             = new HashMap<Long,FECSender>();
 
+    private final MediaStream mediaStream;
+
     /**
      * Initializes a new <tt>FECTransformEngine</tt> instance.
      *
      * @param incomingPT the RTP payload type number for incoming ulpfec packet.
      * @param outgoingPT the RTP payload type number for outgoing ulpfec packet.
      */
-    public FECTransformEngine(FecType fecType,
-                              byte incomingPT, byte outgoingPT)
+    public FECTransformEngine(FecType fecType, byte incomingPT,
+                              byte outgoingPT, MediaStream mediaStream)
     {
         this.fecType = fecType;
+        this.mediaStream = mediaStream;
         setIncomingPT(incomingPT);
         setOutgoingPT(outgoingPT);
     }
 
-    /**
-     * FIXME: For backwards compatilibity from when ULPFEC was the only fec
-     * implementation.  Try and get rid of this and have all callers
-     * explicitly pick the right fec type
-     * @param incomingPT
-     * @param outgoingPT
-     */
-    public FECTransformEngine(byte incomingPT, byte outgoingPT)
+    private long getPrimarySsrc(Long ssrc)
     {
-        this(FecType.ULPFEC, incomingPT, outgoingPT);
-    }
+        if (ssrc == null)
+        {
+            return -1;
+        }
 
-    /**
-     * Initializes a new <tt>FECTransformEngine</tt> instance.
-     * FIXME: ULPFEC is used as the default since it used to be the only
-     * fec implementation.  Callers should have to explicitly pass which
-     * fec implementation they want (or we should change it to have a setter
-     * to set the implementation after construction)
-     */
-    public FECTransformEngine()
-    {
-        this(FecType.ULPFEC, (byte) -1, (byte) -1);
+        MediaStreamTrackReceiver receiver
+            = mediaStream.getMediaStreamTrackReceiver();
+
+        if (receiver == null)
+        {
+            return -1;
+        }
+
+        RTPEncodingDesc encoding = receiver.findRTPEncodingDesc(ssrc);
+        if (encoding == null)
+        {
+            return -1;
+        }
+
+        return encoding.getPrimarySSRC();
     }
 
     /**
@@ -144,29 +149,36 @@ public class FECTransformEngine
 
         // Assumption: all packets in pkts have the same SSRC
         Long ssrc = findSSRC(pkts);
-        if (ssrc == null)
+        long primarySsrc = getPrimarySsrc(ssrc);
+        if (primarySsrc == -1)
         {
             return pkts;
         }
 
-        AbstractFECReceiver fpt;
+        AbstractFECReceiver fecReceiver;
         synchronized (fecReceivers)
         {
-            fpt = fecReceivers.get(ssrc);
-            if (fpt == null)
+            fecReceiver = fecReceivers.get(primarySsrc);
+            if (fecReceiver == null)
             {
                 if (fecType == FecType.ULPFEC)
                 {
-                    fpt = new ULPFECReceiver(ssrc, incomingPT);
+                    fecReceiver = new ULPFECReceiver(primarySsrc, incomingPT);
+                }
+                else if (fecType == FecType.FLEXFEC_03)
+                {
+                    fecReceiver = new FlexFec03Receiver(primarySsrc, incomingPT);
                 }
                 else
                 {
                     logger.error("Unknown fec type set: " + fecType);
+                    return pkts;
                 }
+                fecReceivers.put(primarySsrc, fecReceiver);
             }
         }
 
-        return fpt.reverseTransform(pkts);
+        return fecReceiver.reverseTransform(pkts);
     }
 
     /**

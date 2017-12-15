@@ -34,6 +34,7 @@ import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.*;
 import org.jitsi.impl.neomedia.rtp.sendsidebandwidthestimation.*;
 import org.jitsi.impl.neomedia.rtp.translator.*;
 import org.jitsi.impl.neomedia.transform.*;
+import org.jitsi.impl.neomedia.transform.fec.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
@@ -434,6 +435,12 @@ public class VideoMediaStreamImpl
     private final RtxTransformer rtxTransformer = new RtxTransformer(this);
 
     /**
+     * The transformer which handles incoming and outgoing fec
+     */
+    private TransformEngineWrapper<FECTransformEngine> fecTransformEngineWrapper =
+        new TransformEngineWrapper<>();
+
+    /**
      * The instance that terminates RRs and REMBs.
      */
     private final RTCPReceiverFeedbackTermination rtcpFeedbackTermination
@@ -537,6 +544,25 @@ public class VideoMediaStreamImpl
     public RtxTransformer getRtxTransformer()
     {
         return rtxTransformer;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected TransformEngineWrapper<FECTransformEngine> getFecTransformEngine()
+    {
+        return this.fecTransformEngineWrapper;
+    }
+
+    /**
+     * {@inheritDoc}
+     * @param fecTransformEngine
+     */
+    @Override
+    protected void setFecTransformEngine(FECTransformEngine fecTransformEngine)
+    {
+        this.fecTransformEngineWrapper.setWrapped(fecTransformEngine);
     }
 
     /**

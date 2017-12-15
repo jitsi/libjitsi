@@ -181,6 +181,11 @@ public class MediaUtils
             Constants.ULPFEC,
             MediaType.VIDEO,
             Constants.ULPFEC);
+        addMediaFormats(
+            MediaFormat.RTP_PAYLOAD_TYPE_UNKNOWN,
+            Constants.FLEXFEC_03,
+            MediaType.VIDEO,
+            Constants.FLEXFEC_03);
 
         ConfigurationService cfg = LibJitsi.getConfigurationService();
 

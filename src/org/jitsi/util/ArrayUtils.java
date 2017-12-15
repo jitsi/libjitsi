@@ -63,6 +63,39 @@ public final class ArrayUtils
         return array;
     }
 
+    /**
+     * Inserts the given element into an open (null) slot in the array if there
+     * is one, otherwise creates a new array and adds all existing elements
+     * and the given element
+     * @param element the element to add
+     * @param array the array to add to, if possible
+     * @param componentType the class type of the array (used if a new one
+     * needs to be allocated)
+     * @param <T> the type of the element
+     * @return an array containing all the elements in the array that was passed,
+     * as well as the given element.  May or may not be the original array.
+     */
+    public static <T> T[] insert(T element, T[] array, Class<T> componentType)
+    {
+        T[] arrayToReturn = array;
+        boolean inserted = false;
+        for (int i = 0; i < array.length; ++i)
+        {
+            if (array[i] == null)
+            {
+                array[i] = element;
+                inserted = true;
+                break;
+            }
+        }
+
+        if (!inserted)
+        {
+            arrayToReturn = add(array, componentType, element);
+        }
+        return arrayToReturn;
+    }
+
     /** Prevents the initialization of new {@code ArrayUtils} instances. */
     private ArrayUtils()
     {

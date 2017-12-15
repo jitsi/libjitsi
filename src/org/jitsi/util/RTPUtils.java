@@ -294,4 +294,75 @@ public class RTPUtils
     {
         return rtpTimestampDiff(a, b) > 0;
     }
+
+    /**
+     * Hex characters for converting bytes to readable hex strings
+     */
+    private static char[] hexes = new char[]
+        {
+            '0', '1', '2', '3', '4', '5', '6', '7', '8',
+            '9', 'A', 'B', 'C', 'D', 'E', 'F'
+        };
+
+    /**
+     * Return a string containing the hex string version of the given byte
+     * @param b
+     * @return
+     */
+    private static String toHexString(byte b)
+    {
+
+        StringBuilder hexStringBuilder
+            = new StringBuilder(2);
+
+        hexStringBuilder.append(hexes[(b & 0xF0) >> 4]);
+        hexStringBuilder.append(hexes[b & 0x0F]);
+
+        return hexStringBuilder.toString();
+    }
+
+    /**
+     * Return a string containing the hex string version of the given bytes
+     * @param bytes
+     * @return
+     */
+    public static String toHexString(byte[] bytes)
+    {
+        return toHexString(bytes, 0, bytes.length);
+    }
+
+    /**
+     * Return a string containing the hex string version of the given byte
+     * @param bytes
+     * @param offset
+     * @param length
+     * @return
+     */
+    public static String toHexString(byte[] bytes, int offset, int length)
+    {
+        if (bytes == null)
+            return null;
+        else
+        {
+            StringBuilder hexStringBuilder
+                = new StringBuilder(2 * bytes.length);
+
+            for (int i = 0; i < length; i++)
+            {
+                if (i % 16 == 0)
+                {
+                    hexStringBuilder.append("\n").append(toHexString((byte)i)).append("  ");
+                }
+                else if (i % 8 == 0)
+                {
+                    hexStringBuilder.append(" ");
+                }
+                byte b = bytes[offset + i];
+
+                hexStringBuilder.append(toHexString(b));
+                hexStringBuilder.append(" ");
+            }
+            return hexStringBuilder.toString();
+        }
+    }
 }

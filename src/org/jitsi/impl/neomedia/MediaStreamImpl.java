@@ -464,12 +464,31 @@ public class MediaStreamImpl
         }
         else if (Constants.ULPFEC.equals(encoding))
         {
-            FECTransformEngine fecTransformEngine = getFecTransformEngine();
-            if (fecTransformEngine != null)
+            TransformEngineWrapper<FECTransformEngine> fecTransformEngineWrapper = getFecTransformEngine();
+            if (fecTransformEngineWrapper.getWrapped() != null)
             {
+                FECTransformEngine fecTransformEngine = fecTransformEngineWrapper.getWrapped();
                 fecTransformEngine.setIncomingPT(rtpPayloadType);
                 // TODO ULPFEC without RED doesn't make sense.
                 fecTransformEngine.setOutgoingPT(rtpPayloadType);
+            }
+        }
+        else if (Constants.FLEXFEC_03.equals(encoding))
+        {
+            TransformEngineWrapper<FECTransformEngine> fecTransformEngineWrapper = getFecTransformEngine();
+            if (fecTransformEngineWrapper.getWrapped() != null)
+            {
+                logger.info("Updating existing FlexFEC-03 transform engine with payload type " + rtpPayloadType);
+                fecTransformEngineWrapper.getWrapped().setIncomingPT(rtpPayloadType);
+                fecTransformEngineWrapper.getWrapped().setOutgoingPT(rtpPayloadType);
+            }
+            else
+            {
+                logger.info("Creating FlexFEC-03 transform engine with payload type " + rtpPayloadType);
+                FECTransformEngine flexFecTransformEngine =
+                    new FECTransformEngine(FECTransformEngine.FecType.FLEXFEC_03,
+                        rtpPayloadType, rtpPayloadType, this);
+                setFecTransformEngine(flexFecTransformEngine);
             }
         }
 
@@ -504,9 +523,10 @@ public class MediaStreamImpl
             redTransformEngine.setOutgoingPT((byte) -1);
         }
 
-        FECTransformEngine fecTransformEngine = getFecTransformEngine();
-        if (fecTransformEngine != null)
+        TransformEngineWrapper<FECTransformEngine> fecTransformEngineWrapper = getFecTransformEngine();
+        if (fecTransformEngineWrapper != null && fecTransformEngineWrapper.getWrapped() != null)
         {
+            FECTransformEngine fecTransformEngine = fecTransformEngineWrapper.getWrapped();
             fecTransformEngine.setIncomingPT((byte) -1);
             fecTransformEngine.setOutgoingPT((byte) -1);
         }
@@ -1107,9 +1127,11 @@ public class MediaStreamImpl
         engineChain.add(ptTransformEngine);
 
         // FEC
-        FECTransformEngine fecTransformEngine = getFecTransformEngine();
-        if (fecTransformEngine != null)
-            engineChain.add(fecTransformEngine);
+        TransformEngineWrapper<FECTransformEngine> fecTransformEngineWrapper = getFecTransformEngine();
+        if (fecTransformEngineWrapper != null)
+        {
+            engineChain.add(fecTransformEngineWrapper);
+        }
 
         // RED
         REDTransformEngine redTransformEngine = getRedTransformEngine();
@@ -1606,11 +1628,24 @@ public class MediaStreamImpl
     /**
      * Creates the <tt>FECTransformEngine</tt> for this <tt>MediaStream</tt>.
      * By default none is created, allows extenders to implement it.
-     * @return the <tt>FECTransformEngine</tt> created.
+     * @return a TransformEngineWrapper around a FECTransformEngine.  The
+     * wrapper is necessary as we may not have created the {@link FECTransformEngine}
+     * in time
      */
-    protected FECTransformEngine getFecTransformEngine()
+    protected TransformEngineWrapper<FECTransformEngine> getFecTransformEngine()
     {
         return null;
+    }
+
+    /**
+     * Sets the {@link FECTransformEngine} for this {@link MediaStream}
+     * By default, nothing is done with the passed engine, allowing extenders
+     * to implement it
+     * @param fecTransformEngine
+     */
+    protected void setFecTransformEngine(FECTransformEngine fecTransformEngine)
+    {
+        // no op
     }
 
     /**
