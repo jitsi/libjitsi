@@ -524,7 +524,7 @@ public class MediaStreamImpl
         }
 
         TransformEngineWrapper<FECTransformEngine> fecTransformEngineWrapper = getFecTransformEngine();
-        if (fecTransformEngineWrapper.getWrapped() != null)
+        if (fecTransformEngineWrapper != null && fecTransformEngineWrapper.getWrapped() != null)
         {
             FECTransformEngine fecTransformEngine = fecTransformEngineWrapper.getWrapped();
             fecTransformEngine.setIncomingPT((byte) -1);
