@@ -475,11 +475,21 @@ public class MediaStreamImpl
         }
         else if (Constants.FLEXFEC_03.equals(encoding))
         {
-            logger.info("Creating FlexFEC transform engine");
-            FECTransformEngine flexFecTransformEngine =
-                new FECTransformEngine(FECTransformEngine.FecType.FLEXFEC_03,
-                    rtpPayloadType, rtpPayloadType, this);
-            setFecTransformEngine(flexFecTransformEngine);
+            TransformEngineWrapper<FECTransformEngine> fecTransformEngineWrapper = getFecTransformEngine();
+            if (fecTransformEngineWrapper.getWrapped() != null)
+            {
+                logger.info("Updating existing FlexFEC-03 transform engine with payload type " + rtpPayloadType);
+                fecTransformEngineWrapper.getWrapped().setIncomingPT(rtpPayloadType);
+                fecTransformEngineWrapper.getWrapped().setOutgoingPT(rtpPayloadType);
+            }
+            else
+            {
+                logger.info("Creating FlexFEC-03 transform engine with payload type " + rtpPayloadType);
+                FECTransformEngine flexFecTransformEngine =
+                    new FECTransformEngine(FECTransformEngine.FecType.FLEXFEC_03,
+                        rtpPayloadType, rtpPayloadType, this);
+                setFecTransformEngine(flexFecTransformEngine);
+            }
         }
 
         if (rtpManager != null)
