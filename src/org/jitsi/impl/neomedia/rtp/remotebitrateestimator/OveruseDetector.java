@@ -17,6 +17,8 @@ package org.jitsi.impl.neomedia.rtp.remotebitrateestimator;
 
 import org.jitsi.util.*;
 
+import java.util.*;
+
 /**
  * webrtc/modules/remote_bitrate_estimator/overuse_detector.cc
  * webrtc/modules/remote_bitrate_estimator/overuse_detector.h
@@ -52,12 +54,18 @@ class OveruseDetector
 
     private double timeOverUsing = -1D;
 
-    public OveruseDetector(OverUseDetectorOptions options)
+    private final DiagnosticContext diagnosticContext;
+
+    public OveruseDetector(
+            OverUseDetectorOptions options,
+            DiagnosticContext diagnosticContext)
     {
         if (options == null)
             throw new NullPointerException("options");
 
         threshold = options.initialThreshold;
+        Objects.requireNonNull(diagnosticContext);
+        this.diagnosticContext = diagnosticContext;
 
         if (inExperiment)
             initializeExperiment();
@@ -137,13 +145,15 @@ class OveruseDetector
 
         if (newHypothesis && logger.isTraceEnabled())
         {
-            logger.trace("new_utilization_hypothesis," + hashCode()
-                + "," + nowMs
-                + "," + offset
-                + "," + prev_offset
-                + "," + T
-                + "," + threshold
-                + "," + hypothesis.getValue());
+            logger.trace(diagnosticContext
+                .makeTimeSeriesPoint("utilization_hypothesis")
+                .addKey("detector", hashCode())
+                .addField("offset", offset)
+                .addField("prev_offset", prev_offset)
+                .addField("T", T)
+                .addField("threshold", threshold)
+                .addField("hypothesis", hypothesis.getValue())
+                .setTimestampMs(nowMs));
         }
 
         updateThreshold(T, nowMs);

@@ -62,6 +62,8 @@ class OveruseEstimator
 
     private final double[][] E;
 
+    private DiagnosticContext diagnosticContext;
+
     /**
      * Reduces the effects of allocations and garbage collection of the method
      * {@code update}.
@@ -110,8 +112,12 @@ class OveruseEstimator
 
     private double varNoise;
 
-    public OveruseEstimator(OverUseDetectorOptions options)
+    public OveruseEstimator(
+            OverUseDetectorOptions options,
+            DiagnosticContext diagnosticContext)
     {
+        Objects.requireNonNull(diagnosticContext);
+        this.diagnosticContext = diagnosticContext;
         slope = options.initialSlope;
         offset = options.initialOffset;
         prevOffset = offset;
@@ -252,14 +258,15 @@ class OveruseEstimator
 
         if (logger.isTraceEnabled())
         {
-            logger.trace("new_jitter_estimate" +
-                "," + hashCode() +
-                "," + systemTimeMs +
-                "," + tDelta +
-                "," + tsDelta +
-                "," + tTsDelta +
-                "," + offset +
-                "," + currentHypothesis.getValue());
+            logger.trace(diagnosticContext
+                .makeTimeSeriesPoint("delay_variation_estimation")
+                .addKey("estimator", hashCode())
+                .addField("time_delta", tDelta)
+                .addField("ts_delta", tsDelta)
+                .addField("tts_delta", tTsDelta)
+                .addField("offset", offset)
+                .addField("hypothesis", currentHypothesis.getValue())
+                .setTimestampMs(systemTimeMs));
         }
     }
 

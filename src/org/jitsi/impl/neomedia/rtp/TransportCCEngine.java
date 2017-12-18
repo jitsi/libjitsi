@@ -112,6 +112,12 @@ public class TransportCCEngine
     private final Object sentPacketsSyncRoot = new Object();
 
     /**
+     * The {@link DiagnosticContext} to be used by this instance when printing
+     * diagnostic information.
+     */
+    private final DiagnosticContext diagnosticContext;
+
+    /**
      * The time (in milliseconds since the epoch) at which the first received
      * packet in {@link #incomingPackets} was received (or -1 if the map is
      * empty).
@@ -145,8 +151,21 @@ public class TransportCCEngine
     /**
      * Used for estimating the bitrate from RTCP TCC feedback packets
      */
-    private RemoteBitrateEstimatorAbsSendTime bitrateEstimatorAbsSendTime
-        = new RemoteBitrateEstimatorAbsSendTime(this);
+    private final RemoteBitrateEstimatorAbsSendTime bitrateEstimatorAbsSendTime;
+
+    /**
+     * Ctor.
+     *
+     * @param diagnosicContext the {@link DiagnosticContext} of this instance.
+     */
+    public TransportCCEngine(DiagnosticContext diagnosticContext)
+    {
+        Objects.requireNonNull(diagnosticContext);
+        this.diagnosticContext = diagnosticContext;
+        bitrateEstimatorAbsSendTime
+            = new RemoteBitrateEstimatorAbsSendTime(
+                    this, diagnosticContext);
+    }
 
     /**
      * Notifies this instance that a data packet with a specific transport-wide
@@ -422,14 +441,20 @@ public class TransportCCEngine
                 if (previousArrivalTimeMs != -1)
                 {
                     long diff_ms = arrivalTimeMs - previousArrivalTimeMs;
-                    logger.debug("seq=" + entry.getKey()
-                            + ", arrival_time_ms=" + arrivalTimeMs
-                            + ", diff_ms=" + diff_ms);
+                    logger.debug(diagnosticContext
+                            .makeTimeSeriesPoint("packet_ack")
+                            .addKey("tcc_engine", hashCode())
+                            .addField("seq", entry.getKey())
+                            .addField("arrival_time_ms", arrivalTimeMs)
+                            .addField("diff_ms", diff_ms));
                 }
                 else
                 {
-                    logger.debug("seq=" + entry.getKey()
-                            + ", arrival_time_ms=" + arrivalTimeMs);
+                    logger.debug(diagnosticContext
+                            .makeTimeSeriesPoint("packet_ack")
+                            .addKey("tcc_engine", hashCode())
+                            .addField("seq", entry.getKey())
+                            .addField("arrival_time_ms", arrivalTimeMs));
                 }
             }
 
