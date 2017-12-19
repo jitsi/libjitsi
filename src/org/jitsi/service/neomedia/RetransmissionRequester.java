@@ -34,4 +34,25 @@ public interface RetransmissionRequester
      * @param ssrc the SSRC to use as "packet sender SSRC".
      */
     public void setSenderSsrc(long ssrc);
+
+    /**
+     * Check if this {@link RetransmissionRequester} has nack packets ready
+     * to be sent
+     * @return true if there are nack packets ready to be sent, false otherwise
+     */
+    public boolean hasWork();
+
+    /**
+     * Set a callback for this {@link RetransmissionRequester} to use if
+     * it wants to signal it has work available now
+     * @param workReadyCallback callback invoked to indicate there is work
+     * ready now
+     */
+    public void setWorkReadyCallback(Runnable workReadyCallback);
+
+    /**
+     * Generate and send ready nack packets.  Should ONLY be called if
+     * {@link RetransmissionRequester#hasWork()} returned true.
+     */
+    public void doWork();
 }
