@@ -33,6 +33,7 @@ import org.jitsi.util.*;
  *
  * @author Boris Grozev
  * @author George Politis
+ * @author bbaldino
  */
 public class RetransmissionRequesterDelegate
     extends SinglePacketTransformerAdapter
@@ -396,8 +397,7 @@ public class RetransmissionRequesterDelegate
                         long firstRequestSentAt = r.firstRequestSentAt;
                         long delta
                             = firstRequestSentAt > 0
-                                ? System.currentTimeMillis()
-                                        - r.firstRequestSentAt
+                                ? timeProvider.getTime() - r.firstRequestSentAt
                                 : 0;
 
                         logger.debug(Logger.Category.STATISTICS,
@@ -461,7 +461,7 @@ public class RetransmissionRequesterDelegate
          */
         synchronized private @NotNull Set<Integer> getMissingSeqNums()
         {
-            long now = System.currentTimeMillis();
+            long now = timeProvider.getTime();
             Set<Integer> missingPackets = new HashSet<>();
 
             for (Iterator<Map.Entry<Integer,Request>> iter

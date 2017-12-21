@@ -36,6 +36,13 @@ public class RetransmissionRequesterDelegateTest
         return packet;
     }
 
+    protected void setTime(long timeMillis)
+    {
+        PowerMock.reset(timeProvider);
+        expect(timeProvider.getTime()).andReturn(timeMillis).anyTimes();
+        PowerMock.replay(timeProvider);
+    }
+
     @Before
     public void setUp()
     {
@@ -47,13 +54,21 @@ public class RetransmissionRequesterDelegateTest
         expect(mediaFormat.getEncoding()).andReturn(Constants.VP8).anyTimes();
     }
 
+    @After
+    public void tearDown()
+    {
+        verifyAll();
+    }
+
+    /**
+     * Pass packets in with a gap of 1, make sure a nack is sent
+     * @throws TransmissionFailedException
+     */
     @Test
-    public void testReverseTransform()
+    public void testBasicMissingPacket()
         throws TransmissionFailedException
     {
         long ssrc = 12345L;
-
-        expect(timeProvider.getTime()).andReturn(0L).anyTimes();
 
         // Initial packet (seq num 10)
         RawPacket packet10 = createPacket(ssrc, payloadType, 10);
@@ -70,6 +85,8 @@ public class RetransmissionRequesterDelegateTest
 
         replayAll();
 
+        setTime(0L);
+
         assertFalse(retransmissionRequester.hasWork());
         retransmissionRequester.reverseTransform(packet10);
         assertFalse(retransmissionRequester.hasWork());
@@ -85,7 +102,61 @@ public class RetransmissionRequesterDelegateTest
         assertEquals(1, lostPackets.size());
         assertTrue(lostPackets.contains(11));
         assertEquals(ssrc, NACKPacket.getSourceSSRC(capturedNackPacket));
+    }
 
-        verifyAll();
+    /**
+     * Test that nacks are re-sent
+     */
+    @Test
+    public void testResendNack()
+        throws TransmissionFailedException
+    {
+        long ssrc = 12345L;
+
+        // Initial packet (seq num 10)
+        RawPacket packet10 = createPacket(ssrc, payloadType, 10);
+
+        // Second packet (seq num 12)
+        RawPacket packet12 = createPacket(ssrc, payloadType, 12);
+
+        workReadyCallback.run();
+        PowerMock.expectLastCall();
+
+        Capture<RawPacket> nackPacketCapture = Capture.newInstance();
+        mockStream.injectPacket(capture(nackPacketCapture), eq(false), eq((TransformEngine)null));
+        PowerMock.expectLastCall().anyTimes();
+
+        replayAll();
+
+        // Time 0ms
+        setTime(0L);
+
+        retransmissionRequester.reverseTransform(packet10);
+        retransmissionRequester.reverseTransform(packet12);
+        // The first time we call 'hasWork/doWork' will be for the first transmission
+        assertTrue(retransmissionRequester.hasWork());
+        retransmissionRequester.doWork();
+
+        // Time 200ms
+        setTime(200L);
+
+        // Now getTime will return a time in the future and the retransmission
+        // should be sent
+        assertTrue(retransmissionRequester.hasWork());
+        retransmissionRequester.doWork();
+        assertTrue(nackPacketCapture.hasCaptured());
+        RawPacket capturedNackPacket = nackPacketCapture.getValue();
+        Collection<Integer> lostPackets = NACKPacket.getLostPackets(capturedNackPacket);
+        assertEquals(1, lostPackets.size());
+        assertTrue(lostPackets.contains(11));
+        assertEquals(ssrc, NACKPacket.getSourceSSRC(capturedNackPacket));
+    }
+
+    /**
+     * Test that nack retransmissions give up after the right amount of time
+     */
+    public void testRetransmissionTimeout()
+    {
+
     }
 }

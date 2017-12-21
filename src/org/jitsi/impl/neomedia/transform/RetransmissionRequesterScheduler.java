@@ -39,13 +39,8 @@ public class RetransmissionRequesterScheduler
 
     public RetransmissionRequesterScheduler(RetransmissionRequester retransmissionRequester)
     {
-        this(retransmissionRequester, DEFAULT_SLEEP_INTERVAL_MILLIS);
-    }
-
-    public RetransmissionRequesterScheduler(RetransmissionRequester retransmissionRequester, long sleepInteralMillis)
-    {
         this.retransmissionRequester = retransmissionRequester;
-        this.sleepIntervalMillis = sleepInteralMillis;
+        this.sleepIntervalMillis = DEFAULT_SLEEP_INTERVAL_MILLIS;
         this.thread = new Thread()
         {
             @Override
