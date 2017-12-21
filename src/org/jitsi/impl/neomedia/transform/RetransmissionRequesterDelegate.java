@@ -291,11 +291,9 @@ public class RetransmissionRequesterDelegate
     {
         Map<Long, Set<Integer>> packetsToRequest = new HashMap<>();
 
-        System.out.println("have " + dueRequesters.size() + " requesters");
         for (Requester dueRequester : dueRequesters)
         {
             Set<Integer> missingPackets = dueRequester.getMissingSeqNums();
-            System.out.println("missing packets: " + missingPackets);
             if (!missingPackets.isEmpty())
             {
                 packetsToRequest.put(dueRequester.ssrc, missingPackets);
@@ -497,20 +495,6 @@ public class RetransmissionRequesterDelegate
             return missingPackets;
         }
     }
-
-    public static Comparator<Requester> requesterComparator = new Comparator<Requester>()
-    {
-        @Override
-        public int compare(Requester r1, Requester r2)
-        {
-            // "-1" means no request is scheduled, so this should be
-            // treated as the "biggest" value
-            long r1Val = r1.nextRequestAt == -1 ? Integer.MAX_VALUE : r1.nextRequestAt;
-            long r2Val = r2.nextRequestAt == -1 ? Integer.MAX_VALUE : r2.nextRequestAt;
-
-            return (int)(r1Val - r2Val);
-        }
-    };
 
     /**
      * Represents a request for the retransmission of a specific RTP packet.
