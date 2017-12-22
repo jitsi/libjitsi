@@ -306,7 +306,7 @@ public class RecurringRunnableExecutor
      * Starts or notifies {@link #thread} depending on and in accord with the
      * state of this instance.
      */
-    private void startOrNotifyThread()
+    public void startOrNotifyThread()
     {
         synchronized (recurringRunnables)
         {

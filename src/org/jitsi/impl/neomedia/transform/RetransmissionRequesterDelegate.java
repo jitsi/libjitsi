@@ -26,6 +26,7 @@ import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.format.*;
 import org.jitsi.util.*;
+import org.jitsi.util.concurrent.*;
 
 /**
  * Detects lost RTP packets for a particular <tt>RtpChannel</tt> and requests
@@ -37,26 +38,34 @@ import org.jitsi.util.*;
  */
 public class RetransmissionRequesterDelegate
     extends SinglePacketTransformerAdapter
-    implements TransformEngine, RetransmissionRequester
+    implements TransformEngine, RecurringRunnable
 {
     /**
      * If more than <tt>MAX_MISSING</tt> consecutive packets are lost, we will
      * not request retransmissions for them, but reset our state instead.
      */
-    private static final int MAX_MISSING = 100;
+    public static final int MAX_MISSING = 100;
 
     /**
      * The maximum number of retransmission requests to be sent for a single
      * RTP packet.
      */
-    private static final int MAX_REQUESTS = 10;
+    public static final int MAX_REQUESTS = 10;
 
     /**
      * The interval after which another retransmission request will be sent
      * for a packet, unless it arrives. Ideally this should not be a constant,
      * but should be based on the RTT to the endpoint.
      */
-    private static final int RE_REQUEST_AFTER = 150;
+    public static final int RE_REQUEST_AFTER_MILLIS = 150;
+
+    /**
+     * The interval we'll ask the {@link RecurringRunnableExecutor} to check back
+     * in if there is no current work
+     * TODO(brian): i think we should actually be able to get rid of this and
+     * just rely on scheduled work and the 'work ready now' callback
+     */
+    public static final long WAKEUP_INTERVAL_MILLIS = 1000;
 
     /**
      * The <tt>Logger</tt> used by the <tt>RetransmissionRequesterDelegate</tt> class
@@ -101,15 +110,6 @@ public class RetransmissionRequesterDelegate
         super(RTPPacketPredicate.INSTANCE);
         this.stream = stream;
         this.timeProvider = timeProvider;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void enable(boolean enable)
-    {
-        // No-op
     }
 
     /**
@@ -174,16 +174,20 @@ public class RetransmissionRequesterDelegate
      * {@inheritDoc}
      */
     @Override
-    public boolean hasWork()
+    public long getTimeUntilNextRun()
     {
         long now = timeProvider.getTime();
-        return !(getDueRequesters(now).isEmpty());
+        List<Requester> dueRequesters = getDueRequesters(now);
+        if (dueRequesters.isEmpty())
+        {
+            return WAKEUP_INTERVAL_MILLIS;
+        }
+        else
+        {
+            return Math.min(dueRequesters.get(0).nextRequestAt - now, 0);
+        }
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     public void setWorkReadyCallback(Runnable workReadyCallback)
     {
         this.workReadyCallback = workReadyCallback;
@@ -193,7 +197,7 @@ public class RetransmissionRequesterDelegate
      * {@inheritDoc}
      */
     @Override
-    public void doWork()
+    public void run()
     {
         long now = timeProvider.getTime();
         List<Requester> dueRequesters = getDueRequesters(now);
@@ -493,7 +497,7 @@ public class RetransmissionRequesterDelegate
 
             }
 
-            nextRequestAt = (requests.size() > 0) ? now + RE_REQUEST_AFTER : -1;
+            nextRequestAt = (requests.size() > 0) ? now + RE_REQUEST_AFTER_MILLIS : -1;
 
             return missingPackets;
         }

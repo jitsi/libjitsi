@@ -17,6 +17,7 @@ package org.jitsi.impl.neomedia.transform;
 
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
+import org.jitsi.util.concurrent.*;
 
 /**
  * Creates classes to handle both the detection of loss and the creation
@@ -41,12 +42,20 @@ public class RetransmissionRequesterImpl
 
     protected final RetransmissionRequesterDelegate retransmissionRequesterDelegate;
 
-    protected final RetransmissionRequesterScheduler retransmissionRequesterScheduler;
+    RecurringRunnableExecutor recurringRunnableExecutor = new RecurringRunnableExecutor();
 
     public RetransmissionRequesterImpl(MediaStream stream)
     {
+
         retransmissionRequesterDelegate = new RetransmissionRequesterDelegate(stream, new TimeProvider());
-        retransmissionRequesterScheduler = new RetransmissionRequesterScheduler(retransmissionRequesterDelegate);
+        recurringRunnableExecutor.registerRecurringRunnable(retransmissionRequesterDelegate);
+        retransmissionRequesterDelegate.setWorkReadyCallback(new Runnable(){
+            @Override
+            public void run()
+            {
+                recurringRunnableExecutor.startOrNotifyThread();
+            }
+        });
     }
 
     /**
@@ -71,7 +80,7 @@ public class RetransmissionRequesterImpl
     public void close()
     {
         closed = true;
-        this.retransmissionRequesterScheduler.close();
+        this.recurringRunnableExecutor.close();
     }
 
     // TransformEngine methods
@@ -110,23 +119,5 @@ public class RetransmissionRequesterImpl
     public void setSenderSsrc(long ssrc)
     {
         this.retransmissionRequesterDelegate.setSenderSsrc(ssrc);
-    }
-
-    @Override
-    public boolean hasWork()
-    {
-        return this.retransmissionRequesterDelegate.hasWork();
-    }
-
-    @Override
-    public void setWorkReadyCallback(Runnable workReadyCallback)
-    {
-        this.retransmissionRequesterDelegate.setWorkReadyCallback(workReadyCallback);
-    }
-
-    @Override
-    public void doWork()
-    {
-        this.retransmissionRequesterDelegate.doWork();
     }
 }

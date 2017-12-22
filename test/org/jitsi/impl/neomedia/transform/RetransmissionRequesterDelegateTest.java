@@ -44,13 +44,6 @@ public class RetransmissionRequesterDelegateTest
     protected final long SENDER_SSRC = 424242L;
     protected byte PAYLOAD_TYPE = 107;
 
-    // Copied from RetransmissionRequesterDelegate
-    // TODO: should we just make these values public in the delegate?
-    // or pass them in?
-    protected final int MAX_REQUESTS = 10;
-    protected final int RE_REQUEST_INTERVAL_MILLIS = 150;
-    protected final int MAX_MISSING = 100;
-
     protected static RawPacket createPacket(long ssrc, byte pt, int seqNum)
     {
         RawPacket packet = PowerMock.createMock(RawPacket.class);
@@ -88,6 +81,16 @@ public class RetransmissionRequesterDelegateTest
 
         }
         assertEquals(ssrc, NACKPacket.getSourceSSRC(nackPacket));
+    }
+
+    protected void expectHasWorkReady(RetransmissionRequesterDelegate retransmissionRequester)
+    {
+        assertTrue(retransmissionRequester.getTimeUntilNextRun() == 0);
+    }
+
+    protected void expectNoWorkReady(RetransmissionRequesterDelegate retransmissionRequester)
+    {
+        assertTrue(retransmissionRequester.getTimeUntilNextRun() > 0);
     }
 
     @Before
@@ -138,15 +141,15 @@ public class RetransmissionRequesterDelegateTest
 
         setTime(0L);
 
-        assertFalse(retransmissionRequester.hasWork());
+        expectNoWorkReady(retransmissionRequester);
         retransmissionRequester.reverseTransform(packet10);
-        assertFalse(retransmissionRequester.hasWork());
+        expectNoWorkReady(retransmissionRequester);
 
         retransmissionRequester.reverseTransform(packet12);
-        assertTrue(retransmissionRequester.hasWork());
+        expectHasWorkReady(retransmissionRequester);
 
-        retransmissionRequester.doWork();
-        assertFalse(retransmissionRequester.hasWork());
+        retransmissionRequester.run();
+        expectNoWorkReady(retransmissionRequester);
 
         assertTrue(nackPacketCapture.hasCaptured());
         RawPacket capturedNackPacket = nackPacketCapture.getValue();
@@ -172,17 +175,17 @@ public class RetransmissionRequesterDelegateTest
         setTime(0L);
 
         retransmissionRequester.reverseTransform(packet10);
-        assertFalse(retransmissionRequester.hasWork());
+        expectNoWorkReady(retransmissionRequester);
 
         setTime(10L);
 
         retransmissionRequester.reverseTransform(packet11);
-        assertFalse(retransmissionRequester.hasWork());
+        expectNoWorkReady(retransmissionRequester);
 
         setTime(20L);
 
         retransmissionRequester.reverseTransform(packet12);
-        assertFalse(retransmissionRequester.hasWork());
+        expectNoWorkReady(retransmissionRequester);
     }
 
 
@@ -217,15 +220,15 @@ public class RetransmissionRequesterDelegateTest
         retransmissionRequester.reverseTransform(packet10);
         retransmissionRequester.reverseTransform(packet12);
         // The first time we call 'hasWork/doWork' will be for the first transmission
-        assertTrue(retransmissionRequester.hasWork());
-        retransmissionRequester.doWork();
+        expectHasWorkReady(retransmissionRequester);
+        retransmissionRequester.run();
 
-        setTime(startTime + RE_REQUEST_INTERVAL_MILLIS);
+        setTime(startTime + RetransmissionRequesterDelegate.RE_REQUEST_AFTER_MILLIS);
 
         // Now getTime will return a time in the future and the retransmission
         // should be sent
-        assertTrue(retransmissionRequester.hasWork());
-        retransmissionRequester.doWork();
+        expectHasWorkReady(retransmissionRequester);
+        retransmissionRequester.run();
         assertTrue(nackPacketCapture.hasCaptured());
         RawPacket capturedNackPacket = nackPacketCapture.getValue();
         verifyNackPacket(capturedNackPacket, ssrc, 11);
@@ -261,17 +264,17 @@ public class RetransmissionRequesterDelegateTest
         retransmissionRequester.reverseTransform(packet10);
         retransmissionRequester.reverseTransform(packet12);
         // The first time we call 'hasWork/doWork' will be for the first transmission
-        assertTrue(retransmissionRequester.hasWork());
-        retransmissionRequester.doWork();
+        expectHasWorkReady(retransmissionRequester);
+        retransmissionRequester.run();
 
-        for (int i = 1; i < MAX_REQUESTS; ++i)
+        for (int i = 1; i < RetransmissionRequesterDelegate.MAX_REQUESTS; ++i)
         {
-            setTime(startTime + i * RE_REQUEST_INTERVAL_MILLIS);
-            assertTrue(retransmissionRequester.hasWork());
-            retransmissionRequester.doWork();
+            setTime(startTime + i * RetransmissionRequesterDelegate.RE_REQUEST_AFTER_MILLIS);
+            expectHasWorkReady(retransmissionRequester);
+            retransmissionRequester.run();
         }
         // The next time we check for work, there should be none
-        assertFalse(retransmissionRequester.hasWork());
+        expectNoWorkReady(retransmissionRequester);
     }
 
     /**
@@ -305,12 +308,12 @@ public class RetransmissionRequesterDelegateTest
 
         retransmissionRequester.reverseTransform(packet10);
         retransmissionRequester.reverseTransform(packet12);
-        assertTrue(retransmissionRequester.hasWork());
-        retransmissionRequester.doWork();
+        expectHasWorkReady(retransmissionRequester);
+        retransmissionRequester.run();
 
         retransmissionRequester.reverseTransform(packet15);
-        assertTrue(retransmissionRequester.hasWork());
-        retransmissionRequester.doWork();
+        expectHasWorkReady(retransmissionRequester);
+        retransmissionRequester.run();
 
         assertTrue(nackPacketCapture.hasCaptured());
         RawPacket capturedNackPacket = nackPacketCapture.getValue();
@@ -348,15 +351,15 @@ public class RetransmissionRequesterDelegateTest
 
         retransmissionRequester.reverseTransform(ssrc1packet10);
         retransmissionRequester.reverseTransform(ssrc2packet10);
-        assertFalse(retransmissionRequester.hasWork());
+        expectNoWorkReady(retransmissionRequester);
 
         retransmissionRequester.reverseTransform(ssrc1packet12);
-        assertTrue(retransmissionRequester.hasWork());
-        retransmissionRequester.doWork();
+        expectHasWorkReady(retransmissionRequester);
+        retransmissionRequester.run();
 
         retransmissionRequester.reverseTransform(ssrc2packet12);
-        assertTrue(retransmissionRequester.hasWork());
-        retransmissionRequester.doWork();
+        expectHasWorkReady(retransmissionRequester);
+        retransmissionRequester.run();
 
         assertEquals(2, nackPacketCapture.getValues().size());
 
@@ -383,7 +386,7 @@ public class RetransmissionRequesterDelegateTest
         RawPacket packet12 = createPacket(ssrc, PAYLOAD_TYPE, 12);
 
         // Big jump
-        RawPacket bigJumpPacket = createPacket(ssrc, PAYLOAD_TYPE, 12 + MAX_MISSING + 1);
+        RawPacket bigJumpPacket = createPacket(ssrc, PAYLOAD_TYPE, 12 + RetransmissionRequesterDelegate.MAX_MISSING + 1);
 
         workReadyCallback.run();
         PowerMock.expectLastCall();
@@ -399,11 +402,11 @@ public class RetransmissionRequesterDelegateTest
         retransmissionRequester.reverseTransform(packet10);
 
         retransmissionRequester.reverseTransform(packet12);
-        assertTrue(retransmissionRequester.hasWork());
-        retransmissionRequester.doWork();
+        expectHasWorkReady(retransmissionRequester);
+        retransmissionRequester.run();
 
         retransmissionRequester.reverseTransform(bigJumpPacket);
-        assertFalse(retransmissionRequester.hasWork());
+        expectNoWorkReady(retransmissionRequester);
     }
 
     /**
@@ -436,20 +439,20 @@ public class RetransmissionRequesterDelegateTest
         retransmissionRequester.reverseTransform(packet10);
         // Don't pass in packet 11 yet
         retransmissionRequester.reverseTransform(packet12);
-        assertTrue(retransmissionRequester.hasWork());
-        retransmissionRequester.doWork();
+        expectHasWorkReady(retransmissionRequester);
+        retransmissionRequester.run();
 
         retransmissionRequester.reverseTransform(packet15);
-        assertTrue(retransmissionRequester.hasWork());
-        retransmissionRequester.doWork();
+        expectHasWorkReady(retransmissionRequester);
+        retransmissionRequester.run();
 
-        setTime(startTime + RE_REQUEST_INTERVAL_MILLIS);
+        setTime(startTime + RetransmissionRequesterDelegate.RE_REQUEST_AFTER_MILLIS);
 
         retransmissionRequester.reverseTransform(packet11);
         // It should still have work, but the next nack shouldn't include
         // packet 11
-        assertTrue(retransmissionRequester.hasWork());
-        retransmissionRequester.doWork();
+        expectHasWorkReady(retransmissionRequester);
+        retransmissionRequester.run();
 
         assertTrue(nackPacketCapture.hasCaptured());
         RawPacket capturedNackPacket = nackPacketCapture.getValue();
@@ -496,20 +499,20 @@ public class RetransmissionRequesterDelegateTest
         retransmissionRequester.reverseTransform(packet10);
         // Don't pass in packet 11 yet
         retransmissionRequester.reverseTransform(packet12);
-        assertTrue(retransmissionRequester.hasWork());
-        retransmissionRequester.doWork();
+        expectHasWorkReady(retransmissionRequester);
+        retransmissionRequester.run();
 
         retransmissionRequester.reverseTransform(packet15);
-        assertTrue(retransmissionRequester.hasWork());
-        retransmissionRequester.doWork();
+        expectHasWorkReady(retransmissionRequester);
+        retransmissionRequester.run();
 
-        setTime(startTime + RE_REQUEST_INTERVAL_MILLIS);
+        setTime(startTime + RetransmissionRequesterDelegate.RE_REQUEST_AFTER_MILLIS);
 
         retransmissionRequester.reverseTransform(rtxPacket11);
         // It should still have work, but the next nack shouldn't include
         // packet 11
-        assertTrue(retransmissionRequester.hasWork());
-        retransmissionRequester.doWork();
+        expectHasWorkReady(retransmissionRequester);
+        retransmissionRequester.run();
 
         assertTrue(nackPacketCapture.hasCaptured());
         RawPacket capturedNackPacket = nackPacketCapture.getValue();
