@@ -16,6 +16,9 @@
 package org.jitsi.util;
 
 /**
+ * Class which provides the current time.  This is useful to pass in to classes
+ * so that it's easier to mock out the result in unit tests.
+ *
  * @author bbaldino
  */
 public class TimeProvider
