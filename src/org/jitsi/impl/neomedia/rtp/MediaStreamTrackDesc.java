@@ -95,7 +95,7 @@ public class MediaStreamTrackDesc
      * The {@link RTPEncodingDesc}s that this {@link MediaStreamTrackDesc}
      * possesses, ordered by their subjective quality from low to high.
      */
-    private final RTPEncodingDesc[] rtpEncodings;
+    private RTPEncodingDesc[] rtpEncodings;
 
     /**
      * The {@link MediaStreamTrackReceiver} that receives this instance.
@@ -119,15 +119,12 @@ public class MediaStreamTrackDesc
      *
      * @param mediaStreamTrackReceiver The {@link MediaStreamTrackReceiver} that
      * receives this instance.
-     * @param rtpEncodings The {@link RTPEncodingDesc}s that this instance
-     * possesses.
      * @param simulcast true to enable simulcast logic, false otherwise
      */
     public MediaStreamTrackDesc(
         MediaStreamTrackReceiver mediaStreamTrackReceiver,
-        RTPEncodingDesc[] rtpEncodings, boolean simulcast)
+        boolean simulcast)
     {
-        this.rtpEncodings = rtpEncodings;
         this.mediaStreamTrackReceiver = mediaStreamTrackReceiver;
         this.simulcast = simulcast;
     }
@@ -152,6 +149,14 @@ public class MediaStreamTrackDesc
     public RTPEncodingDesc[] getRTPEncodings()
     {
         return rtpEncodings;
+    }
+
+    /**
+     * Sets the array of all the {@link RTPEncodingDesc}s for this instance.
+     */
+    public void setRTPEncodings(RTPEncodingDesc ... rtpEncodings)
+    {
+        this.rtpEncodings = rtpEncodings;
     }
 
     /**
