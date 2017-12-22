@@ -19,6 +19,10 @@ import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
 /**
+ * Creates classes to handle both the detection of loss and the creation
+ * and sending of nack packets, and a scheduler to allow for nacks to be
+ * re-transmitted at a set interval
+ *
  * @author bbaldino
  */
 public class RetransmissionRequesterImpl

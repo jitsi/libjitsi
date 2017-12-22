@@ -81,7 +81,7 @@ public class RetransmissionRequesterScheduler
                 {
                     try
                     {
-                        this.thread.sleep(sleepIntervalMillis);
+                        Thread.sleep(sleepIntervalMillis);
                     }
                     catch (InterruptedException e)
                     {

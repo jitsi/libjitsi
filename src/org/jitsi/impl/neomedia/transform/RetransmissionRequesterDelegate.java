@@ -177,18 +177,7 @@ public class RetransmissionRequesterDelegate
     public boolean hasWork()
     {
         long now = timeProvider.getTime();
-        synchronized (requesters)
-        {
-            for (Requester requester : requesters.values())
-            {
-                if (requester.nextRequestAt != -1 && requester.nextRequestAt <= now)
-                {
-                    return true;
-                }
-            }
-        }
-
-        return false;
+        return !(getDueRequesters(now).isEmpty());
     }
 
     /**
@@ -232,14 +221,17 @@ public class RetransmissionRequesterDelegate
         return requester;
     }
 
-    private List<Requester> getDueRequesters(long now)
+    private List<Requester> getDueRequesters(long currentTime)
     {
         List<Requester> dueRequesters = new ArrayList<>();
-        for (Requester requester : requesters.values())
+        synchronized (requesters)
         {
-            if (requester.nextRequestAt <= now)
+            for (Requester requester : requesters.values())
             {
-                dueRequesters.add(requester);
+                if (requester.isDue(currentTime))
+                {
+                    dueRequesters.add(requester);
+                }
             }
         }
         return dueRequesters;
@@ -361,6 +353,17 @@ public class RetransmissionRequesterDelegate
         private Requester(long ssrc)
         {
             this.ssrc = ssrc;
+        }
+
+        /**
+         * Check if this {@link Requester} is due to send a nack
+         * @param currentTime the current time, in ms
+         * @return true if this {@link Requester} is due to send a nack, false
+         * otherwise
+         */
+        public boolean isDue(long currentTime)
+        {
+            return nextRequestAt != -1 && nextRequestAt <= currentTime;
         }
 
         /**
