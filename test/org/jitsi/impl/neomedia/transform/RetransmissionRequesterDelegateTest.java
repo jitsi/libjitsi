@@ -422,6 +422,44 @@ public class RetransmissionRequesterDelegateTest
         RawPacket packet10 = createPacket(ssrc, PAYLOAD_TYPE, 10);
         RawPacket packet11 = createPacket(ssrc, PAYLOAD_TYPE, 11);
         RawPacket packet12 = createPacket(ssrc, PAYLOAD_TYPE, 12);
+
+        workReadyCallback.run();
+        PowerMock.expectLastCall().anyTimes();
+
+        Capture<RawPacket> nackPacketCapture = Capture.newInstance();
+        mockStream.injectPacket(capture(nackPacketCapture), eq(false), eq((TransformEngine)null));
+        PowerMock.expectLastCall().anyTimes();
+
+        replayAll();
+
+        long startTime = 0L;
+        setTime(startTime);
+
+        retransmissionRequester.reverseTransform(packet10);
+        // Don't pass in packet 11 yet
+        retransmissionRequester.reverseTransform(packet12);
+        expectHasWorkReady(retransmissionRequester);
+        retransmissionRequester.run();
+
+        setTime(startTime + RetransmissionRequesterDelegate.RE_REQUEST_AFTER_MILLIS);
+
+        retransmissionRequester.reverseTransform(packet11);
+        expectNoWorkReady(retransmissionRequester);
+    }
+
+    /**
+     * Test that the reception of a missing packet prevents it from being
+     * nacked again, but other missing packets are still tracked correctly
+     */
+    @Test
+    public void testReceiveMissingPacketOthersStillMissing()
+        throws TransmissionFailedException
+    {
+        long ssrc = 12345L;
+
+        RawPacket packet10 = createPacket(ssrc, PAYLOAD_TYPE, 10);
+        RawPacket packet11 = createPacket(ssrc, PAYLOAD_TYPE, 11);
+        RawPacket packet12 = createPacket(ssrc, PAYLOAD_TYPE, 12);
         RawPacket packet15 = createPacket(ssrc, PAYLOAD_TYPE, 15);
 
         workReadyCallback.run();

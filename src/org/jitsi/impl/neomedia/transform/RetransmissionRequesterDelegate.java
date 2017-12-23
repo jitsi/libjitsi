@@ -184,7 +184,15 @@ public class RetransmissionRequesterDelegate
         }
         else
         {
-            return Math.min(dueRequesters.get(0).nextRequestAt - now, 0);
+            if (logger.isTraceEnabled())
+            {
+                Requester nextDueRequester = dueRequesters.get(0);
+                logger.trace(hashCode() + ": Next nack is scheduled for ssrc " +
+                    nextDueRequester.ssrc + " at " +
+                    Math.max(nextDueRequester.nextRequestAt, 0) +
+                    ".  (current time is " + now + ")");
+            }
+            return Math.max(dueRequesters.get(0).nextRequestAt - now, 0);
         }
     }
 
@@ -200,8 +208,20 @@ public class RetransmissionRequesterDelegate
     public void run()
     {
         long now = timeProvider.getTime();
+        if (logger.isTraceEnabled())
+        {
+            logger.trace(hashCode() + " running at " + now);
+        }
         List<Requester> dueRequesters = getDueRequesters(now);
-        List<NACKPacket> nackPackets = createNackPackets(dueRequesters);
+        if (logger.isTraceEnabled())
+        {
+            logger.trace(hashCode() + " has " + dueRequesters.size() + " due requesters");
+        }
+        List<NACKPacket> nackPackets = createNackPackets(now, dueRequesters);
+        if (logger.isTraceEnabled())
+        {
+            logger.trace(hashCode() + " injecting " + nackPackets.size() + " nack packets");
+        }
         injectNackPackets(nackPackets);
     }
 
@@ -234,6 +254,14 @@ public class RetransmissionRequesterDelegate
             {
                 if (requester.isDue(currentTime))
                 {
+                    if (logger.isTraceEnabled())
+                    {
+                        logger.trace(hashCode() + " requester for ssrc " +
+                            requester.ssrc + " has work due at " +
+                            requester.nextRequestAt +
+                            " (now = " + currentTime + ") and is missing packets: " +
+                            requester.getMissingSeqNums());
+                    }
                     dueRequesters.add(requester);
                 }
             }
@@ -283,7 +311,7 @@ public class RetransmissionRequesterDelegate
      * @param dueRequesters the requesters which are due to have nack packets
      * generated
      */
-    protected List<NACKPacket> createNackPackets(List<Requester> dueRequesters)
+    protected List<NACKPacket> createNackPackets(long now, List<Requester> dueRequesters)
     {
         Map<Long, Set<Integer>> packetsToRequest = new HashMap<>();
 
@@ -292,16 +320,22 @@ public class RetransmissionRequesterDelegate
             Set<Integer> missingPackets = dueRequester.getMissingSeqNums();
             if (!missingPackets.isEmpty())
             {
+                if (logger.isTraceEnabled())
+                {
+                    logger.trace(hashCode() + " Sending nack with packets " + missingPackets + " for ssrc " + dueRequester.ssrc);
+                }
                 packetsToRequest.put(dueRequester.ssrc, missingPackets);
             }
+            dueRequester.notifyNackCreated(now, missingPackets);
         }
 
         List<NACKPacket> nackPackets = new ArrayList<>();
         for (Map.Entry<Long, Set<Integer>> entry : packetsToRequest.entrySet())
         {
             long sourceSsrc = entry.getKey();
+            Set<Integer> missingPackets = entry.getValue();
             NACKPacket nack
-                = new NACKPacket(senderSsrc, sourceSsrc, entry.getValue());
+                = new NACKPacket(senderSsrc, sourceSsrc, missingPackets);
             nackPackets.add(nack);
         }
         return nackPackets;
@@ -386,9 +420,12 @@ public class RetransmissionRequesterDelegate
             if (diff <= 0)
             {
                 // An older packet, possibly already requested.
-                // We don't update nextRequestAt here. The reading thread might
-                // wake up unnecessarily and do some extra work, but that's OK.
                 Request r = requests.remove(seq);
+                if (requests.isEmpty())
+                {
+                    nextRequestAt = -1;
+                }
+
                 if (r != null && logger.isDebugEnabled())
                 {
                     long rtt
@@ -466,41 +503,40 @@ public class RetransmissionRequesterDelegate
          */
         synchronized private @NotNull Set<Integer> getMissingSeqNums()
         {
-            long now = timeProvider.getTime();
-            Set<Integer> missingPackets = new HashSet<>();
+            return new HashSet<>(requests.keySet());
+        }
 
-            for (Iterator<Map.Entry<Integer,Request>> iter
-                        = requests.entrySet().iterator();
-                    iter.hasNext();)
+        /**
+         * Notify this requester that a nack was sent at the given time
+         * @param time the time at which the nack was sent
+         */
+        public synchronized void notifyNackCreated(long time, Collection<Integer> sequenceNumbers)
+        {
+            for (Integer seqNum : sequenceNumbers)
             {
-                Request request = iter.next().getValue();
-
-                missingPackets.add(request.seq);
+                Request request = requests.get(seqNum);
                 request.timesRequested++;
-
-                if (request.timesRequested == 1)
-                {
-                    request.firstRequestSentAt = now;
-                }
-                else if (request.timesRequested == MAX_REQUESTS)
+                if (request.timesRequested == MAX_REQUESTS)
                 {
                     if (logger.isDebugEnabled())
                     {
                         logger.debug(
-                            "Sending the last NACK for SSRC=" + ssrc + " seq="
+                            "Generated the last NACK for SSRC=" + ssrc + " seq="
                                 + request.seq + ". "
                                 + "Time since the first request: "
-                                + (now - request.firstRequestSentAt));
+                                + (time - request.firstRequestSentAt));
                     }
-                    iter.remove();
+                    requests.remove(seqNum);
+                    continue;
                 }
-
+                if (request.timesRequested == 1)
+                {
+                    request.firstRequestSentAt = time;
+                }
             }
-
-            nextRequestAt = (requests.size() > 0) ? now + RE_REQUEST_AFTER_MILLIS : -1;
-
-            return missingPackets;
+            nextRequestAt = (requests.size() > 0) ? time + RE_REQUEST_AFTER_MILLIS : -1;
         }
+
     }
 
     /**

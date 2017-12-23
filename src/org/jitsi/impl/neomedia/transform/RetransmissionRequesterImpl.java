@@ -46,7 +46,6 @@ public class RetransmissionRequesterImpl
 
     public RetransmissionRequesterImpl(MediaStream stream)
     {
-
         retransmissionRequesterDelegate = new RetransmissionRequesterDelegate(stream, new TimeProvider());
         recurringRunnableExecutor.registerRecurringRunnable(retransmissionRequesterDelegate);
         retransmissionRequesterDelegate.setWorkReadyCallback(new Runnable(){
