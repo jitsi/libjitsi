@@ -113,7 +113,15 @@ public class RetransmissionRequesterDelegate
     {
         // TODO(gp) Don't NACK higher temporal layers.
         Requester requester = getOrCreateRequester(ssrc);
-        requester.received(seqNum);
+        // If the reception of this packet resulted in there being work that
+        // is ready to be done now, fire the work ready callback
+        if (requester.received(seqNum))
+        {
+            if (workReadyCallback != null)
+            {
+                workReadyCallback.run();
+            }
+        }
     }
 
     /**
@@ -359,13 +367,16 @@ public class RetransmissionRequesterDelegate
         /**
          * Handles a received RTP packet with a specific sequence number.
          * @param seq the RTP sequence number of the received packet.
+         *
+         * @return true if there is work for this requester ready to be
+         * done now, false otherwise
          */
-        synchronized private void received(int seq)
+        synchronized private boolean received(int seq)
         {
             if (lastReceivedSeq == -1)
             {
                 lastReceivedSeq = seq;
-                return;
+                return false;
             }
 
             int diff = RTPUtils.getSequenceNumberDelta(seq, lastReceivedSeq);
@@ -420,10 +431,7 @@ public class RetransmissionRequesterDelegate
                 lastReceivedSeq = seq;
                 nextRequestAt = 0;
 
-                if (workReadyCallback != null)
-                {
-                    workReadyCallback.run();
-                }
+                return true;
             }
             else // if (diff > MAX_MISSING)
             {
@@ -441,6 +449,7 @@ public class RetransmissionRequesterDelegate
                 requests.clear();
                 nextRequestAt = -1;
             }
+            return false;
         }
 
         /**
