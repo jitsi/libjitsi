@@ -123,8 +123,8 @@ public class RetransmissionRequesterDelegate
     public long getTimeUntilNextRun()
     {
         long now = timeProvider.currentTimeMillis();
-        List<Requester> dueRequesters = getDueRequesters(now);
-        if (dueRequesters.isEmpty())
+        Requester nextDueRequester = getNextDueRequester();
+        if (nextDueRequester == null)
         {
             return WAKEUP_INTERVAL_MILLIS;
         }
@@ -132,13 +132,12 @@ public class RetransmissionRequesterDelegate
         {
             if (logger.isTraceEnabled())
             {
-                Requester nextDueRequester = dueRequesters.get(0);
                 logger.trace(hashCode() + ": Next nack is scheduled for ssrc " +
                     nextDueRequester.ssrc + " at " +
                     Math.max(nextDueRequester.nextRequestAt, 0) +
                     ".  (current time is " + now + ")");
             }
-            return Math.max(dueRequesters.get(0).nextRequestAt - now, 0);
+            return Math.max(nextDueRequester.nextRequestAt - now, 0);
         }
     }
 
@@ -191,6 +190,31 @@ public class RetransmissionRequesterDelegate
         return requester;
     }
 
+    private Requester getNextDueRequester()
+    {
+        Requester nextDueRequester = null;
+        synchronized (requesters)
+        {
+            for (Requester requester : requesters.values())
+            {
+                if (requester.nextRequestAt != -1 &&
+                    (nextDueRequester == null || requester.nextRequestAt < nextDueRequester.nextRequestAt))
+                {
+                    nextDueRequester = requester;
+                }
+            }
+        }
+        return nextDueRequester;
+    }
+
+    /**
+     * Get a list of the requesters (not necessarily in sorted order)
+     * which are due to request as of the given time
+     *
+     * @param currentTime the current time
+     * @return a list of the requesters (not necessarily in sorted order)
+     * which are due to request as of the given time
+     */
     private List<Requester> getDueRequesters(long currentTime)
     {
         List<Requester> dueRequesters = new ArrayList<>();
