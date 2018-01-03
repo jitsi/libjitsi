@@ -23,7 +23,7 @@ package org.jitsi.util;
  */
 public class TimeProvider
 {
-    public long getTime()
+    public long currentTimeMillis()
     {
         return System.currentTimeMillis();
     }

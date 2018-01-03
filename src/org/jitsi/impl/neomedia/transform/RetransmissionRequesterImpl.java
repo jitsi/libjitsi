@@ -15,7 +15,10 @@
  */
 package org.jitsi.impl.neomedia.transform;
 
+import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.service.neomedia.codec.*;
+import org.jitsi.service.neomedia.format.*;
 import org.jitsi.util.*;
 import org.jitsi.util.concurrent.*;
 
@@ -30,6 +33,13 @@ public class RetransmissionRequesterImpl
     extends SinglePacketTransformerAdapter
     implements TransformEngine, RetransmissionRequester
 {
+    /**
+     * The <tt>Logger</tt> used by the <tt>RetransmissionRequesterDelegate</tt> class
+     * and its instances to print debug information.
+     */
+    private static final Logger logger
+        = Logger.getLogger(RetransmissionRequesterImpl.class);
+
     /**
      * Whether this {@link RetransmissionRequester} is enabled or not.
      */
@@ -47,6 +57,11 @@ public class RetransmissionRequesterImpl
     private final RetransmissionRequesterDelegate retransmissionRequesterDelegate;
 
     /**
+     * The {@link MediaStream} that this instance belongs to.
+     */
+    private final MediaStream stream;
+
+    /**
      * Create a single executor to service the nack processing for all the
      * {@link RetransmissionRequesterImpl} instances
      */
@@ -54,6 +69,7 @@ public class RetransmissionRequesterImpl
 
     public RetransmissionRequesterImpl(MediaStream stream)
     {
+        this.stream = stream;
         retransmissionRequesterDelegate = new RetransmissionRequesterDelegate(stream, new TimeProvider());
         recurringRunnableExecutor.registerRecurringRunnable(retransmissionRequesterDelegate);
         retransmissionRequesterDelegate.setWorkReadyCallback(new Runnable(){
@@ -75,7 +91,50 @@ public class RetransmissionRequesterImpl
     {
         if (enabled && !closed)
         {
-            return retransmissionRequesterDelegate.reverseTransform(pkt);
+            Long ssrc;
+            int seq;
+
+            MediaFormat format = stream.getFormat(pkt.getPayloadType());
+            if (format == null)
+            {
+                ssrc = null;
+                seq = -1;
+
+                logger.warn("format_not_found" +
+                    ",stream_hash=" + stream.hashCode());
+            }
+            else if (Constants.RTX.equalsIgnoreCase(format.getEncoding()))
+            {
+                MediaStreamTrackReceiver receiver
+                    = stream.getMediaStreamTrackReceiver();
+
+                RTPEncodingDesc encoding = receiver.findRTPEncodingDesc(pkt);
+
+                if (encoding != null)
+                {
+                    ssrc = encoding.getPrimarySSRC();
+                    seq = pkt.getOriginalSequenceNumber();
+                }
+                else
+                {
+                    ssrc = null;
+                    seq = -1;
+
+                    logger.warn("encoding_not_found" +
+                        ",stream_hash=" + stream.hashCode());
+                }
+            }
+            else
+            {
+                ssrc = pkt.getSSRCAsLong();
+                seq = pkt.getSequenceNumber();
+            }
+
+
+            if (ssrc != null)
+            {
+                retransmissionRequesterDelegate.packetReceived(ssrc, seq);
+            }
         }
         return pkt;
     }
@@ -87,7 +146,7 @@ public class RetransmissionRequesterImpl
     public void close()
     {
         closed = true;
-        this.recurringRunnableExecutor.close();
+        recurringRunnableExecutor.deRegisterRecurringRunnable(retransmissionRequesterDelegate);
     }
 
     // TransformEngine methods

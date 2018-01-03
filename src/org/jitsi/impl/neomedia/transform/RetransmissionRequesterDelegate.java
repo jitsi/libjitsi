@@ -19,12 +19,8 @@ import java.io.*;
 import java.util.*;
 
 import org.jetbrains.annotations.*;
-import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.rtcp.*;
-import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.service.neomedia.*;
-import org.jitsi.service.neomedia.codec.*;
-import org.jitsi.service.neomedia.format.*;
 import org.jitsi.util.*;
 import org.jitsi.util.concurrent.*;
 
@@ -37,8 +33,7 @@ import org.jitsi.util.concurrent.*;
  * @author bbaldino
  */
 public class RetransmissionRequesterDelegate
-    extends SinglePacketTransformerAdapter
-    implements TransformEngine, RecurringRunnable
+    implements RecurringRunnable
 {
     /**
      * If more than <tt>MAX_MISSING</tt> consecutive packets are lost, we will
@@ -107,67 +102,18 @@ public class RetransmissionRequesterDelegate
      */
     public RetransmissionRequesterDelegate(MediaStream stream, TimeProvider timeProvider)
     {
-        super(RTPPacketPredicate.INSTANCE);
         this.stream = stream;
         this.timeProvider = timeProvider;
     }
 
     /**
-     * {@inheritDoc}
-     *
-     * Implements {@link SinglePacketTransformer#reverseTransform(RawPacket)}.
+     * Notify this requester that a packet has been received
      */
-    @Override
-    public RawPacket reverseTransform(RawPacket pkt)
+    public void packetReceived(long ssrc, int seqNum)
     {
-        Long ssrc;
-        int seq;
-
-        MediaFormat format = stream.getFormat(pkt.getPayloadType());
-        if (format == null)
-        {
-            ssrc = null;
-            seq = -1;
-
-            logger.warn("format_not_found" +
-                ",stream_hash=" + stream.hashCode());
-        }
-        else if (Constants.RTX.equalsIgnoreCase(format.getEncoding()))
-        {
-            MediaStreamTrackReceiver receiver
-                = stream.getMediaStreamTrackReceiver();
-
-            RTPEncodingDesc encoding = receiver.findRTPEncodingDesc(pkt);
-
-            if (encoding != null)
-            {
-                ssrc = encoding.getPrimarySSRC();
-                seq = pkt.getOriginalSequenceNumber();
-            }
-            else
-            {
-                ssrc = null;
-                seq = -1;
-
-                logger.warn("encoding_not_found" +
-                    ",stream_hash=" + stream.hashCode());
-            }
-        }
-        else
-        {
-            ssrc = pkt.getSSRCAsLong();
-            seq = pkt.getSequenceNumber();
-        }
-
-
-        if (ssrc != null)
-        {
-            // TODO(gp) Don't NACK higher temporal layers.
-            Requester requester = getOrCreateRequester(ssrc);
-            requester.received(seq);
-        }
-
-        return pkt;
+        // TODO(gp) Don't NACK higher temporal layers.
+        Requester requester = getOrCreateRequester(ssrc);
+        requester.received(seqNum);
     }
 
     /**
@@ -176,7 +122,7 @@ public class RetransmissionRequesterDelegate
     @Override
     public long getTimeUntilNextRun()
     {
-        long now = timeProvider.getTime();
+        long now = timeProvider.currentTimeMillis();
         List<Requester> dueRequesters = getDueRequesters(now);
         if (dueRequesters.isEmpty())
         {
@@ -207,7 +153,7 @@ public class RetransmissionRequesterDelegate
     @Override
     public void run()
     {
-        long now = timeProvider.getTime();
+        long now = timeProvider.currentTimeMillis();
         if (logger.isTraceEnabled())
         {
             logger.trace(hashCode() + " running at " + now);
@@ -271,7 +217,7 @@ public class RetransmissionRequesterDelegate
 
     /**
      * Inject the given nack packets into the outgoing stream
-     * @param nackPackets
+     * @param nackPackets the nack packets to inject
      */
     private void injectNackPackets(List<NACKPacket> nackPackets)
     {
@@ -339,24 +285,6 @@ public class RetransmissionRequesterDelegate
             nackPackets.add(nack);
         }
         return nackPackets;
-    }
-
-    /**
-     * Implements {@link TransformEngine#getRTPTransformer()}.
-     */
-    @Override
-    public PacketTransformer getRTPTransformer()
-    {
-        return this;
-    }
-
-    /**
-     * Implements {@link TransformEngine#getRTCPTransformer()}.
-     */
-    @Override
-    public PacketTransformer getRTCPTransformer()
-    {
-        return null;
     }
 
     /**
@@ -439,7 +367,7 @@ public class RetransmissionRequesterDelegate
                         long firstRequestSentAt = r.firstRequestSentAt;
                         long delta
                             = firstRequestSentAt > 0
-                                ? timeProvider.getTime() - r.firstRequestSentAt
+                                ? timeProvider.currentTimeMillis() - r.firstRequestSentAt
                                 : 0;
 
                         logger.debug(Logger.Category.STATISTICS,

@@ -17,7 +17,6 @@ package org.jitsi.impl.neomedia.transform;
 
 import org.easymock.*;
 import org.jitsi.impl.neomedia.rtcp.*;
-import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.format.*;
@@ -44,30 +43,10 @@ public class RetransmissionRequesterDelegateTest
     protected final long SENDER_SSRC = 424242L;
     protected byte PAYLOAD_TYPE = 107;
 
-    protected static RawPacket createPacket(long ssrc, byte pt, int seqNum)
-    {
-        RawPacket packet = PowerMock.createMock(RawPacket.class);
-        expect(packet.getPayloadType()).andReturn(pt).anyTimes();
-        expect(packet.getSSRCAsLong()).andReturn(ssrc).anyTimes();
-        expect(packet.getSequenceNumber()).andReturn(seqNum).anyTimes();
-
-        return packet;
-    }
-
-    protected static RawPacket createRtxPacket(long ssrc, byte pt, int seqNum)
-    {
-        RawPacket packet = PowerMock.createMock(RawPacket.class);
-        expect(packet.getPayloadType()).andReturn(pt).anyTimes();
-        expect(packet.getSSRCAsLong()).andReturn(ssrc).anyTimes();
-        expect(packet.getOriginalSequenceNumber()).andReturn(seqNum).anyTimes();
-
-        return packet;
-    }
-
     protected void setTime(long timeMillis)
     {
         PowerMock.reset(timeProvider);
-        expect(timeProvider.getTime()).andReturn(timeMillis).anyTimes();
+        expect(timeProvider.currentTimeMillis()).andReturn(timeMillis).anyTimes();
         PowerMock.replay(timeProvider);
     }
 
@@ -124,12 +103,6 @@ public class RetransmissionRequesterDelegateTest
     {
         long ssrc = 12345L;
 
-        // Initial packet (seq num 10)
-        RawPacket packet10 = createPacket(ssrc, PAYLOAD_TYPE, 10);
-
-        // Second packet (seq num 12)
-        RawPacket packet12 = createPacket(ssrc, PAYLOAD_TYPE, 12);
-
         workReadyCallback.run();
         PowerMock.expectLastCall();
 
@@ -142,10 +115,10 @@ public class RetransmissionRequesterDelegateTest
         setTime(0L);
 
         expectNoWorkReady(retransmissionRequester);
-        retransmissionRequester.reverseTransform(packet10);
+        retransmissionRequester.packetReceived(ssrc, 10);
         expectNoWorkReady(retransmissionRequester);
 
-        retransmissionRequester.reverseTransform(packet12);
+        retransmissionRequester.packetReceived(ssrc, 12);
         expectHasWorkReady(retransmissionRequester);
 
         retransmissionRequester.run();
@@ -166,25 +139,21 @@ public class RetransmissionRequesterDelegateTest
     {
         long ssrc = 12345L;
 
-        RawPacket packet10 = createPacket(ssrc, PAYLOAD_TYPE, 10);
-        RawPacket packet11 = createPacket(ssrc, PAYLOAD_TYPE, 11);
-        RawPacket packet12 = createPacket(ssrc, PAYLOAD_TYPE, 12);
-
         replayAll();
 
         setTime(0L);
 
-        retransmissionRequester.reverseTransform(packet10);
+        retransmissionRequester.packetReceived(ssrc, 10);
         expectNoWorkReady(retransmissionRequester);
 
         setTime(10L);
 
-        retransmissionRequester.reverseTransform(packet11);
+        retransmissionRequester.packetReceived(ssrc, 11);
         expectNoWorkReady(retransmissionRequester);
 
         setTime(20L);
 
-        retransmissionRequester.reverseTransform(packet12);
+        retransmissionRequester.packetReceived(ssrc, 12);
         expectNoWorkReady(retransmissionRequester);
     }
 
@@ -199,12 +168,6 @@ public class RetransmissionRequesterDelegateTest
     {
         long ssrc = 12345L;
 
-        // Initial packet (seq num 10)
-        RawPacket packet10 = createPacket(ssrc, PAYLOAD_TYPE, 10);
-
-        // Second packet (seq num 12)
-        RawPacket packet12 = createPacket(ssrc, PAYLOAD_TYPE, 12);
-
         workReadyCallback.run();
         PowerMock.expectLastCall();
 
@@ -217,15 +180,15 @@ public class RetransmissionRequesterDelegateTest
         long startTime = 0;
         setTime(startTime);
 
-        retransmissionRequester.reverseTransform(packet10);
-        retransmissionRequester.reverseTransform(packet12);
+        retransmissionRequester.packetReceived(ssrc, 10);
+        retransmissionRequester.packetReceived(ssrc, 12);
         // The first time we call 'hasWork/doWork' will be for the first transmission
         expectHasWorkReady(retransmissionRequester);
         retransmissionRequester.run();
 
         setTime(startTime + RetransmissionRequesterDelegate.RE_REQUEST_AFTER_MILLIS);
 
-        // Now getTime will return a time in the future and the retransmission
+        // Now currentTimeMillis will return a time in the future and the retransmission
         // should be sent
         expectHasWorkReady(retransmissionRequester);
         retransmissionRequester.run();
@@ -243,12 +206,6 @@ public class RetransmissionRequesterDelegateTest
     {
         long ssrc = 12345L;
 
-        // Initial packet (seq num 10)
-        RawPacket packet10 = createPacket(ssrc, PAYLOAD_TYPE, 10);
-
-        // Second packet (seq num 12)
-        RawPacket packet12 = createPacket(ssrc, PAYLOAD_TYPE, 12);
-
         workReadyCallback.run();
         PowerMock.expectLastCall();
 
@@ -261,8 +218,8 @@ public class RetransmissionRequesterDelegateTest
         long startTime = 0;
         setTime(startTime);
 
-        retransmissionRequester.reverseTransform(packet10);
-        retransmissionRequester.reverseTransform(packet12);
+        retransmissionRequester.packetReceived(ssrc, 10);
+        retransmissionRequester.packetReceived(ssrc, 12);
         // The first time we call 'hasWork/doWork' will be for the first transmission
         expectHasWorkReady(retransmissionRequester);
         retransmissionRequester.run();
@@ -286,15 +243,6 @@ public class RetransmissionRequesterDelegateTest
     {
         long ssrc = 12345L;
 
-        // Initial packet (seq num 10)
-        RawPacket packet10 = createPacket(ssrc, PAYLOAD_TYPE, 10);
-
-        // Second packet (seq num 12)
-        RawPacket packet12 = createPacket(ssrc, PAYLOAD_TYPE, 12);
-
-        // Third packet (seq num 15)
-        RawPacket packet15 = createPacket(ssrc, PAYLOAD_TYPE, 15);
-
         workReadyCallback.run();
         PowerMock.expectLastCall().times(2);
 
@@ -306,12 +254,12 @@ public class RetransmissionRequesterDelegateTest
 
         setTime(0);
 
-        retransmissionRequester.reverseTransform(packet10);
-        retransmissionRequester.reverseTransform(packet12);
+        retransmissionRequester.packetReceived(ssrc, 10);
+        retransmissionRequester.packetReceived(ssrc, 12);
         expectHasWorkReady(retransmissionRequester);
         retransmissionRequester.run();
 
-        retransmissionRequester.reverseTransform(packet15);
+        retransmissionRequester.packetReceived(ssrc, 15);
         expectHasWorkReady(retransmissionRequester);
         retransmissionRequester.run();
 
@@ -330,14 +278,6 @@ public class RetransmissionRequesterDelegateTest
         long ssrc1 = 12345L;
         long ssrc2 = 54321L;
 
-        // ssrc1 packets
-        RawPacket ssrc1packet10 = createPacket(ssrc1, PAYLOAD_TYPE, 10);
-        RawPacket ssrc1packet12 = createPacket(ssrc1, PAYLOAD_TYPE, 12);
-
-        // ssrc3 packets
-        RawPacket ssrc2packet10 = createPacket(ssrc2, PAYLOAD_TYPE, 10);
-        RawPacket ssrc2packet12 = createPacket(ssrc2, PAYLOAD_TYPE, 12);
-
         workReadyCallback.run();
         PowerMock.expectLastCall().times(2);
 
@@ -349,15 +289,15 @@ public class RetransmissionRequesterDelegateTest
 
         setTime(0);
 
-        retransmissionRequester.reverseTransform(ssrc1packet10);
-        retransmissionRequester.reverseTransform(ssrc2packet10);
+        retransmissionRequester.packetReceived(ssrc1, 10);
+        retransmissionRequester.packetReceived(ssrc2, 10);
         expectNoWorkReady(retransmissionRequester);
 
-        retransmissionRequester.reverseTransform(ssrc1packet12);
+        retransmissionRequester.packetReceived(ssrc1, 12);
         expectHasWorkReady(retransmissionRequester);
         retransmissionRequester.run();
 
-        retransmissionRequester.reverseTransform(ssrc2packet12);
+        retransmissionRequester.packetReceived(ssrc2, 12);
         expectHasWorkReady(retransmissionRequester);
         retransmissionRequester.run();
 
@@ -379,15 +319,6 @@ public class RetransmissionRequesterDelegateTest
     {
         long ssrc = 12345L;
 
-        // Initial packet (seq num 10)
-        RawPacket packet10 = createPacket(ssrc, PAYLOAD_TYPE, 10);
-
-        // Second packet (seq num 12)
-        RawPacket packet12 = createPacket(ssrc, PAYLOAD_TYPE, 12);
-
-        // Big jump
-        RawPacket bigJumpPacket = createPacket(ssrc, PAYLOAD_TYPE, 12 + RetransmissionRequesterDelegate.MAX_MISSING + 1);
-
         workReadyCallback.run();
         PowerMock.expectLastCall();
 
@@ -399,13 +330,15 @@ public class RetransmissionRequesterDelegateTest
 
         setTime(0L);
 
-        retransmissionRequester.reverseTransform(packet10);
+        retransmissionRequester.packetReceived(ssrc, 10);
 
-        retransmissionRequester.reverseTransform(packet12);
+        retransmissionRequester.packetReceived(ssrc, 12);
         expectHasWorkReady(retransmissionRequester);
         retransmissionRequester.run();
 
-        retransmissionRequester.reverseTransform(bigJumpPacket);
+        // Have the next packet be a big jump from the last one
+        int bigJumpSeqNum = 12 + RetransmissionRequesterDelegate.MAX_MISSING + 1;
+        retransmissionRequester.packetReceived(ssrc, bigJumpSeqNum);
         expectNoWorkReady(retransmissionRequester);
     }
 
@@ -419,10 +352,6 @@ public class RetransmissionRequesterDelegateTest
     {
         long ssrc = 12345L;
 
-        RawPacket packet10 = createPacket(ssrc, PAYLOAD_TYPE, 10);
-        RawPacket packet11 = createPacket(ssrc, PAYLOAD_TYPE, 11);
-        RawPacket packet12 = createPacket(ssrc, PAYLOAD_TYPE, 12);
-
         workReadyCallback.run();
         PowerMock.expectLastCall().anyTimes();
 
@@ -435,15 +364,15 @@ public class RetransmissionRequesterDelegateTest
         long startTime = 0L;
         setTime(startTime);
 
-        retransmissionRequester.reverseTransform(packet10);
+        retransmissionRequester.packetReceived(ssrc, 10);
         // Don't pass in packet 11 yet
-        retransmissionRequester.reverseTransform(packet12);
+        retransmissionRequester.packetReceived(ssrc, 12);
         expectHasWorkReady(retransmissionRequester);
         retransmissionRequester.run();
 
         setTime(startTime + RetransmissionRequesterDelegate.RE_REQUEST_AFTER_MILLIS);
 
-        retransmissionRequester.reverseTransform(packet11);
+        retransmissionRequester.packetReceived(ssrc, 11);
         expectNoWorkReady(retransmissionRequester);
     }
 
@@ -457,11 +386,6 @@ public class RetransmissionRequesterDelegateTest
     {
         long ssrc = 12345L;
 
-        RawPacket packet10 = createPacket(ssrc, PAYLOAD_TYPE, 10);
-        RawPacket packet11 = createPacket(ssrc, PAYLOAD_TYPE, 11);
-        RawPacket packet12 = createPacket(ssrc, PAYLOAD_TYPE, 12);
-        RawPacket packet15 = createPacket(ssrc, PAYLOAD_TYPE, 15);
-
         workReadyCallback.run();
         PowerMock.expectLastCall().anyTimes();
 
@@ -474,19 +398,19 @@ public class RetransmissionRequesterDelegateTest
         long startTime = 0L;
         setTime(startTime);
 
-        retransmissionRequester.reverseTransform(packet10);
+        retransmissionRequester.packetReceived(ssrc, 10);
         // Don't pass in packet 11 yet
-        retransmissionRequester.reverseTransform(packet12);
+        retransmissionRequester.packetReceived(ssrc, 12);
         expectHasWorkReady(retransmissionRequester);
         retransmissionRequester.run();
 
-        retransmissionRequester.reverseTransform(packet15);
+        retransmissionRequester.packetReceived(ssrc, 15);
         expectHasWorkReady(retransmissionRequester);
         retransmissionRequester.run();
 
         setTime(startTime + RetransmissionRequesterDelegate.RE_REQUEST_AFTER_MILLIS);
 
-        retransmissionRequester.reverseTransform(packet11);
+        retransmissionRequester.packetReceived(ssrc, 11);
         // It should still have work, but the next nack shouldn't include
         // packet 11
         expectHasWorkReady(retransmissionRequester);
@@ -496,65 +420,4 @@ public class RetransmissionRequesterDelegateTest
         RawPacket capturedNackPacket = nackPacketCapture.getValue();
         verifyNackPacket(capturedNackPacket, ssrc, 13, 14);
     }
-
-    /**
-     * Test that an rtx packet is properly recognized
-     */
-    @Test
-    public void testReceiveRtx()
-        throws TransmissionFailedException
-    {
-        long ssrc = 12345L;
-        long rtxSsrc = 2468L;
-        byte rtxPayloadType = 109;
-        MediaFormat rtxMediaFormat = PowerMock.createMock(MediaFormat.class);
-        expect(rtxMediaFormat.getEncoding()).andReturn(Constants.RTX).anyTimes();
-
-        RTPEncodingDesc mockRtpEncodingDesc = PowerMock.createMock(RTPEncodingDesc.class);
-        expect(mockRtpEncodingDesc.getPrimarySSRC()).andReturn(ssrc).anyTimes();
-        MediaStreamTrackReceiver mockMediaStreamTrackReceiver = PowerMock.createMock(MediaStreamTrackReceiver.class);
-        expect(mockMediaStreamTrackReceiver.findRTPEncodingDesc(anyObject(RawPacket.class))).andReturn(mockRtpEncodingDesc).anyTimes();
-        expect(mockStream.getFormat(rtxPayloadType)).andReturn(rtxMediaFormat).anyTimes();
-        expect(mockStream.getMediaStreamTrackReceiver()).andReturn(mockMediaStreamTrackReceiver).anyTimes();
-
-        RawPacket packet10 = createPacket(ssrc, PAYLOAD_TYPE, 10);
-        RawPacket rtxPacket11 = createRtxPacket(rtxSsrc, rtxPayloadType, 11);
-        RawPacket packet12 = createPacket(ssrc, PAYLOAD_TYPE, 12);
-        RawPacket packet15 = createPacket(ssrc, PAYLOAD_TYPE, 15);
-
-        workReadyCallback.run();
-        PowerMock.expectLastCall().anyTimes();
-
-        Capture<RawPacket> nackPacketCapture = Capture.newInstance();
-        mockStream.injectPacket(capture(nackPacketCapture), eq(false), eq((TransformEngine)null));
-        PowerMock.expectLastCall().anyTimes();
-
-        replayAll();
-
-        long startTime = 0L;
-        setTime(startTime);
-
-        retransmissionRequester.reverseTransform(packet10);
-        // Don't pass in packet 11 yet
-        retransmissionRequester.reverseTransform(packet12);
-        expectHasWorkReady(retransmissionRequester);
-        retransmissionRequester.run();
-
-        retransmissionRequester.reverseTransform(packet15);
-        expectHasWorkReady(retransmissionRequester);
-        retransmissionRequester.run();
-
-        setTime(startTime + RetransmissionRequesterDelegate.RE_REQUEST_AFTER_MILLIS);
-
-        retransmissionRequester.reverseTransform(rtxPacket11);
-        // It should still have work, but the next nack shouldn't include
-        // packet 11
-        expectHasWorkReady(retransmissionRequester);
-        retransmissionRequester.run();
-
-        assertTrue(nackPacketCapture.hasCaptured());
-        RawPacket capturedNackPacket = nackPacketCapture.getValue();
-        verifyNackPacket(capturedNackPacket, ssrc, 13, 14);
-    }
-
 }
