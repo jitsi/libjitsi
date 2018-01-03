@@ -165,7 +165,7 @@ public class RetransmissionRequesterImpl
     @Override
     public PacketTransformer getRTCPTransformer()
     {
-        return this;
+        return null;
     }
 
     // RetransmissionRequester methods
