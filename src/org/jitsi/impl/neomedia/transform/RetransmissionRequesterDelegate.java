@@ -170,12 +170,18 @@ public class RetransmissionRequesterDelegate
         {
             logger.trace(hashCode() + " has " + dueRequesters.size() + " due requesters");
         }
-        List<NACKPacket> nackPackets = createNackPackets(now, dueRequesters);
-        if (logger.isTraceEnabled())
+        if (!dueRequesters.isEmpty())
         {
-            logger.trace(hashCode() + " injecting " + nackPackets.size() + " nack packets");
+            List<NACKPacket> nackPackets = createNackPackets(now, dueRequesters);
+            if (logger.isTraceEnabled())
+            {
+                logger.trace(hashCode() + " injecting " + nackPackets.size() + " nack packets");
+            }
+            if (!nackPackets.isEmpty())
+            {
+                injectNackPackets(nackPackets);
+            }
         }
-        injectNackPackets(nackPackets);
     }
 
     private Requester getOrCreateRequester(long ssrc)
@@ -303,8 +309,8 @@ public class RetransmissionRequesterDelegate
                     logger.trace(hashCode() + " Sending nack with packets " + missingPackets + " for ssrc " + dueRequester.ssrc);
                 }
                 packetsToRequest.put(dueRequester.ssrc, missingPackets);
+                dueRequester.notifyNackCreated(now, missingPackets);
             }
-            dueRequester.notifyNackCreated(now, missingPackets);
         }
 
         List<NACKPacket> nackPackets = new ArrayList<>();
