@@ -16,7 +16,6 @@
 package org.jitsi.impl.neomedia;
 
 import java.awt.*;
-import java.net.*;
 import java.util.*;
 import java.util.List;
 import java.util.regex.*;
@@ -32,7 +31,6 @@ import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.*;
 import org.jitsi.impl.neomedia.rtp.sendsidebandwidthestimation.*;
-import org.jitsi.impl.neomedia.rtp.translator.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.impl.neomedia.transform.fec.*;
 import org.jitsi.service.configuration.*;

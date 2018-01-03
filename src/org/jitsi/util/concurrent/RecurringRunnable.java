@@ -16,7 +16,7 @@
 package org.jitsi.util.concurrent;
 
 /**
- * Represents an asynchronous processible task which determines the intervals
+ * Represents an asynchronous processable task which determines the intervals
  * (the lengths of which may vary) at which it is to be invoked.
  *
  * webrtc/modules/interface/module.h

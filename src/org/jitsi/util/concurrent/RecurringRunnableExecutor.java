@@ -145,6 +145,10 @@ public class RecurringRunnableExecutor
      * Invokes {@link RecurringRunnable#run()} on all
      * {@link #recurringRunnables} which are at or after the time at which
      * they want the method in question called.
+     * TODO(brian): worth investigating if we can invoke the ready runnables
+     * outside the scope of the {@link RecurringRunnableExecutor#recurringRunnables}
+     * lock so we can get rid of a possible deadlock scenario when invoking
+     * a runnable which needs to signal to the executor that it has work ready
      *
      * @return {@code true} to continue with the next iteration of the loop
      * implemented by {@link #runInThread()} or {@code false} to break (out of)
@@ -306,7 +310,7 @@ public class RecurringRunnableExecutor
      * Starts or notifies {@link #thread} depending on and in accord with the
      * state of this instance.
      */
-    private void startOrNotifyThread()
+    public void startOrNotifyThread()
     {
         synchronized (recurringRunnables)
         {
