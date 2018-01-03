@@ -40,9 +40,17 @@ public class RetransmissionRequesterImpl
      */
     private boolean closed = false;
 
-    protected final RetransmissionRequesterDelegate retransmissionRequesterDelegate;
+    /**
+     * The delegate for this {@link RetransmissionRequesterImpl} which handles
+     * the main logic for determining when to send nacks
+     */
+    private final RetransmissionRequesterDelegate retransmissionRequesterDelegate;
 
-    RecurringRunnableExecutor recurringRunnableExecutor = new RecurringRunnableExecutor();
+    /**
+     * Create a single executor to service the nack processing for all the
+     * {@link RetransmissionRequesterImpl} instances
+     */
+    private static RecurringRunnableExecutor recurringRunnableExecutor = new RecurringRunnableExecutor();
 
     public RetransmissionRequesterImpl(MediaStream stream)
     {
@@ -89,7 +97,7 @@ public class RetransmissionRequesterImpl
     @Override
     public PacketTransformer getRTPTransformer()
     {
-        return this.retransmissionRequesterDelegate.getRTPTransformer();
+        return this;
     }
 
     /**
@@ -98,7 +106,7 @@ public class RetransmissionRequesterImpl
     @Override
     public PacketTransformer getRTCPTransformer()
     {
-        return this.retransmissionRequesterDelegate.getRTCPTransformer();
+        return this;
     }
 
     // RetransmissionRequester methods
