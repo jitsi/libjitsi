@@ -102,11 +102,13 @@ public class RTPEncodingDesc
      */
     private final double frameRate;
 
+    private boolean baseIsInitialized = false;
+
     /**
      * The root {@link RTPEncodingDesc} of the dependencies DAG. Useful for
      * simulcast handling.
      */
-    private final RTPEncodingDesc base;
+    private RTPEncodingDesc base;
 
     /**
      * The {@link MediaStreamTrackDesc} that this {@link RTPEncodingDesc}
@@ -185,10 +187,9 @@ public class RTPEncodingDesc
      * @param track the {@link MediaStreamTrackDesc} that this instance belongs to.
      * @param primarySSRC The primary SSRC for this layering/encoding.
      */
-    public RTPEncodingDesc(
-        MediaStreamTrackDesc track, long primarySSRC)
+    public RTPEncodingDesc(MediaStreamTrackDesc track, long primarySSRC)
     {
-        this(track, 0, primarySSRC, -1 /* tid */, -1 /* sid */,
+        this(track, primarySSRC, 0, -1 /* tid */, -1 /* sid */,
             NO_HEIGHT /* height */, NO_FRAME_RATE /* frame rate */,
             null /* dependencies */);
     }
@@ -198,9 +199,9 @@ public class RTPEncodingDesc
      *
      * @param track the {@link MediaStreamTrackDesc} that this instance belongs
      * to.
+     * @param primarySSRC The primary SSRC for this layering/encoding.
      * @param idx the subjective quality index for this
      * layering/encoding.
-     * @param primarySSRC The primary SSRC for this layering/encoding.
      * @param tid temporal layer ID for this layering/encoding.
      * @param sid spatial layer ID for this layering/encoding.
      * @param height the max height of this encoding
@@ -209,8 +210,9 @@ public class RTPEncodingDesc
      * layer depends.
      */
     public RTPEncodingDesc(
-        MediaStreamTrackDesc track, int idx,
+        MediaStreamTrackDesc track,
         long primarySSRC,
+        int idx,
         int tid, int sid,
         int height,
         double frameRate,
@@ -226,14 +228,6 @@ public class RTPEncodingDesc
         this.tid = tid;
         this.sid = sid;
         this.dependencyEncodings = dependencyEncodings;
-        if (ArrayUtils.isNullOrEmpty(dependencyEncodings))
-        {
-            this.base = this;
-        }
-        else
-        {
-            this.base = dependencyEncodings[0].getBaseLayer();
-        }
     }
 
     public void addSecondarySsrc(long ssrc, String type)
@@ -597,15 +591,15 @@ public class RTPEncodingDesc
         rateStatistics.update(pkt.getLength(), nowMs);
 
         long ts = pkt.getTimestamp();
-        FrameDesc frame = base.streamFrames.get(ts);
+        FrameDesc frame = getBaseLayer().streamFrames.get(ts);
 
         boolean isPacketOfNewFrame;
         if (frame == null)
         {
             isPacketOfNewFrame = true;
-            synchronized (base.streamFrames)
+            synchronized (getBaseLayer().streamFrames)
             {
-                base.streamFrames.put(
+                getBaseLayer().streamFrames.put(
                     ts, frame = new FrameDesc(this, pkt, nowMs));
             }
 
@@ -632,7 +626,7 @@ public class RTPEncodingDesc
 
             // Find the closest next frame.
             Map.Entry<Long, FrameDesc> ceilingEntry
-                = base.streamFrames.ceilingEntry((ts + 1) & 0xFFFFFFFFL);
+                = getBaseLayer().streamFrames.ceilingEntry((ts + 1) & 0xFFFFFFFFL);
 
             if (ceilingEntry != null)
             {
@@ -641,7 +635,7 @@ public class RTPEncodingDesc
 
             // Find the closest previous frame.
             Map.Entry<Long, FrameDesc> floorEntry
-                = base.streamFrames.floorEntry((ts - 1) & 0xFFFFFFFFL);
+                = getBaseLayer().streamFrames.floorEntry((ts - 1) & 0xFFFFFFFFL);
 
             if (floorEntry != null)
             {
@@ -736,9 +730,9 @@ public class RTPEncodingDesc
      */
     FrameDesc findFrameDesc(long timestamp)
     {
-        synchronized (base.streamFrames)
+        synchronized (getBaseLayer().streamFrames)
         {
-            return base.streamFrames.get(timestamp);
+            return getBaseLayer().streamFrames.get(timestamp);
         }
     }
 
@@ -761,6 +755,20 @@ public class RTPEncodingDesc
      */
     public RTPEncodingDesc getBaseLayer()
     {
+        if (!baseIsInitialized)
+        {
+            if (ArrayUtils.isNullOrEmpty(dependencyEncodings))
+            {
+                base = this;
+            }
+            else
+            {
+                base = dependencyEncodings[0].getBaseLayer();
+            }
+
+            baseIsInitialized = true;
+        }
+
         return base;
     }
 
