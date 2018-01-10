@@ -510,7 +510,9 @@ public class RTCPTCCPacket
         // Temporary buffer to store the fixed fields (8 bytes) and the list of
         // packet status chunks (see the format above). The buffer may be longer
         // than needed. We pack 7 packets in a chunk, and a chunk is 2 bytes.
-        byte[] buf = new byte[(packetCount / 7 + 1) * 2 + 8];
+        byte[] buf = packetCount % 7 == 0
+            ? new byte[(packetCount / 7) * 2 + 8]
+            : new byte[(packetCount / 7 + 1) * 2 + 8];
         // Temporary buffer to store the list of deltas (see the format above).
         // We allocated for the worst case (2 bytes per packet), which may
         // be longer than needed.
@@ -630,7 +632,7 @@ public class RTCPTCCPacket
         }
 
         off++;
-        if (packetCount % 7 <= 3)
+        if (packetCount % 7 > 0 && packetCount % 7 <= 3)
         {
             // the last chunk was not complete
             buf[off++] = 0;
