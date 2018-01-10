@@ -123,7 +123,7 @@ public class RTCPTCCPacketTest
         int referenceTime64ms = (int) ((nowMs >> 6) & 0xffffff);
         long referenceTime250us = referenceTime64ms << 8;
         assertEquals(referenceTime250us,
-                RTCPTCCPacket.getReferenceTime(afterBaf));
+                RTCPTCCPacket.getReferenceTime250us(afterBaf));
 
         long nextReferenceTime250us = referenceTime250us + (60 << 2);
         assertEquals(nextReferenceTime250us, (long) after.get(1268));

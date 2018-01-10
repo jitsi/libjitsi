@@ -415,7 +415,7 @@ public class TransportCCEngine
 
             if (remoteReferenceTimeMs == -1)
             {
-                remoteReferenceTimeMs = RTCPTCCPacket.getReferenceTime(
+                remoteReferenceTimeMs = RTCPTCCPacket.getReferenceTime250us(
                         new ByteArrayBufferImpl(
                             tccPacket.fci, 0, tccPacket.fci.length)) / 4;
 

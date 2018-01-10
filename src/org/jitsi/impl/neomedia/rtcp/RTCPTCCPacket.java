@@ -98,7 +98,7 @@ public class RTCPTCCPacket
      * unit facilitates the arrival time computations, as the deltas have 250µs
      * resolution.
      */
-    public static long getReferenceTime(ByteArrayBuffer fciBuffer)
+    public static long getReferenceTime250us(ByteArrayBuffer fciBuffer)
     {
         byte[] buf = fciBuffer.getBuffer();
         int off = fciBuffer.getOffset();
@@ -144,7 +144,7 @@ public class RTCPTCCPacket
         int baseSeq = RTPUtils.readUint16AsInt(buf, off);
         int packetStatusCount = RTPUtils.readUint16AsInt(buf, off + 2);
 
-        long referenceTime = getReferenceTime(fciBuffer);
+        long referenceTime = getReferenceTime250us(fciBuffer);
 
         // The offset at which the packet status chunk list starts.
         int pscOff = off + 8;
