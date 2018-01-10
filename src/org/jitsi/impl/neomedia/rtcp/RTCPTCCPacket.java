@@ -607,27 +607,27 @@ public class RTCPTCCPacket
             // symbol (we've already set 'off' to point to the correct byte).
             //  0 1 2 3 4 5 6 7          8 9 0 1 2 3 4 5
             //  S T <0> <1> <2>          <3> <4> <5> <6>
-            int symbolOffset;
+            int symbolShift;
             switch (seqDelta % 7)
             {
             case 0:
             case 4:
-                symbolOffset = 4;
+                symbolShift = 4;
                 break;
             case 1:
             case 5:
-                symbolOffset = 2;
+                symbolShift = 2;
                 break;
             case 2:
             case 6:
-                symbolOffset = 0;
+                symbolShift = 0;
                 break;
             case 3:
             default:
-                symbolOffset = 6;
+                symbolShift = 6;
             }
 
-            symbol <<= symbolOffset;
+            symbol <<= symbolShift;
             buf[off] |= symbol;
         }
 
