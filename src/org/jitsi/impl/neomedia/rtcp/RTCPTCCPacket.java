@@ -530,9 +530,8 @@ public class RTCPTCCPacket
         off += RTPUtils.writeShort(buf, off, (short) packetCount);
 
         // Set the 'reference time' field
-        off +=
-            RTPUtils.writeUint24(buf, off,
-                                 (int) ((referenceTime >> 6) & 0xffffff));
+        off += RTPUtils.writeUint24(
+                buf, off, (int) ((referenceTime >> 6) & 0xffffff));
 
         // Set the 'fb pkt count' field. TODO increment
         buf[off++] = fbPacketCount;
@@ -576,7 +575,7 @@ public class RTCPTCCPacket
 
                     // The small delta is an 8-bit unsigned with a resolution of
                     // 250µs. Our deltas are all in milliseconds (hence << 2).
-                    deltas[deltaOff++] = (byte ) ((tsDelta << 2) & 0xff);
+                    deltas[deltaOff++] = (byte) ((tsDelta << 2) & 0xff);
                 }
                 else if (tsDelta < 8191 && tsDelta > -8192)
                 {
@@ -595,7 +594,8 @@ public class RTCPTCCPacket
                     // send feedback with such deltas, we should split it up
                     // into multiple RTCP packets. We can't do that here in the
                     // constructor.
-                    throw new IllegalArgumentException("Delta too big, needs new reference.");
+                    throw new IllegalArgumentException(
+                            "Delta too big, needs new reference.");
                 }
 
                 // If the packet was received, the next delta will be relative
@@ -638,12 +638,10 @@ public class RTCPTCCPacket
             buf[off++] = 0;
         }
 
-
         fci = new byte[off + deltaOff];
         System.arraycopy(buf, 0, fci, 0, off);
         System.arraycopy(deltas, 0, fci, off, deltaOff);
     }
-
 
     /**
      * @return the map of packets represented by this {@link RTCPTCCPacket}.
