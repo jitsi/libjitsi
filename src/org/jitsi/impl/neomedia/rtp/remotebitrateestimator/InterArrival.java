@@ -315,12 +315,11 @@ class InterArrival
             long tsDeltaMs = (long) (timestampToMsCoeff * timestampDiff + 0.5);
             boolean inOrder = timestampDiff < 0x80000000L;
 
-            if (logger.isTraceEnabled() && diagnosticContext != null)
+            if (!inOrder && logger.isTraceEnabled())
             {
                 logger.trace(diagnosticContext
                         .makeTimeSeriesPoint("reordered_packet")
                         .addKey("inter_arrival", hashCode())
-                        .addField("in_order", inOrder)
                         .addField("ts_delta_ms", tsDeltaMs));
             }
 

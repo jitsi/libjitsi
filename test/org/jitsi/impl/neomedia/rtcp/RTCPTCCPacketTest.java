@@ -17,6 +17,7 @@ package org.jitsi.impl.neomedia.rtcp;
 
 import org.jitsi.service.neomedia.*;
 import org.junit.*;
+import org.jitsi.util.*;
 
 import static org.junit.Assert.*;
 
@@ -86,7 +87,8 @@ public class RTCPTCCPacketTest
         before.put(130, now + 30);
         before.put(138, now + 30);
 
-        RTCPTCCPacket packet = new RTCPTCCPacket(0, 0, before, (byte) 13);
+        RTCPTCCPacket packet = new RTCPTCCPacket(
+                0, 0, before, (byte) 13, new DiagnosticContext());
 
         RTCPTCCPacket.PacketMap after = RTCPTCCPacket.getPacketsFci(new ByteArrayBufferImpl(packet.fci));
 
@@ -110,7 +112,8 @@ public class RTCPTCCPacketTest
         before.put(1273, nowMs + 18);
         before.put(1274, nowMs + 35);
 
-        RTCPTCCPacket packet = new RTCPTCCPacket(0, 0, before, (byte) 13);
+        RTCPTCCPacket packet = new RTCPTCCPacket(
+                0, 0, before, (byte) 13, new DiagnosticContext());
 
         ByteArrayBufferImpl afterBaf = new ByteArrayBufferImpl(packet.fci);
         RTCPTCCPacket.PacketMap after = RTCPTCCPacket.getPacketsFci(afterBaf);

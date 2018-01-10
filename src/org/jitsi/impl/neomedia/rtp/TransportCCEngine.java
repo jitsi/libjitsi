@@ -174,7 +174,7 @@ public class TransportCCEngine
      * @param seq the transport-wide sequence number of the packet.
      * @param marked whether the RTP packet had the "marked" bit set.
      */
-    private void packetReceived(int seq, boolean marked)
+    private void packetReceived(int seq, int pt, boolean marked)
     {
         long now = System.currentTimeMillis();
         synchronized (incomingPacketsSyncRoot)
@@ -202,6 +202,15 @@ public class TransportCCEngine
                 firstIncomingTs = now;
             }
             incomingPackets.put(seq, now);
+        }
+
+        if (logger.isTraceEnabled())
+        {
+            logger.trace(diagnosticContext
+                    .makeTimeSeriesPoint("packet_received")
+                    .addField("seq", seq)
+                    .addField("pt", pt)
+                    .setTimestampMs(now));
         }
 
         maybeSendRtcp(marked, now);
@@ -308,7 +317,8 @@ public class TransportCCEngine
                 RTCPTCCPacket rtcpPacket = new RTCPTCCPacket(
                     senderSSRC, sourceSSRC,
                     packets,
-                    (byte) (outgoingFbPacketCount.getAndIncrement() & 0xff));
+                    (byte) (outgoingFbPacketCount.getAndIncrement() & 0xff),
+                    diagnosticContext);
 
                 // Inject the TCC packet *after* this engine. We don't want
                 // RTCP termination -which runs before this engine in the 
@@ -541,7 +551,8 @@ public class TransportCCEngine
                     int seq
                         = RTPUtils.readUint16AsInt(
                         he.getBuffer(), he.getOffset() + 1);
-                    packetReceived(seq, pkt.isPacketMarked());
+                    packetReceived(
+                            seq, pkt.getPayloadType(), pkt.isPacketMarked());
                 }
             }
             return pkt;

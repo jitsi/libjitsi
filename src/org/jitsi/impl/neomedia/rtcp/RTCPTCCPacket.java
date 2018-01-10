@@ -487,6 +487,8 @@ public class RTCPTCCPacket
      * missing (not received) packets.
      * @param fbPacketCount the index of this feedback packet, to be used in the
      * "fb pkt count" field.
+     * @param diagnosticContext the {@link DiagnosticContext} to use to print
+     * diagnostic information.
      *
      * Warning: The timestamps for the packets are expected to be in
      * millisecond increments, which is different than the output map produced
@@ -495,9 +497,9 @@ public class RTCPTCCPacket
      * Note: this implementation is not optimized and might not always use
      * the minimal possible number of bytes to describe a given set of packets.
      */
-    public RTCPTCCPacket(long senderSSRC, long sourceSSRC,
-                         PacketMap packets,
-                         byte fbPacketCount)
+    public RTCPTCCPacket(
+            long senderSSRC, long sourceSSRC, PacketMap packets,
+            byte fbPacketCount, DiagnosticContext diagnosticContext)
     {
         super(FMT, RTPFB, senderSSRC, sourceSSRC);
 
@@ -576,6 +578,15 @@ public class RTCPTCCPacket
                     // The small delta is an 8-bit unsigned with a resolution of
                     // 250µs. Our deltas are all in milliseconds (hence << 2).
                     deltas[deltaOff++] = (byte) ((tsDelta << 2) & 0xff);
+                    if (logger.isTraceEnabled())
+                    {
+                        logger.trace(diagnosticContext
+                                .makeTimeSeriesPoint("small_delta")
+                                .addField("seq", seq)
+                                .addField("arrival_time_ms", ts)
+                                .addField("ref_time_ms", nextReferenceTime)
+                                .addField("delta", tsDelta));
+                    }
                 }
                 else if (tsDelta < 8191 && tsDelta > -8192)
                 {
@@ -586,6 +597,15 @@ public class RTCPTCCPacket
                     short d = (short) (tsDelta << 2);
                     deltas[deltaOff++] = (byte) ((d >> 8) & 0xff);
                     deltas[deltaOff++] = (byte) ((d) & 0xff);
+                    if (logger.isTraceEnabled())
+                    {
+                        logger.trace(diagnosticContext
+                                .makeTimeSeriesPoint("large_delta")
+                                .addField("seq", seq)
+                                .addField("arrival_time_ms", ts)
+                                .addField("ref_time_ms", nextReferenceTime)
+                                .addField("delta", tsDelta));
+                    }
                 }
                 else
                 {
