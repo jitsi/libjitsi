@@ -1211,7 +1211,7 @@ public class MediaStreamImpl
 
         if (transportCCEngine != null)
         {
-            engineChain.add(transportCCEngine);
+            engineChain.add(transportCCEngine.getEgressEngine());
         }
 
         // Debug
@@ -1228,6 +1228,11 @@ public class MediaStreamImpl
         if (srtpTransformEngine != null)
         {
             engineChain.add(srtpControl.getTransformEngine());
+        }
+
+        if (transportCCEngine != null)
+        {
+            engineChain.add(transportCCEngine.getIngressEngine());
         }
 
         // SSRC audio levels
