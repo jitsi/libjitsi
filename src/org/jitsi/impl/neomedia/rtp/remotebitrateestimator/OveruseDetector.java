@@ -64,8 +64,8 @@ class OveruseDetector
             throw new NullPointerException("options");
 
         threshold = options.initialThreshold;
-        Objects.requireNonNull(diagnosticContext);
-        this.diagnosticContext = diagnosticContext;
+        this.diagnosticContext
+            = Objects.requireNonNull(diagnosticContext, "diagnosticContext");
 
         if (inExperiment)
             initializeExperiment();

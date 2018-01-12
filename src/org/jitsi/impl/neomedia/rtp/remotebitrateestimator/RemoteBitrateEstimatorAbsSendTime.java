@@ -215,8 +215,8 @@ public class RemoteBitrateEstimatorAbsSendTime
             DiagnosticContext diagnosticContext)
     {
         this.observer = observer;
-        Objects.requireNonNull(diagnosticContext);
-        this.diagnosticContext = diagnosticContext;
+        this.diagnosticContext
+            = Objects.requireNonNull(diagnosticContext, "diagnosticContext");
         this.remoteRate = new AimdRateControl(diagnosticContext);
         this.incomingBitrate = new RateStatistics(kBitrateWindowMs, kBitrateScale);
         this.incomingBitrateInitialized = false;

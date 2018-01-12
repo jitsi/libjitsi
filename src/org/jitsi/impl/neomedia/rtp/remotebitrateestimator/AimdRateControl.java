@@ -91,8 +91,8 @@ class AimdRateControl
     public AimdRateControl(DiagnosticContext diagnosticContext)
     {
         reset();
-        Objects.requireNonNull(diagnosticContext);
-        this.diagnosticContext = diagnosticContext;
+        this.diagnosticContext
+            = Objects.requireNonNull(diagnosticContext, "diagnosticContext");
     }
 
     private long additiveRateIncrease(

@@ -88,8 +88,8 @@ class InterArrival
         this.timestampToMsCoeff = timestampToMsCoeff;
         burstGrouping = enableBurstGrouping;
         numConsecutiveReorderedPackets = 0;
-        Objects.requireNonNull(diagnosticContext);
-        this.diagnosticContext = diagnosticContext;
+        this.diagnosticContext
+            = Objects.requireNonNull(diagnosticContext, "diagnosticContext");
     }
 
     private boolean belongsToBurst(long arrivalTimeMs, long timestamp)

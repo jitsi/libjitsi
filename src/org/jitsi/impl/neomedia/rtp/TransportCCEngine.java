@@ -166,11 +166,10 @@ public class TransportCCEngine
      */
     public TransportCCEngine(DiagnosticContext diagnosticContext)
     {
-        Objects.requireNonNull(diagnosticContext);
-        this.diagnosticContext = diagnosticContext;
+        this.diagnosticContext
+            = Objects.requireNonNull(diagnosticContext, "diagnosticContext");
         bitrateEstimatorAbsSendTime
-            = new RemoteBitrateEstimatorAbsSendTime(
-                    this, diagnosticContext);
+            = new RemoteBitrateEstimatorAbsSendTime(this, diagnosticContext);
     }
 
     /**
@@ -604,7 +603,7 @@ public class TransportCCEngine
                 if (logger.isDebugEnabled())
                 {
                     logger.debug("rtp_seq=" + pkt.getSequenceNumber()
-                            + ",pt=" + pkt.getPayloadType()
+                            + ",pt=" + RawPacket.getPayloadType(pkt)
                             + ",tcc_seq=" + seq);
                 }
 
@@ -668,7 +667,9 @@ public class TransportCCEngine
                     int seq = RTPUtils.readUint16AsInt(
                             he.getBuffer(), he.getOffset() + 1);
                     packetReceived(
-                            seq, pkt.getPayloadType(), pkt.isPacketMarked());
+                            seq,
+                            RawPacket.getPayloadType(pkt),
+                            pkt.isPacketMarked());
                 }
             }
             return pkt;

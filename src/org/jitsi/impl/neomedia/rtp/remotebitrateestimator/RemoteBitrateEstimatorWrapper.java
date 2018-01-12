@@ -121,7 +121,7 @@ public class RemoteBitrateEstimatorWrapper
     private RemoteBitrateEstimator rbe;
 
     /**
-     * The {@link DiangosticContext} for this instance.
+     * The {@link DiagnosticContext} for this instance.
      */
     private final DiagnosticContext diagnosticContext;
 
@@ -137,9 +137,8 @@ public class RemoteBitrateEstimatorWrapper
             DiagnosticContext diagnosticContext)
     {
         this.observer = observer;
-
-        Objects.requireNonNull(diagnosticContext);
-        this.diagnosticContext = diagnosticContext;
+        this.diagnosticContext
+            = Objects.requireNonNull(diagnosticContext, "diagnosticContext");
         // Initialize to the default RTP timestamp based RBE.
         this.rbe = new RemoteBitrateEstimatorSingleStream(
                 observer, diagnosticContext);
@@ -267,8 +266,6 @@ public class RemoteBitrateEstimatorWrapper
             incomingPacketInfo(System.currentTimeMillis(), sendTime24bits,
                 pkt.getPayloadLength(), pkt.getSSRCAsLong());
         }
-
-        // FIXME what if we don't have abs-send-time header extension.
 
         return pkt;
     }

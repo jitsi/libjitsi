@@ -116,8 +116,8 @@ class OveruseEstimator
             OverUseDetectorOptions options,
             DiagnosticContext diagnosticContext)
     {
-        Objects.requireNonNull(diagnosticContext);
-        this.diagnosticContext = diagnosticContext;
+        this.diagnosticContext
+            = Objects.requireNonNull(diagnosticContext, "diagnosticContext");
         slope = options.initialSlope;
         offset = options.initialOffset;
         prevOffset = offset;
