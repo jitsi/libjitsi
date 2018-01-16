@@ -17,6 +17,7 @@ package org.jitsi.impl.neomedia.rtp.remotebitrateestimator;
 
 import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.*;
+import org.jetbrains.annotations.*;
 
 import java.util.*;
 
@@ -88,11 +89,10 @@ class AimdRateControl
 
     private float varMaxBitrateKbps;
 
-    public AimdRateControl(DiagnosticContext diagnosticContext)
+    public AimdRateControl(@NotNull DiagnosticContext diagnosticContext)
     {
         reset();
-        this.diagnosticContext
-            = Objects.requireNonNull(diagnosticContext, "diagnosticContext");
+        this.diagnosticContext = diagnosticContext;
     }
 
     private long additiveRateIncrease(

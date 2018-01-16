@@ -20,6 +20,7 @@ import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.rtp.*;
+import org.jetbrains.annotations.*;
 
 import java.util.*;
 import org.jitsi.util.*;
@@ -134,11 +135,10 @@ public class RemoteBitrateEstimatorWrapper
      */
     public RemoteBitrateEstimatorWrapper(
             RemoteBitrateObserver observer,
-            DiagnosticContext diagnosticContext)
+            @NotNull DiagnosticContext diagnosticContext)
     {
         this.observer = observer;
-        this.diagnosticContext
-            = Objects.requireNonNull(diagnosticContext, "diagnosticContext");
+        this.diagnosticContext = diagnosticContext;
         // Initialize to the default RTP timestamp based RBE.
         this.rbe = new RemoteBitrateEstimatorSingleStream(
                 observer, diagnosticContext);

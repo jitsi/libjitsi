@@ -22,6 +22,7 @@ import net.sf.fmj.media.rtp.util.*;
 import org.ice4j.util.*;
 import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.*;
+import org.jetbrains.annotations.*;
 
 /**
  * webrtc/modules/remote_bitrate_estimator/remote_bitrate_estimator_single_stream.cc
@@ -80,11 +81,10 @@ public class RemoteBitrateEstimatorSingleStream
 
     public RemoteBitrateEstimatorSingleStream(
             RemoteBitrateObserver observer,
-            DiagnosticContext diagnosticContext)
+            @NotNull DiagnosticContext diagnosticContext)
     {
         this.observer = observer;
-        this.diagnosticContext
-            = Objects.requireNonNull(diagnosticContext, "diagnosticContext");
+        this.diagnosticContext = diagnosticContext;
         this.remoteRate = new AimdRateControl(diagnosticContext);
     }
 

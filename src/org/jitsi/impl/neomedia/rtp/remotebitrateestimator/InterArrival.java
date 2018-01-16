@@ -17,6 +17,7 @@ package org.jitsi.impl.neomedia.rtp.remotebitrateestimator;
 
 import org.jitsi.impl.neomedia.rtp.TimestampUtils;
 import org.jitsi.util.*;
+import org.jetbrains.annotations.*;
 
 import java.util.*;
 
@@ -82,14 +83,13 @@ class InterArrival
             long timestampGroupLengthTicks,
             double timestampToMsCoeff,
             boolean enableBurstGrouping,
-            DiagnosticContext diagnosticContext)
+            @NotNull DiagnosticContext diagnosticContext)
     {
         kTimestampGroupLengthTicks = timestampGroupLengthTicks;
         this.timestampToMsCoeff = timestampToMsCoeff;
         burstGrouping = enableBurstGrouping;
         numConsecutiveReorderedPackets = 0;
-        this.diagnosticContext
-            = Objects.requireNonNull(diagnosticContext, "diagnosticContext");
+        this.diagnosticContext = diagnosticContext;
     }
 
     private boolean belongsToBurst(long arrivalTimeMs, long timestamp)

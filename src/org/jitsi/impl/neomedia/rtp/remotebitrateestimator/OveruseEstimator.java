@@ -16,6 +16,7 @@
 package org.jitsi.impl.neomedia.rtp.remotebitrateestimator;
 
 import org.jitsi.util.*;
+import org.jetbrains.annotations.*;
 
 import java.util.*;
 
@@ -114,10 +115,9 @@ class OveruseEstimator
 
     public OveruseEstimator(
             OverUseDetectorOptions options,
-            DiagnosticContext diagnosticContext)
+            @NotNull DiagnosticContext diagnosticContext)
     {
-        this.diagnosticContext
-            = Objects.requireNonNull(diagnosticContext, "diagnosticContext");
+        this.diagnosticContext = diagnosticContext;
         slope = options.initialSlope;
         offset = options.initialOffset;
         prevOffset = offset;

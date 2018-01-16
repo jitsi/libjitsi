@@ -20,6 +20,7 @@ import org.ice4j.util.*;
 import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.Logger;
 import org.jitsi.util.*;
+import org.jetbrains.annotations.*;
 
 import java.util.*;
 
@@ -212,11 +213,10 @@ public class RemoteBitrateEstimatorAbsSendTime
      */
     public RemoteBitrateEstimatorAbsSendTime(
             RemoteBitrateObserver observer,
-            DiagnosticContext diagnosticContext)
+            @NotNull DiagnosticContext diagnosticContext)
     {
         this.observer = observer;
-        this.diagnosticContext
-            = Objects.requireNonNull(diagnosticContext, "diagnosticContext");
+        this.diagnosticContext = diagnosticContext;
         this.remoteRate = new AimdRateControl(diagnosticContext);
         this.incomingBitrate = new RateStatistics(kBitrateWindowMs, kBitrateScale);
         this.incomingBitrateInitialized = false;

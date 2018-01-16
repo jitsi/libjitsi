@@ -16,6 +16,7 @@
 package org.jitsi.impl.neomedia.rtp.remotebitrateestimator;
 
 import org.jitsi.util.*;
+import org.jetbrains.annotations.*;
 
 import java.util.*;
 
@@ -58,14 +59,13 @@ class OveruseDetector
 
     public OveruseDetector(
             OverUseDetectorOptions options,
-            DiagnosticContext diagnosticContext)
+            @NotNull DiagnosticContext diagnosticContext)
     {
         if (options == null)
             throw new NullPointerException("options");
 
         threshold = options.initialThreshold;
-        this.diagnosticContext
-            = Objects.requireNonNull(diagnosticContext, "diagnosticContext");
+        this.diagnosticContext = diagnosticContext;
 
         if (inExperiment)
             initializeExperiment();

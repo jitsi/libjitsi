@@ -21,6 +21,7 @@ import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.rtp.*;
+import org.jetbrains.annotations.*;
 import org.jitsi.util.*;
 
 import java.io.*;
@@ -164,10 +165,9 @@ public class TransportCCEngine
      *
      * @param diagnosicContext the {@link DiagnosticContext} of this instance.
      */
-    public TransportCCEngine(DiagnosticContext diagnosticContext)
+    public TransportCCEngine(@NotNull DiagnosticContext diagnosticContext)
     {
-        this.diagnosticContext
-            = Objects.requireNonNull(diagnosticContext, "diagnosticContext");
+        this.diagnosticContext = diagnosticContext;
         bitrateEstimatorAbsSendTime
             = new RemoteBitrateEstimatorAbsSendTime(this, diagnosticContext);
     }
