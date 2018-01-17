@@ -231,7 +231,8 @@ class SendSideBandwidthEstimation
                             .makeTimeSeriesPoint("ssbwe_update")
                             .addField("action", "increase")
                             .addField("last_fraction_loss", last_fraction_loss_)
-                            .addField("bitrate", bitrate));
+                            .addField("bitrate", bitrate)
+                            .setTimestampMs(now));
                 }
 
             }
@@ -245,7 +246,8 @@ class SendSideBandwidthEstimation
                             .makeTimeSeriesPoint("ssbwe_update")
                             .addField("action", "keep")
                             .addField("last_fraction_loss", last_fraction_loss_)
-                            .addField("bitrate", bitrate));
+                            .addField("bitrate", bitrate)
+                            .setTimestampMs(now));
                 }
             }
             else
@@ -271,7 +273,8 @@ class SendSideBandwidthEstimation
                                 .makeTimeSeriesPoint("ssbwe_update")
                                 .addField("action", "decrease")
                                 .addField("last_fraction_loss", last_fraction_loss_)
-                                .addField("bitrate", bitrate));
+                                .addField("bitrate", bitrate)
+                                .setTimestampMs(now));
                     }
                 }
             }
@@ -354,7 +357,8 @@ class SendSideBandwidthEstimation
         {
             logger.trace(diagnosticContext
                     .makeTimeSeriesPoint("ssbwe_update_receiver_estimate")
-                    .addField("estimate", bandwidth));
+                    .addField("estimate", bandwidth)
+                    .setTimestampMs(System.currentTimeMillis()));
         }
         setBitrate(capBitrateToThresholds(bitrate_));
     }

@@ -454,6 +454,11 @@ public class RemoteBitrateEstimatorAbsSendTime
         // Convert the expanded AST (32 bits, 6.26 fixed point) to millis.
         long sendTimeMs = (long) (timestamp * kTimestampToMs);
 
+        // XXX The arrival time should be the earliest we've seen this packet,
+        // not now. In our code however, we don't have access to the arrival
+        // time.
+        long nowMs = System.currentTimeMillis();
+
         if (logger.isTraceEnabled())
         {
             logger.trace(diagnosticContext
@@ -463,13 +468,9 @@ public class RemoteBitrateEstimatorAbsSendTime
                 .addField("send_time_24bits", sendTime24bits)
                 .addField("send_time_ms", sendTimeMs)
                 .addField("payload_size", payloadSize)
-                .addField("ssrc", ssrc));
+                .addField("ssrc", ssrc)
+                .setTimestampMs(nowMs));
         }
-
-        // XXX The arrival time should be the earliest we've seen this packet,
-        // not now. In our code however, we don't have access to the arrival
-        // time.
-        long nowMs = System.currentTimeMillis();
 
         // should be broken out from  here.
         // Check if incoming bitrate estimate is valid, and if it
