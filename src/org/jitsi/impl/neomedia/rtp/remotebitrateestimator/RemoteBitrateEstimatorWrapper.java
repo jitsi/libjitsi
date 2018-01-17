@@ -20,6 +20,7 @@ import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.rtp.*;
+import org.jetbrains.annotations.*;
 
 import java.util.*;
 import org.jitsi.util.*;
@@ -121,16 +122,26 @@ public class RemoteBitrateEstimatorWrapper
     private RemoteBitrateEstimator rbe;
 
     /**
+     * The {@link DiagnosticContext} for this instance.
+     */
+    private final DiagnosticContext diagnosticContext;
+
+    /**
      * Ctor.
      *
      * @param observer the observer to notify on bitrate estimation changes.
+     * @param diagnosticContext the {@link DiagnosticContext} to be used by
+     * this instance.
      */
-    public RemoteBitrateEstimatorWrapper(RemoteBitrateObserver observer)
+    public RemoteBitrateEstimatorWrapper(
+            RemoteBitrateObserver observer,
+            @NotNull DiagnosticContext diagnosticContext)
     {
         this.observer = observer;
-
+        this.diagnosticContext = diagnosticContext;
         // Initialize to the default RTP timestamp based RBE.
-        rbe = new RemoteBitrateEstimatorSingleStream(observer);
+        this.rbe = new RemoteBitrateEstimatorSingleStream(
+                observer, diagnosticContext);
     }
 
     /**
@@ -205,13 +216,8 @@ public class RemoteBitrateEstimatorWrapper
             {
                 usingAbsoluteSendTime = true;
 
-                this.rbe = new RemoteBitrateEstimatorAbsSendTime(observer);
-                if (logger.isTraceEnabled())
-                {
-                    logger.trace("created_rbe," + hashCode()
-                            + "," + System.currentTimeMillis()
-                            + "," + this.rbe.hashCode());
-                }
+                rbe = new RemoteBitrateEstimatorAbsSendTime(
+                        observer, diagnosticContext);
 
                 int minBitrateBps = this.minBitrateBps;
                 if (minBitrateBps > 0)
@@ -232,14 +238,9 @@ public class RemoteBitrateEstimatorWrapper
                 if (packetsSinceAbsoluteSendTime >= SS_THRESHOLD)
                 {
                     usingAbsoluteSendTime = false;
-                    rbe = new RemoteBitrateEstimatorSingleStream(observer);
-                    if (logger.isTraceEnabled())
-                    {
-                        logger.trace("created_rbe," + hashCode()
-                                + "," + System.currentTimeMillis()
-                                + "," + this.rbe.hashCode());
-                    }
 
+                    rbe = new RemoteBitrateEstimatorSingleStream(
+                            observer, diagnosticContext);
                     int minBitrateBps = this.minBitrateBps;
                     if (minBitrateBps > 0)
                     {

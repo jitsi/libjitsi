@@ -21,6 +21,7 @@ import org.jitsi.impl.neomedia.rtp.remotebitrateestimator.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.rtp.*;
+import org.jetbrains.annotations.*;
 import org.jitsi.util.*;
 
 import java.io.*;
@@ -39,8 +40,7 @@ import java.util.concurrent.atomic.*;
  */
 public class TransportCCEngine
     extends RTCPPacketListenerAdapter
-    implements TransformEngine,
-               RemoteBitrateObserver,
+    implements RemoteBitrateObserver,
                CallStatsObserver
 {
     /**
@@ -63,9 +63,16 @@ public class TransportCCEngine
         = Logger.getLogger(TransportCCEngine.class);
 
     /**
-     * The transformer which handles RTP packets for this instance.
+     * The engine which handles incoming RTP packets for this instance. It
+     * reads transport-wide sequence numbers and registers arrival times.
      */
-    private final RTPTransformer rtpTransformer = new RTPTransformer();
+    private final IngressEngine ingressEngine = new IngressEngine();
+
+    /**
+     * The engine which handles outgoing RTP packets for this instance. It
+     * adds transport-wide sequence numbers to outgoing RTP packets.
+     */
+    private final EgressEngine egressEngine = new EgressEngine();
 
     /**
      * The ID of the transport-cc RTP header extension, or -1 if one is not
@@ -112,6 +119,12 @@ public class TransportCCEngine
     private final Object sentPacketsSyncRoot = new Object();
 
     /**
+     * The {@link DiagnosticContext} to be used by this instance when printing
+     * diagnostic information.
+     */
+    private final DiagnosticContext diagnosticContext;
+
+    /**
      * The time (in milliseconds since the epoch) at which the first received
      * packet in {@link #incomingPackets} was received (or -1 if the map is
      * empty).
@@ -145,8 +158,19 @@ public class TransportCCEngine
     /**
      * Used for estimating the bitrate from RTCP TCC feedback packets
      */
-    private RemoteBitrateEstimatorAbsSendTime bitrateEstimatorAbsSendTime
-        = new RemoteBitrateEstimatorAbsSendTime(this);
+    private final RemoteBitrateEstimatorAbsSendTime bitrateEstimatorAbsSendTime;
+
+    /**
+     * Ctor.
+     *
+     * @param diagnosicContext the {@link DiagnosticContext} of this instance.
+     */
+    public TransportCCEngine(@NotNull DiagnosticContext diagnosticContext)
+    {
+        this.diagnosticContext = diagnosticContext;
+        bitrateEstimatorAbsSendTime
+            = new RemoteBitrateEstimatorAbsSendTime(this, diagnosticContext);
+    }
 
     /**
      * Notifies this instance that a data packet with a specific transport-wide
@@ -155,7 +179,7 @@ public class TransportCCEngine
      * @param seq the transport-wide sequence number of the packet.
      * @param marked whether the RTP packet had the "marked" bit set.
      */
-    private void packetReceived(int seq, boolean marked)
+    private void packetReceived(int seq, int pt, boolean marked)
     {
         long now = System.currentTimeMillis();
         synchronized (incomingPacketsSyncRoot)
@@ -183,6 +207,14 @@ public class TransportCCEngine
                 firstIncomingTs = now;
             }
             incomingPackets.put(seq, now);
+        }
+
+        if (logger.isTraceEnabled())
+        {
+            logger.trace(diagnosticContext
+                    .makeTimeSeriesPoint("packet_received", now)
+                    .addField("seq", seq)
+                    .addField("pt", pt));
         }
 
         maybeSendRtcp(marked, now);
@@ -289,13 +321,14 @@ public class TransportCCEngine
                 RTCPTCCPacket rtcpPacket = new RTCPTCCPacket(
                     senderSSRC, sourceSSRC,
                     packets,
-                    (byte) (outgoingFbPacketCount.getAndIncrement() & 0xff));
+                    (byte) (outgoingFbPacketCount.getAndIncrement() & 0xff),
+                    diagnosticContext);
 
                 // Inject the TCC packet *after* this engine. We don't want
                 // RTCP termination -which runs before this engine in the 
                 // egress- to drop the packet we just sent.
                 stream.injectPacket(
-                        rtcpPacket.toRawPacket(), false /* rtcp */, this);
+                        rtcpPacket.toRawPacket(), false /* rtcp */, egressEngine);
             }
             catch (IllegalArgumentException iae)
             {
@@ -323,24 +356,6 @@ public class TransportCCEngine
     public void onRttUpdate(long avgRttMs, long maxRttMs)
     {
         bitrateEstimatorAbsSendTime.onRttUpdate(avgRttMs, maxRttMs);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public PacketTransformer getRTPTransformer()
-    {
-        return rtpTransformer;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public PacketTransformer getRTCPTransformer()
-    {
-        return null;
     }
 
     /**
@@ -396,7 +411,7 @@ public class TransportCCEngine
 
             if (remoteReferenceTimeMs == -1)
             {
-                remoteReferenceTimeMs = RTCPTCCPacket.getReferenceTime(
+                remoteReferenceTimeMs = RTCPTCCPacket.getReferenceTime250us(
                         new ByteArrayBufferImpl(
                             tccPacket.fci, 0, tccPacket.fci.length)) / 4;
 
@@ -422,14 +437,20 @@ public class TransportCCEngine
                 if (previousArrivalTimeMs != -1)
                 {
                     long diff_ms = arrivalTimeMs - previousArrivalTimeMs;
-                    logger.debug("seq=" + entry.getKey()
-                            + ", arrival_time_ms=" + arrivalTimeMs
-                            + ", diff_ms=" + diff_ms);
+                    logger.debug(diagnosticContext
+                            .makeTimeSeriesPoint("packet_ack")
+                            .addKey("tcc_engine", hashCode())
+                            .addField("seq", entry.getKey())
+                            .addField("arrival_time_ms", arrivalTimeMs)
+                            .addField("diff_ms", diff_ms));
                 }
                 else
                 {
-                    logger.debug("seq=" + entry.getKey()
-                            + ", arrival_time_ms=" + arrivalTimeMs);
+                    logger.debug(diagnosticContext
+                            .makeTimeSeriesPoint("packet_ack")
+                            .addKey("tcc_engine", hashCode())
+                            .addField("seq", entry.getKey())
+                            .addField("arrival_time_ms", arrivalTimeMs));
                 }
             }
 
@@ -446,81 +467,19 @@ public class TransportCCEngine
     }
 
     /**
-     * Handles RTP packets for this {@link TransportCCEngine}.
+     * Gets the engine which handles outgoing RTP packets for this instance.
      */
-    private class RTPTransformer
-        extends SinglePacketTransformerAdapter
+    public TransformEngine getEgressEngine()
     {
-        /**
-         * Initializes a new {@link RTPTransformer} instance.
-         */
-        private RTPTransformer()
-        {
-            super(RTPPacketPredicate.INSTANCE);
-        }
+        return egressEngine;
+    }
 
-        /**
-         * {@inheritDoc}
-         * <p></p>
-         * If the transport-cc extension is configured, update the
-         * transport-wide sequence number (adding a new extension if one doesn't
-         * exist already).
-         */
-        @Override
-        public RawPacket transform(RawPacket pkt)
-        {
-            if (extensionId != -1)
-            {
-                RawPacket.HeaderExtension ext
-                    = pkt.getHeaderExtension((byte) extensionId);
-                if (ext == null)
-                {
-                    ext = pkt.addExtension((byte) extensionId, 2);
-                }
-
-                int seq = outgoingSeq.getAndIncrement() & 0xffff;
-                RTPUtils.writeShort(
-                    ext.getBuffer(),
-                    ext.getOffset() + 1,
-                    (short) seq);
-
-                if (logger.isDebugEnabled())
-                {
-                    logger.debug("rtp_seq=" + pkt.getSequenceNumber()
-                            + ",pt=" + pkt.getPayloadType()
-                            + ",tcc_seq=" + seq);
-                }
-
-                synchronized (sentPacketsSyncRoot)
-                {
-                    sentPacketDetails.put(seq, new PacketDetail(
-                                pkt.getLength(),
-                                System.currentTimeMillis()));
-                }
-            }
-            return pkt;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public RawPacket reverseTransform(RawPacket pkt)
-        {
-            if (extensionId != -1)
-            {
-                RawPacket.HeaderExtension he
-                    = pkt.getHeaderExtension((byte) extensionId);
-                if (he != null && he.getExtLength() == 2)
-                {
-                    int seq
-                        = RTPUtils.readUint16AsInt(
-                        he.getBuffer(), he.getOffset() + 1);
-                    packetReceived(seq, pkt.isPacketMarked());
-                }
-            }
-            return pkt;
-        }
+    /**
+     * Gets the engine which handles incoming RTP packets for this instance.
+     */
+    public TransformEngine getIngressEngine()
+    {
+        return ingressEngine;
     }
 
     /**
@@ -541,6 +500,7 @@ public class TransportCCEngine
             if (mediaStream instanceof VideoMediaStream)
             {
                 anyVideoMediaStream = (VideoMediaStream) mediaStream;
+                diagnosticContext.put("video_stream", mediaStream.hashCode());
             }
         }
     }
@@ -597,6 +557,140 @@ public class TransportCCEngine
         {
             packetLength = length;
             packetSendTimeMs = time;
+        }
+    }
+
+    /**
+     * Handles outgoing RTP packets for this {@link TransportCCEngine}.
+     */
+    public class EgressEngine
+            extends SinglePacketTransformerAdapter
+            implements TransformEngine
+    {
+        /**
+         * Ctor.
+         */
+        private EgressEngine()
+        {
+            super(RTPPacketPredicate.INSTANCE);
+        }
+
+        /**
+         * {@inheritDoc}
+         * <p></p>
+         * If the transport-cc extension is configured, update the
+         * transport-wide sequence number (adding a new extension if one doesn't
+         * exist already).
+         */
+        @Override
+        public RawPacket transform(RawPacket pkt)
+        {
+            if (extensionId != -1)
+            {
+                RawPacket.HeaderExtension ext
+                    = pkt.getHeaderExtension((byte) extensionId);
+                if (ext == null)
+                {
+                    ext = pkt.addExtension((byte) extensionId, 2);
+                }
+
+                int seq = outgoingSeq.getAndIncrement() & 0xffff;
+                RTPUtils.writeShort(
+                    ext.getBuffer(),
+                    ext.getOffset() + 1,
+                    (short) seq);
+
+                if (logger.isDebugEnabled())
+                {
+                    logger.debug("rtp_seq=" + pkt.getSequenceNumber()
+                            + ",pt=" + RawPacket.getPayloadType(pkt)
+                            + ",tcc_seq=" + seq);
+                }
+
+                synchronized (sentPacketsSyncRoot)
+                {
+                    sentPacketDetails.put(seq, new PacketDetail(
+                                pkt.getLength(),
+                                System.currentTimeMillis()));
+                }
+            }
+            return pkt;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public PacketTransformer getRTPTransformer()
+        {
+            return this;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public PacketTransformer getRTCPTransformer()
+        {
+            return null;
+        }
+    }
+
+
+    /**
+     * Handles incoming RTP packets for this {@link TransportCCEngine}.
+     */
+    public class IngressEngine
+            extends SinglePacketTransformerAdapter
+            implements TransformEngine
+    {
+        /**
+         * Ctor.
+         */
+        private IngressEngine()
+        {
+            super(RTPPacketPredicate.INSTANCE);
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public RawPacket reverseTransform(RawPacket pkt)
+        {
+            if (extensionId != -1)
+            {
+                RawPacket.HeaderExtension he
+                    = pkt.getHeaderExtension((byte) extensionId);
+                if (he != null && he.getExtLength() == 2)
+                {
+                    int seq = RTPUtils.readUint16AsInt(
+                            he.getBuffer(), he.getOffset() + 1);
+                    packetReceived(
+                            seq,
+                            RawPacket.getPayloadType(pkt),
+                            pkt.isPacketMarked());
+                }
+            }
+            return pkt;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public PacketTransformer getRTPTransformer()
+        {
+            return this;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public PacketTransformer getRTCPTransformer()
+        {
+            return null;
         }
     }
 }

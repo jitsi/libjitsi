@@ -17,6 +17,9 @@ package org.jitsi.impl.neomedia.rtp.remotebitrateestimator;
 
 import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.*;
+import org.jetbrains.annotations.*;
+
+import java.util.*;
 
 /**
  * A rate control implementation based on additive increases of bitrate when no
@@ -53,6 +56,8 @@ class AimdRateControl
 
     private static final double kWithinIncomingBitrateHysteresis = 1.05;
 
+    private final DiagnosticContext diagnosticContext;
+
     private float avgMaxBitrateKbps;
 
     private float beta;
@@ -84,9 +89,10 @@ class AimdRateControl
 
     private float varMaxBitrateKbps;
 
-    public AimdRateControl()
+    public AimdRateControl(@NotNull DiagnosticContext diagnosticContext)
     {
         reset();
+        this.diagnosticContext = diagnosticContext;
     }
 
     private long additiveRateIncrease(
@@ -243,8 +249,10 @@ class AimdRateControl
 
         if (logger.isTraceEnabled())
         {
-            logger.trace(
-                "region_changed," + hashCode() + "," + nowMs + "," + region);
+            logger.trace(diagnosticContext
+                    .makeTimeSeriesPoint("aimd_region", nowMs)
+                    .addKey("aimd", hashCode())
+                    .addField("value", region));
         }
     }
 
@@ -284,8 +292,10 @@ class AimdRateControl
 
         if (logger.isTraceEnabled())
         {
-            logger.trace("state_changed,"
-                + hashCode() + "," + nowMs + "," + rateControlState);
+            logger.trace(diagnosticContext
+                    .makeTimeSeriesPoint("aimd_state", nowMs)
+                    .addKey("aimd", hashCode())
+                    .addField("value", rateControlState));
         }
     }
 
@@ -404,9 +414,10 @@ class AimdRateControl
     {
         if (logger.isTraceEnabled())
         {
-            logger.trace("rtt_update," + hashCode()
-                + "," + System.currentTimeMillis()
-                + "," + rtt);
+            logger.trace(diagnosticContext
+                    .makeTimeSeriesPoint("aimd_rtt", System.currentTimeMillis())
+                    .addKey("aimd", hashCode())
+                    .addField("value", rtt));
         }
 
         this.rtt = rtt;
@@ -456,13 +467,13 @@ class AimdRateControl
                     currentInput.incomingBitRate,
                     nowMs);
 
-        if (isValidEstimate() && logger.isTraceEnabled())
+        if (logger.isTraceEnabled() && isValidEstimate())
         {
-            logger.trace("new_rate_estimate" +
-                "," + hashCode() +
-                "," + nowMs +
-                "," + currentBitrateBps +
-                "," + currentInput.incomingBitRate);
+            logger.trace(diagnosticContext
+                .makeTimeSeriesPoint("new_rate_estimate", nowMs)
+                .addKey("aimd", hashCode())
+                .addField("estimate", currentBitrateBps)
+                .addField("incoming", currentInput.incomingBitRate));
         }
 
         if (nowMs - timeOfLastLog > kLogIntervalMs)

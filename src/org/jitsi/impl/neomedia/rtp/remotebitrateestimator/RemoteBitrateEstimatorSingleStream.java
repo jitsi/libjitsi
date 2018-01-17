@@ -21,6 +21,8 @@ import net.sf.fmj.media.rtp.util.*;
 
 import org.ice4j.util.*;
 import org.jitsi.service.neomedia.rtp.*;
+import org.jitsi.util.*;
+import org.jetbrains.annotations.*;
 
 /**
  * webrtc/modules/remote_bitrate_estimator/remote_bitrate_estimator_single_stream.cc
@@ -64,7 +66,7 @@ public class RemoteBitrateEstimatorSingleStream
 
     private long processIntervalMs = kProcessIntervalMs;
 
-    private final AimdRateControl remoteRate = new AimdRateControl();
+    private final AimdRateControl remoteRate;
 
     /**
      * The set of synchronization source identifiers (SSRCs) currently being
@@ -75,9 +77,15 @@ public class RemoteBitrateEstimatorSingleStream
      */
     private Collection<Long> ssrcs;
 
-    public RemoteBitrateEstimatorSingleStream(RemoteBitrateObserver observer)
+    private final DiagnosticContext diagnosticContext;
+
+    public RemoteBitrateEstimatorSingleStream(
+            RemoteBitrateObserver observer,
+            @NotNull DiagnosticContext diagnosticContext)
     {
         this.observer = observer;
+        this.diagnosticContext = diagnosticContext;
+        this.remoteRate = new AimdRateControl(diagnosticContext);
     }
 
     private long getExtensionTransmissionTimeOffset(RTPPacket header)
@@ -330,7 +338,7 @@ public class RemoteBitrateEstimatorSingleStream
         } // synchronized (critSect)
     }
 
-    private static class Detector
+    private class Detector
     {
         public OveruseDetector detector;
 
@@ -350,9 +358,11 @@ public class RemoteBitrateEstimatorSingleStream
                 = new InterArrival(
                         90 * kTimestampGroupLengthMs,
                         kTimestampToMs,
-                        enableBurstGrouping);
-            this.estimator = new OveruseEstimator(options);
-            this.detector = new OveruseDetector(options);
+                        enableBurstGrouping,
+                        diagnosticContext);
+
+            this.estimator = new OveruseEstimator(options, diagnosticContext);
+            this.detector = new OveruseDetector(options, diagnosticContext);
         }
     }
 }

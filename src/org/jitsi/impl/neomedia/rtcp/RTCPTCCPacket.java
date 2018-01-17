@@ -98,7 +98,7 @@ public class RTCPTCCPacket
      * unit facilitates the arrival time computations, as the deltas have 250µs
      * resolution.
      */
-    public static long getReferenceTime(ByteArrayBuffer fciBuffer)
+    public static long getReferenceTime250us(ByteArrayBuffer fciBuffer)
     {
         byte[] buf = fciBuffer.getBuffer();
         int off = fciBuffer.getOffset();
@@ -144,7 +144,7 @@ public class RTCPTCCPacket
         int baseSeq = RTPUtils.readUint16AsInt(buf, off);
         int packetStatusCount = RTPUtils.readUint16AsInt(buf, off + 2);
 
-        long referenceTime = getReferenceTime(fciBuffer);
+        long referenceTime = getReferenceTime250us(fciBuffer);
 
         // The offset at which the packet status chunk list starts.
         int pscOff = off + 8;
@@ -487,6 +487,8 @@ public class RTCPTCCPacket
      * missing (not received) packets.
      * @param fbPacketCount the index of this feedback packet, to be used in the
      * "fb pkt count" field.
+     * @param diagnosticContext the {@link DiagnosticContext} to use to print
+     * diagnostic information.
      *
      * Warning: The timestamps for the packets are expected to be in
      * millisecond increments, which is different than the output map produced
@@ -495,9 +497,9 @@ public class RTCPTCCPacket
      * Note: this implementation is not optimized and might not always use
      * the minimal possible number of bytes to describe a given set of packets.
      */
-    public RTCPTCCPacket(long senderSSRC, long sourceSSRC,
-                         PacketMap packets,
-                         byte fbPacketCount)
+    public RTCPTCCPacket(
+            long senderSSRC, long sourceSSRC, PacketMap packets,
+            byte fbPacketCount, DiagnosticContext diagnosticContext)
     {
         super(FMT, RTPFB, senderSSRC, sourceSSRC);
 
@@ -510,7 +512,9 @@ public class RTCPTCCPacket
         // Temporary buffer to store the fixed fields (8 bytes) and the list of
         // packet status chunks (see the format above). The buffer may be longer
         // than needed. We pack 7 packets in a chunk, and a chunk is 2 bytes.
-        byte[] buf = new byte[(packetCount / 7 + 1) * 2 + 8];
+        byte[] buf = packetCount % 7 == 0
+            ? new byte[(packetCount / 7) * 2 + 8]
+            : new byte[(packetCount / 7 + 1) * 2 + 8];
         // Temporary buffer to store the list of deltas (see the format above).
         // We allocated for the worst case (2 bytes per packet), which may
         // be longer than needed.
@@ -528,9 +532,8 @@ public class RTCPTCCPacket
         off += RTPUtils.writeShort(buf, off, (short) packetCount);
 
         // Set the 'reference time' field
-        off +=
-            RTPUtils.writeUint24(buf, off,
-                                 (int) ((referenceTime >> 6) & 0xffffff));
+        off += RTPUtils.writeUint24(
+                buf, off, (int) ((referenceTime >> 6) & 0xffffff));
 
         // Set the 'fb pkt count' field. TODO increment
         buf[off++] = fbPacketCount;
@@ -574,7 +577,16 @@ public class RTCPTCCPacket
 
                     // The small delta is an 8-bit unsigned with a resolution of
                     // 250µs. Our deltas are all in milliseconds (hence << 2).
-                    deltas[deltaOff++] = (byte ) ((tsDelta << 2) & 0xff);
+                    deltas[deltaOff++] = (byte) ((tsDelta << 2) & 0xff);
+                    if (logger.isTraceEnabled())
+                    {
+                        logger.trace(diagnosticContext
+                                .makeTimeSeriesPoint("small_delta")
+                                .addField("seq", seq)
+                                .addField("arrival_time_ms", ts)
+                                .addField("ref_time_ms", nextReferenceTime)
+                                .addField("delta", tsDelta));
+                    }
                 }
                 else if (tsDelta < 8191 && tsDelta > -8192)
                 {
@@ -585,6 +597,15 @@ public class RTCPTCCPacket
                     short d = (short) (tsDelta << 2);
                     deltas[deltaOff++] = (byte) ((d >> 8) & 0xff);
                     deltas[deltaOff++] = (byte) ((d) & 0xff);
+                    if (logger.isTraceEnabled())
+                    {
+                        logger.trace(diagnosticContext
+                                .makeTimeSeriesPoint("large_delta")
+                                .addField("seq", seq)
+                                .addField("arrival_time_ms", ts)
+                                .addField("ref_time_ms", nextReferenceTime)
+                                .addField("delta", tsDelta));
+                    }
                 }
                 else
                 {
@@ -593,7 +614,8 @@ public class RTCPTCCPacket
                     // send feedback with such deltas, we should split it up
                     // into multiple RTCP packets. We can't do that here in the
                     // constructor.
-                    throw new IllegalArgumentException("Delta too big, needs new reference.");
+                    throw new IllegalArgumentException(
+                            "Delta too big, needs new reference.");
                 }
 
                 // If the packet was received, the next delta will be relative
@@ -605,43 +627,41 @@ public class RTCPTCCPacket
             // symbol (we've already set 'off' to point to the correct byte).
             //  0 1 2 3 4 5 6 7          8 9 0 1 2 3 4 5
             //  S T <0> <1> <2>          <3> <4> <5> <6>
-            int symbolOffset;
+            int symbolShift;
             switch (seqDelta % 7)
             {
             case 0:
             case 4:
-                symbolOffset = 4;
+                symbolShift = 4;
                 break;
             case 1:
             case 5:
-                symbolOffset = 2;
+                symbolShift = 2;
                 break;
             case 2:
             case 6:
-                symbolOffset = 0;
+                symbolShift = 0;
                 break;
             case 3:
             default:
-                symbolOffset = 6;
+                symbolShift = 6;
             }
 
-            symbol <<= symbolOffset;
+            symbol <<= symbolShift;
             buf[off] |= symbol;
         }
 
         off++;
-        if (packetCount % 7 <= 3)
+        if (packetCount % 7 > 0 && packetCount % 7 <= 3)
         {
             // the last chunk was not complete
             buf[off++] = 0;
         }
 
-
         fci = new byte[off + deltaOff];
         System.arraycopy(buf, 0, fci, 0, off);
         System.arraycopy(deltas, 0, fci, off, deltaOff);
     }
-
 
     /**
      * @return the map of packets represented by this {@link RTCPTCCPacket}.

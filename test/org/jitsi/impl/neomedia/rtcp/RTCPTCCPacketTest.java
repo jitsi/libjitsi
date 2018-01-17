@@ -17,6 +17,7 @@ package org.jitsi.impl.neomedia.rtcp;
 
 import org.jitsi.service.neomedia.*;
 import org.junit.*;
+import org.jitsi.util.*;
 
 import static org.junit.Assert.*;
 
@@ -86,7 +87,8 @@ public class RTCPTCCPacketTest
         before.put(130, now + 30);
         before.put(138, now + 30);
 
-        RTCPTCCPacket packet = new RTCPTCCPacket(0, 0, before, (byte) 13);
+        RTCPTCCPacket packet = new RTCPTCCPacket(
+                0, 0, before, (byte) 13, new DiagnosticContext());
 
         RTCPTCCPacket.PacketMap after = RTCPTCCPacket.getPacketsFci(new ByteArrayBufferImpl(packet.fci));
 
@@ -94,5 +96,53 @@ public class RTCPTCCPacketTest
         assertEquals(120, (int) after.firstKey());
         assertEquals(138, (int) after.lastKey());
         assertEquals(13, packet.getFbPacketCount());
+    }
+
+    @Test
+    public void createAndParse7()
+        throws Exception
+    {
+        long nowMs = 1515520570364L;
+        RTCPTCCPacket.PacketMap before = new RTCPTCCPacket.PacketMap();
+        before.put(1268, nowMs);
+        before.put(1269, nowMs + 7);
+        before.put(1270, nowMs + 7);
+        before.put(1271, nowMs + 12);
+        before.put(1272, nowMs + 18);
+        before.put(1273, nowMs + 18);
+        before.put(1274, nowMs + 35);
+
+        RTCPTCCPacket packet = new RTCPTCCPacket(
+                0, 0, before, (byte) 13, new DiagnosticContext());
+
+        ByteArrayBufferImpl afterBaf = new ByteArrayBufferImpl(packet.fci);
+        RTCPTCCPacket.PacketMap after = RTCPTCCPacket.getPacketsFci(afterBaf);
+
+        assertEquals(1274 - 1268 + 1, after.size());
+        assertEquals(1268, (int) after.firstKey());
+        assertEquals(1274, (int) after.lastKey());
+        assertEquals(13, packet.getFbPacketCount());
+
+        int referenceTime64ms = (int) ((nowMs >> 6) & 0xffffff);
+        long referenceTime250us = referenceTime64ms << 8;
+        assertEquals(referenceTime250us,
+                RTCPTCCPacket.getReferenceTime250us(afterBaf));
+
+        long nextReferenceTime250us = referenceTime250us + (60 << 2);
+        assertEquals(nextReferenceTime250us, (long) after.get(1268));
+
+        nextReferenceTime250us = nextReferenceTime250us + (7 << 2);
+        assertEquals(nextReferenceTime250us, (long) after.get(1269));
+        assertEquals(nextReferenceTime250us, (long) after.get(1270));
+
+        nextReferenceTime250us = nextReferenceTime250us + (5 << 2);
+        assertEquals(nextReferenceTime250us, (long) after.get(1271));
+
+        nextReferenceTime250us = nextReferenceTime250us + (6 << 2);
+        assertEquals(nextReferenceTime250us, (long) after.get(1272));
+        assertEquals(nextReferenceTime250us, (long) after.get(1273));
+
+        nextReferenceTime250us = nextReferenceTime250us + (17 << 2);
+        assertEquals(nextReferenceTime250us, (long) after.get(1274));
     }
 }

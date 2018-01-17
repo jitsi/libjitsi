@@ -17,6 +17,7 @@ package org.jitsi.impl.neomedia.rtp.sendsidebandwidthestimation;
 
 import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.impl.neomedia.rtp.*;
+import org.jitsi.impl.neomedia.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.*;
@@ -134,6 +135,11 @@ class SendSideBandwidthEstimation
      */
     private Deque<Pair<Long>> min_bitrate_history_ = new LinkedList<>();
 
+    /**
+     * The {@link DiagnosticContext} of this instance.
+     */
+    private final DiagnosticContext diagnosticContext;
+
     private final List<BandwidthEstimator.Listener> listeners
         = new LinkedList<>();
 
@@ -142,9 +148,10 @@ class SendSideBandwidthEstimation
      */
     private final MediaStream mediaStream;
 
-    SendSideBandwidthEstimation(MediaStream stream, long startBitrate)
+    SendSideBandwidthEstimation(MediaStreamImpl stream, long startBitrate)
     {
         mediaStream = stream;
+        diagnosticContext = stream.getDiagnosticContext();
         setBitrate(startBitrate);
     }
 
@@ -218,11 +225,13 @@ class SendSideBandwidthEstimation
                 // rates).
                 bitrate += 1000;
 
-                if (logger.isDebugEnabled())
+                if (logger.isTraceEnabled())
                 {
-                    logger.debug("bwe,stream=" + mediaStream.hashCode() +
-                        " action=increase,last_fraction_loss=" + last_fraction_loss_ +
-                        ",bitrate=" + bitrate);
+                    logger.trace(diagnosticContext
+                            .makeTimeSeriesPoint("ssbwe_update", now)
+                            .addField("action", "increase")
+                            .addField("last_fraction_loss", last_fraction_loss_)
+                            .addField("bitrate", bitrate));
                 }
 
             }
@@ -230,11 +239,13 @@ class SendSideBandwidthEstimation
             {
                 // Loss between 2% - 10%: Do nothing.
 
-                if (logger.isDebugEnabled())
+                if (logger.isTraceEnabled())
                 {
-                    logger.debug("bwe,stream=" + mediaStream.hashCode() +
-                        " action=keep,last_fraction_loss=" + last_fraction_loss_ +
-                        ",bitrate=" + bitrate);
+                    logger.trace(diagnosticContext
+                            .makeTimeSeriesPoint("ssbwe_update", now)
+                            .addField("action", "keep")
+                            .addField("last_fraction_loss", last_fraction_loss_)
+                            .addField("bitrate", bitrate));
                 }
             }
             else
@@ -254,11 +265,13 @@ class SendSideBandwidthEstimation
                         (bitrate * (512 - last_fraction_loss_)) / 512.0);
                     has_decreased_since_last_fraction_loss_ = true;
 
-                    if (logger.isDebugEnabled())
+                    if (logger.isTraceEnabled())
                     {
-                        logger.debug("bwe,stream=" + mediaStream.hashCode() +
-                            " action=decrease,last_fraction_loss=" + last_fraction_loss_ +
-                            ",bitrate=" + bitrate);
+                        logger.trace(diagnosticContext
+                                .makeTimeSeriesPoint("ssbwe_update", now)
+                                .addField("action", "decrease")
+                                .addField("last_fraction_loss", last_fraction_loss_)
+                                .addField("bitrate", bitrate));
                     }
                 }
             }
@@ -337,10 +350,12 @@ class SendSideBandwidthEstimation
     public synchronized void updateReceiverEstimate(long bandwidth)
     {
         bwe_incoming_ = bandwidth;
-        if (logger.isDebugEnabled())
+        if (logger.isTraceEnabled())
         {
-            logger.debug("bwe,stream=" + mediaStream.hashCode() +
-                " receiver_estimate=" + bandwidth);
+            logger.trace(diagnosticContext
+                    .makeTimeSeriesPoint("ssbwe_update_receiver_estimate",
+                        System.currentTimeMillis())
+                    .addField("estimate", bandwidth));
         }
         setBitrate(capBitrateToThresholds(bitrate_));
     }

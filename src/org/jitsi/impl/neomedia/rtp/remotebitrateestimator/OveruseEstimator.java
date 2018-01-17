@@ -16,6 +16,7 @@
 package org.jitsi.impl.neomedia.rtp.remotebitrateestimator;
 
 import org.jitsi.util.*;
+import org.jetbrains.annotations.*;
 
 import java.util.*;
 
@@ -61,6 +62,8 @@ class OveruseEstimator
     private double avgNoise;
 
     private final double[][] E;
+
+    private DiagnosticContext diagnosticContext;
 
     /**
      * Reduces the effects of allocations and garbage collection of the method
@@ -110,8 +113,11 @@ class OveruseEstimator
 
     private double varNoise;
 
-    public OveruseEstimator(OverUseDetectorOptions options)
+    public OveruseEstimator(
+            OverUseDetectorOptions options,
+            @NotNull DiagnosticContext diagnosticContext)
     {
+        this.diagnosticContext = diagnosticContext;
         slope = options.initialSlope;
         offset = options.initialOffset;
         prevOffset = offset;
@@ -252,14 +258,14 @@ class OveruseEstimator
 
         if (logger.isTraceEnabled())
         {
-            logger.trace("new_jitter_estimate" +
-                "," + hashCode() +
-                "," + systemTimeMs +
-                "," + tDelta +
-                "," + tsDelta +
-                "," + tTsDelta +
-                "," + offset +
-                "," + currentHypothesis.getValue());
+            logger.trace(diagnosticContext
+                .makeTimeSeriesPoint("delay_variation_estimation", systemTimeMs)
+                .addKey("estimator", hashCode())
+                .addField("time_delta", tDelta)
+                .addField("ts_delta", tsDelta)
+                .addField("tts_delta", tTsDelta)
+                .addField("offset", offset)
+                .addField("hypothesis", currentHypothesis.getValue()));
         }
     }
 

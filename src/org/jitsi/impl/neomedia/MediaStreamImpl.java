@@ -339,6 +339,11 @@ public class MediaStreamImpl
         = new OriginalHeaderBlockTransformEngine();
 
     /**
+     * The {@link DiagnosticContext} that this instance provides.
+     */
+    private final DiagnosticContext diagnosticContext = new DiagnosticContext();
+
+    /**
      * The ID of the frame markings RTP header extension. We use this field as
      * a cache, in order to not access {@link #activeRTPExtensions} every time.
      */
@@ -420,6 +425,16 @@ public class MediaStreamImpl
                     "Created " + getClass().getSimpleName() + " with hashCode "
                         + hashCode());
         }
+
+        diagnosticContext.put("stream", hashCode());
+    }
+
+    /**
+     * Gets the {@link DiagnosticContext} of this instance.
+     */
+    public DiagnosticContext getDiagnosticContext()
+    {
+        return diagnosticContext;
     }
 
     /**
@@ -1196,7 +1211,7 @@ public class MediaStreamImpl
 
         if (transportCCEngine != null)
         {
-            engineChain.add(transportCCEngine);
+            engineChain.add(transportCCEngine.getEgressEngine());
         }
 
         // Debug
@@ -1213,6 +1228,11 @@ public class MediaStreamImpl
         if (srtpTransformEngine != null)
         {
             engineChain.add(srtpControl.getTransformEngine());
+        }
+
+        if (transportCCEngine != null)
+        {
+            engineChain.add(transportCCEngine.getIngressEngine());
         }
 
         // SSRC audio levels

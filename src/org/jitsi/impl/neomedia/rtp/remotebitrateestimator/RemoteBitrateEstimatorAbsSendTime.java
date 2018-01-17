@@ -19,6 +19,8 @@ package org.jitsi.impl.neomedia.rtp.remotebitrateestimator;
 import org.ice4j.util.*;
 import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.Logger;
+import org.jitsi.util.*;
+import org.jetbrains.annotations.*;
 
 import java.util.*;
 
@@ -180,7 +182,7 @@ public class RemoteBitrateEstimatorAbsSendTime
      * when no over-use is detected and multiplicative decreases when over-uses
      * are detected.
      */
-    private final AimdRateControl remoteRate = new AimdRateControl();
+    private final AimdRateControl remoteRate;
 
     /**
      * Holds the {@link InterArrival}, {@link OveruseEstimator} and
@@ -199,13 +201,23 @@ public class RemoteBitrateEstimatorAbsSendTime
     private boolean incomingBitrateInitialized;
 
     /**
+     * The {@link DiagnosticContext} of this instance.
+     */
+    private final DiagnosticContext diagnosticContext;
+
+    /**
      * Ctor.
      *
      * @param observer the observer to notify on bitrate estimation changes.
+     * @param diagnosticContext the {@link DiagnosticContext} of this instance.
      */
-    public RemoteBitrateEstimatorAbsSendTime(RemoteBitrateObserver observer)
+    public RemoteBitrateEstimatorAbsSendTime(
+            RemoteBitrateObserver observer,
+            @NotNull DiagnosticContext diagnosticContext)
     {
         this.observer = observer;
+        this.diagnosticContext = diagnosticContext;
+        this.remoteRate = new AimdRateControl(diagnosticContext);
         this.incomingBitrate = new RateStatistics(kBitrateWindowMs, kBitrateScale);
         this.incomingBitrateInitialized = false;
         this.totalProbesReceived = 0;
@@ -435,14 +447,6 @@ public class RemoteBitrateEstimatorAbsSendTime
         int payloadSize,
         long ssrc)
     {
-        if (logger.isTraceEnabled())
-        {
-            logger.trace("incoming_packet," + hashCode()
-                + "," + arrivalTimeMs
-                + "," + sendTime24bits
-                + "," + payloadSize
-                + "," + ssrc);
-        }
         // Shift up send time to use the full 32 bits that inter_arrival
         // works with, so wrapping works properly.
         long timestamp = sendTime24bits << kAbsSendTimeInterArrivalUpshift;
@@ -454,6 +458,18 @@ public class RemoteBitrateEstimatorAbsSendTime
         // not now. In our code however, we don't have access to the arrival
         // time.
         long nowMs = System.currentTimeMillis();
+
+        if (logger.isTraceEnabled())
+        {
+            logger.trace(diagnosticContext
+                .makeTimeSeriesPoint("incoming_packet", nowMs)
+                .addKey("rbe", hashCode())
+                .addField("arrival_time_ms", arrivalTimeMs)
+                .addField("send_time_24bits", sendTime24bits)
+                .addField("send_time_ms", sendTimeMs)
+                .addField("payload_size", payloadSize)
+                .addField("ssrc", ssrc));
+        }
 
         // should be broken out from  here.
         // Check if incoming bitrate estimate is valid, and if it
@@ -537,14 +553,6 @@ public class RemoteBitrateEstimatorAbsSendTime
             if (detector == null)
             {
                 detector = new Detector(new OverUseDetectorOptions(), true);
-                if (logger.isTraceEnabled())
-                {
-                    logger.trace("new_detector," + hashCode()
-                        + "," + remoteRate.hashCode()
-                        + "," + detector.detector.hashCode()
-                        + "," + detector.estimator.hashCode()
-                        + "," + detector.interArrival.hashCode());
-                }
             }
 
             if (detector.interArrival.computeDeltas(
@@ -758,7 +766,7 @@ public class RemoteBitrateEstimatorAbsSendTime
      * {@link OveruseDetector} instances that estimate the remote bitrate of a
      * stream.
      */
-    private static class Detector
+    private class Detector
     {
         /**
          * Computes the send-time and recv-time deltas to feed to the estimator.
@@ -785,10 +793,10 @@ public class RemoteBitrateEstimatorAbsSendTime
             boolean enableBurstGrouping)
         {
             this.interArrival = new InterArrival(
-                kTimestampGroupLengthTicks, kTimestampToMs, enableBurstGrouping);
-
-            this.estimator = new OveruseEstimator(options);
-            this.detector = new OveruseDetector(options);
+                kTimestampGroupLengthTicks, kTimestampToMs,
+                enableBurstGrouping, diagnosticContext);
+            this.estimator = new OveruseEstimator(options, diagnosticContext);
+            this.detector = new OveruseDetector(options, diagnosticContext);
         }
     }
 

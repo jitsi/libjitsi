@@ -17,6 +17,9 @@ package org.jitsi.impl.neomedia.rtp.remotebitrateestimator;
 
 import org.jitsi.impl.neomedia.rtp.TimestampUtils;
 import org.jitsi.util.*;
+import org.jetbrains.annotations.*;
+
+import java.util.*;
 
 /**
  * Helper class to compute the inter-arrival time delta and the size delta
@@ -54,6 +57,8 @@ class InterArrival
 
     private final long kTimestampGroupLengthTicks;
 
+    private final DiagnosticContext diagnosticContext;
+
     private TimestampGroup prevTimestampGroup = new TimestampGroup();
 
     private double timestampToMsCoeff;
@@ -77,12 +82,14 @@ class InterArrival
     public InterArrival(
             long timestampGroupLengthTicks,
             double timestampToMsCoeff,
-            boolean enableBurstGrouping)
+            boolean enableBurstGrouping,
+            @NotNull DiagnosticContext diagnosticContext)
     {
         kTimestampGroupLengthTicks = timestampGroupLengthTicks;
         this.timestampToMsCoeff = timestampToMsCoeff;
         burstGrouping = enableBurstGrouping;
         numConsecutiveReorderedPackets = 0;
+        this.diagnosticContext = diagnosticContext;
     }
 
     private boolean belongsToBurst(long arrivalTimeMs, long timestamp)
@@ -224,9 +231,13 @@ class InterArrival
 
                 if (logger.isTraceEnabled())
                 {
-                    logger.trace("computed_deltas," + hashCode()
-                        + "," + arrivalTimeMs + "," + deltas[0] + "," + deltas[1]
-                        + "," + deltas[2]);
+                    logger.trace(diagnosticContext
+                        .makeTimeSeriesPoint("computed_deltas")
+                        .addKey("inter_arrival", hashCode())
+                        .addField("arrival_time_ms", arrivalTimeMs)
+                        .addField("timestamp_delta", deltas[0])
+                        .addField("arrival_time_ms_delta", deltas[1])
+                        .addField("payload_size_delta", deltas[2]));
                 }
 
                 calculatedDeltas = true;
@@ -301,7 +312,18 @@ class InterArrival
                 = TimestampUtils.subtractAsUnsignedInt32(
                     timestamp, currentTimestampGroup.firstTimestamp);
 
-            return timestampDiff < 0x80000000L;
+            long tsDeltaMs = (long) (timestampToMsCoeff * timestampDiff + 0.5);
+            boolean inOrder = timestampDiff < 0x80000000L;
+
+            if (!inOrder && logger.isTraceEnabled())
+            {
+                logger.trace(diagnosticContext
+                        .makeTimeSeriesPoint("reordered_packet")
+                        .addKey("inter_arrival", hashCode())
+                        .addField("ts_delta_ms", tsDeltaMs));
+            }
+
+            return inOrder;
         }
     }
 
