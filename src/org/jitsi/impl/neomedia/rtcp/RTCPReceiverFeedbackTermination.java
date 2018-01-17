@@ -294,10 +294,11 @@ public class RTCPReceiverFeedbackTermination
                             .addKey("rtcp_termination", hashCode())
                             .addField("ssrc", reportBlock.getSSRC())
                             .addField("num_lost", reportBlock.getNumLost())
-                            .addField("fraction_lost", reportBlock.getFractionLost() / 256D)
+                            .addField("fraction_lost",
+                                reportBlock.getFractionLost() / 256D)
                             .addField("jitter", reportBlock.getJitter())
-                            .addField("xtnd_seqnum", reportBlock.getXtndSeqNum())
-                            .setTimestampMs(System.currentTimeMillis()));
+                            .addField("xtnd_seqnum",
+                                reportBlock.getXtndSeqNum()));
                 }
             }
         }

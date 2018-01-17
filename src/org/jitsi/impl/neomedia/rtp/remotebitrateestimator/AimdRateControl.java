@@ -250,10 +250,9 @@ class AimdRateControl
         if (logger.isTraceEnabled())
         {
             logger.trace(diagnosticContext
-                    .makeTimeSeriesPoint("aimd_region")
+                    .makeTimeSeriesPoint("aimd_region", nowMs)
                     .addKey("aimd", hashCode())
-                    .addField("value", region)
-                    .setTimestampMs(nowMs));
+                    .addField("value", region));
         }
     }
 
@@ -294,10 +293,9 @@ class AimdRateControl
         if (logger.isTraceEnabled())
         {
             logger.trace(diagnosticContext
-                    .makeTimeSeriesPoint("aimd_state")
+                    .makeTimeSeriesPoint("aimd_state", nowMs)
                     .addKey("aimd", hashCode())
-                    .addField("value", rateControlState)
-                    .setTimestampMs(nowMs));
+                    .addField("value", rateControlState));
         }
     }
 
@@ -417,10 +415,9 @@ class AimdRateControl
         if (logger.isTraceEnabled())
         {
             logger.trace(diagnosticContext
-                    .makeTimeSeriesPoint("aimd_rtt")
+                    .makeTimeSeriesPoint("aimd_rtt", System.currentTimeMillis())
                     .addKey("aimd", hashCode())
-                    .addField("value", rtt)
-                    .setTimestampMs(System.currentTimeMillis()));
+                    .addField("value", rtt));
         }
 
         this.rtt = rtt;
@@ -473,11 +470,10 @@ class AimdRateControl
         if (logger.isTraceEnabled() && isValidEstimate())
         {
             logger.trace(diagnosticContext
-                .makeTimeSeriesPoint("new_rate_estimate")
+                .makeTimeSeriesPoint("new_rate_estimate", nowMs)
                 .addKey("aimd", hashCode())
                 .addField("estimate", currentBitrateBps)
-                .addField("incoming", currentInput.incomingBitRate)
-                .setTimestampMs(nowMs));
+                .addField("incoming", currentInput.incomingBitRate));
         }
 
         if (nowMs - timeOfLastLog > kLogIntervalMs)

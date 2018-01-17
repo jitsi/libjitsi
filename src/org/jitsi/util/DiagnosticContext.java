@@ -43,11 +43,27 @@ public class DiagnosticContext
     }
 
     /**
-     * Makes a new time series point.
+     * Makes a new time series point without a timestamp. This is recommended
+     * for time series where the exact timestamp value isn't important and can
+     * be deduced via other means (i.e. Java logging timestamps).
+     *
+     * @param timeSeriesName the name of the time series
      */
     public TimeSeriesPoint makeTimeSeriesPoint(String timeSeriesName)
     {
-        return new TimeSeriesPoint(timeSeriesName);
+        return new TimeSeriesPoint(timeSeriesName, -1);
+    }
+
+    /**
+     * Makes a new time series point with a timestamp. This is recommended for
+     * time series where it's important to have the exact timestamp value.
+     *
+     * @param timeSeriesName the name of the time series
+     * @param tsMs the timestamp of the time series point (in millis)
+     */
+    public TimeSeriesPoint makeTimeSeriesPoint(String timeSeriesName, long tsMs)
+    {
+        return new TimeSeriesPoint(timeSeriesName, tsMs);
     }
 
     /**
@@ -62,16 +78,20 @@ public class DiagnosticContext
 
         private final Map<String, Object> fields;
 
-        private long tsMs = -1;
+        private final long tsMs;
 
         /**
          * Ctor.
+         *
+         * @param timeSeriesName the name of the time series
+         * @param tsMs the timestamp of the time series point (in millis)
          */
-        public TimeSeriesPoint(String timeSeriesName)
+        public TimeSeriesPoint(String timeSeriesName, long tsMs)
         {
             this.timeSeriesName = timeSeriesName;
             this.keys = new HashMap<>(ctxKeys /* snapshot of the ctx keys */);
             this.fields = new HashMap<>();
+            this.tsMs = tsMs;
         }
 
         /**
@@ -95,15 +115,6 @@ public class DiagnosticContext
             {
                 fields.put(key, value);
             }
-            return this;
-        }
-
-        /**
-         * Sets the timestamp of the time series point.
-         */
-        public TimeSeriesPoint setTimestampMs(long tsMs)
-        {
-            this.tsMs = tsMs;
             return this;
         }
 

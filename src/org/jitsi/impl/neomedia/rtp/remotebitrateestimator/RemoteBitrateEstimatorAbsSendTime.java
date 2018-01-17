@@ -462,14 +462,13 @@ public class RemoteBitrateEstimatorAbsSendTime
         if (logger.isTraceEnabled())
         {
             logger.trace(diagnosticContext
-                .makeTimeSeriesPoint("incoming_packet")
+                .makeTimeSeriesPoint("incoming_packet", nowMs)
                 .addKey("rbe", hashCode())
                 .addField("arrival_time_ms", arrivalTimeMs)
                 .addField("send_time_24bits", sendTime24bits)
                 .addField("send_time_ms", sendTimeMs)
                 .addField("payload_size", payloadSize)
-                .addField("ssrc", ssrc)
-                .setTimestampMs(nowMs));
+                .addField("ssrc", ssrc));
         }
 
         // should be broken out from  here.

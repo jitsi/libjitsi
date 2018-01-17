@@ -228,11 +228,10 @@ class SendSideBandwidthEstimation
                 if (logger.isTraceEnabled())
                 {
                     logger.trace(diagnosticContext
-                            .makeTimeSeriesPoint("ssbwe_update")
+                            .makeTimeSeriesPoint("ssbwe_update", now)
                             .addField("action", "increase")
                             .addField("last_fraction_loss", last_fraction_loss_)
-                            .addField("bitrate", bitrate)
-                            .setTimestampMs(now));
+                            .addField("bitrate", bitrate));
                 }
 
             }
@@ -243,11 +242,10 @@ class SendSideBandwidthEstimation
                 if (logger.isTraceEnabled())
                 {
                     logger.trace(diagnosticContext
-                            .makeTimeSeriesPoint("ssbwe_update")
+                            .makeTimeSeriesPoint("ssbwe_update", now)
                             .addField("action", "keep")
                             .addField("last_fraction_loss", last_fraction_loss_)
-                            .addField("bitrate", bitrate)
-                            .setTimestampMs(now));
+                            .addField("bitrate", bitrate));
                 }
             }
             else
@@ -270,11 +268,10 @@ class SendSideBandwidthEstimation
                     if (logger.isTraceEnabled())
                     {
                         logger.trace(diagnosticContext
-                                .makeTimeSeriesPoint("ssbwe_update")
+                                .makeTimeSeriesPoint("ssbwe_update", now)
                                 .addField("action", "decrease")
                                 .addField("last_fraction_loss", last_fraction_loss_)
-                                .addField("bitrate", bitrate)
-                                .setTimestampMs(now));
+                                .addField("bitrate", bitrate));
                     }
                 }
             }
@@ -356,9 +353,9 @@ class SendSideBandwidthEstimation
         if (logger.isTraceEnabled())
         {
             logger.trace(diagnosticContext
-                    .makeTimeSeriesPoint("ssbwe_update_receiver_estimate")
-                    .addField("estimate", bandwidth)
-                    .setTimestampMs(System.currentTimeMillis()));
+                    .makeTimeSeriesPoint("ssbwe_update_receiver_estimate",
+                        System.currentTimeMillis())
+                    .addField("estimate", bandwidth));
         }
         setBitrate(capBitrateToThresholds(bitrate_));
     }

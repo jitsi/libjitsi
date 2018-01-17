@@ -212,10 +212,9 @@ public class TransportCCEngine
         if (logger.isTraceEnabled())
         {
             logger.trace(diagnosticContext
-                    .makeTimeSeriesPoint("packet_received")
+                    .makeTimeSeriesPoint("packet_received", now)
                     .addField("seq", seq)
-                    .addField("pt", pt)
-                    .setTimestampMs(now));
+                    .addField("pt", pt));
         }
 
         maybeSendRtcp(marked, now);

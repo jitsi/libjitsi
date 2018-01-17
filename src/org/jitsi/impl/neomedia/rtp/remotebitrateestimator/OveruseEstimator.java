@@ -259,14 +259,13 @@ class OveruseEstimator
         if (logger.isTraceEnabled())
         {
             logger.trace(diagnosticContext
-                .makeTimeSeriesPoint("delay_variation_estimation")
+                .makeTimeSeriesPoint("delay_variation_estimation", systemTimeMs)
                 .addKey("estimator", hashCode())
                 .addField("time_delta", tDelta)
                 .addField("ts_delta", tsDelta)
                 .addField("tts_delta", tTsDelta)
                 .addField("offset", offset)
-                .addField("hypothesis", currentHypothesis.getValue())
-                .setTimestampMs(systemTimeMs));
+                .addField("hypothesis", currentHypothesis.getValue()));
         }
     }
 

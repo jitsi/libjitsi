@@ -146,14 +146,13 @@ class OveruseDetector
         if (newHypothesis && logger.isTraceEnabled())
         {
             logger.trace(diagnosticContext
-                .makeTimeSeriesPoint("utilization_hypothesis")
+                .makeTimeSeriesPoint("utilization_hypothesis", nowMs)
                 .addKey("detector", hashCode())
                 .addField("offset", offset)
                 .addField("prev_offset", prev_offset)
                 .addField("T", T)
                 .addField("threshold", threshold)
-                .addField("hypothesis", hypothesis.getValue())
-                .setTimestampMs(nowMs));
+                .addField("hypothesis", hypothesis.getValue()));
         }
 
         updateThreshold(T, nowMs);
