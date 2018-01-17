@@ -500,6 +500,7 @@ public class TransportCCEngine
             if (mediaStream instanceof VideoMediaStream)
             {
                 anyVideoMediaStream = (VideoMediaStream) mediaStream;
+                diagnosticContext.put("video_stream", mediaStream.hashCode());
             }
         }
     }
