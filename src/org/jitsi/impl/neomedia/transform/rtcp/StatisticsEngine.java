@@ -914,7 +914,12 @@ public class StatisticsEngine
                     "Failed to analyze an incoming RTCP packet for the"
                         + " purposes of statistics.",
                     ex);
-                return pkt;
+
+                // Either this is an empty packet, or parsing failed. In any
+                // case, drop the packet to make sure we're not forwarding
+                // broken RTCP (we've observed Chrome 49 sending SRs with an
+                // incorrect 'rc' field).
+                return null;
             }
 
             try
