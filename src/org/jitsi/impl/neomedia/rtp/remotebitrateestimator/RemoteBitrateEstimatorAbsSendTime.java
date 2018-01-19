@@ -461,7 +461,7 @@ public class RemoteBitrateEstimatorAbsSendTime
 
         if (logger.isTraceEnabled())
         {
-            logger.trace(diagnosticContext
+            logger.trace(Logger.Category.BWE, diagnosticContext
                 .makeTimeSeriesPoint("incoming_packet", nowMs)
                 .addKey("rbe", hashCode())
                 .addField("arrival_time_ms", arrivalTimeMs)
