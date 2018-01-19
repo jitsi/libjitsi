@@ -403,9 +403,13 @@ public abstract class Logger
      * @param category the category.
      * @param msg the message to log.
      */
-    public void log(Level level, Category category, String msg)
+    public void log(Level level, Category category, Object msg)
     {
         Objects.requireNonNull(category, "category");
+        if (msg == null)
+        {
+            return;
+        }
         log(level, category.prepend + msg);
     }
 
@@ -421,35 +425,65 @@ public abstract class Logger
      */
     public void log(
             Level level, Category category,
-            String msg, Throwable thrown)
+            Object msg, Throwable thrown)
     {
         Objects.requireNonNull(category, "category");
+        if (msg == null)
+        {
+            return;
+        }
         log(level, category.prepend + msg, thrown);
     }
 
     /**
+     * Log a message with trace level. An identifier of the category in the form
+     * of CAT=name will simply be prepended to the message.
+     *
+     * @param msg The message to log
+     * @param category the category.
+     */
+    public void trace(Category category, Object msg)
+    {
+        log(Level.FINER, category, msg);
+    }
+
+    /**
+     * Log a message with trace level, with associated Throwable information. An
+     * identifier of the category in the form of CAT=name will simply be prepended     * to the message.
+     *
+     * @param msg   The message to log
+     * @param   t   Throwable associated with log message.
+     * @param category the category.
+     */
+    public void trace(Category category, String msg, Throwable t)
+    {
+        log(Level.FINER, category, msg, t);
+    }
+
+
+    /**
      * Log a message with debug level.
-     * An identifier of the category in the form of CAT=name will will simply
-     * be prepended to the message.
+     * An identifier of the category in the form of CAT=name will simply be
+     * prepended to the message.
      * <p>
      * @param msg The message to log
      * @param category the category.
      */
-    public void debug(Category category, String msg)
+    public void debug(Category category, Object msg)
     {
         log(Level.FINE, category, msg);
     }
 
     /**
      * Log a message with debug level, with associated Throwable information.
-     * An identifier of the category in the form of CAT=name will will simply
-     * be prepended to the message.
+     * An identifier of the category in the form of CAT=name will simply be
+     * prepended to the message.
      * <p>
      * @param msg The message to log
      * @param category the category.
      * @param t  Throwable associated with log message.
      */
-    public void debug(Category category, String msg, Throwable t)
+    public void debug(Category category, Object msg, Throwable t)
     {
         log(Level.FINE, category, msg, t);
     }
@@ -462,7 +496,7 @@ public abstract class Logger
      * @param msg The message to log
      * @param category the category.
      */
-    public void error(Category category, String msg)
+    public void error(Category category, Object msg)
     {
         log(Level.SEVERE, category, msg);
     }
@@ -476,7 +510,7 @@ public abstract class Logger
      * @param category the category.
      * @param t Throwable associated with log message.
      */
-    public void error(Category category, String msg, Throwable t)
+    public void error(Category category, Object msg, Throwable t)
     {
         log(Level.SEVERE, category, msg, t);
     }
@@ -490,7 +524,7 @@ public abstract class Logger
      * @param msg The message to log
      * @param t Throwable associated with log message.
      */
-    public void info(Category category, String msg, Throwable t)
+    public void info(Category category, Object msg, Throwable t)
     {
         log(Level.INFO, category, msg, t);
     }
@@ -503,7 +537,7 @@ public abstract class Logger
      * @param category the category.
      * @param msg The message to log
      */
-    public void info(Category category, String msg)
+    public void info(Category category, Object msg)
     {
         log(Level.INFO, category, msg);
     }
@@ -521,7 +555,12 @@ public abstract class Logger
         /**
          * A category for messages which needn't be stored.
          */
-        VOLATILE("vol");
+        VOLATILE("vol"),
+
+        /**
+         * A category for log messages related to bandwidth estimations.
+         */
+        BWE("bwe");
 
         /**
          * The short string which identifies the category and is added to

@@ -249,7 +249,7 @@ class AimdRateControl
 
         if (logger.isTraceEnabled())
         {
-            logger.trace(diagnosticContext
+            logger.trace(Logger.Category.BWE, diagnosticContext
                     .makeTimeSeriesPoint("aimd_region", nowMs)
                     .addKey("aimd", hashCode())
                     .addField("value", region));
@@ -292,7 +292,7 @@ class AimdRateControl
 
         if (logger.isTraceEnabled())
         {
-            logger.trace(diagnosticContext
+            logger.trace(Logger.Category.BWE, diagnosticContext
                     .makeTimeSeriesPoint("aimd_state", nowMs)
                     .addKey("aimd", hashCode())
                     .addField("value", rateControlState));
@@ -414,7 +414,7 @@ class AimdRateControl
     {
         if (logger.isTraceEnabled())
         {
-            logger.trace(diagnosticContext
+            logger.trace(Logger.Category.BWE, diagnosticContext
                     .makeTimeSeriesPoint("aimd_rtt", System.currentTimeMillis())
                     .addKey("aimd", hashCode())
                     .addField("value", rtt));
@@ -469,7 +469,7 @@ class AimdRateControl
 
         if (logger.isTraceEnabled() && isValidEstimate())
         {
-            logger.trace(diagnosticContext
+            logger.trace(Logger.Category.BWE, diagnosticContext
                 .makeTimeSeriesPoint("new_rate_estimate", nowMs)
                 .addKey("aimd", hashCode())
                 .addField("estimate", currentBitrateBps)
