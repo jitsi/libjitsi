@@ -148,7 +148,7 @@ public class DiagnosticContext
 
             if (tsMs != -1)
             {
-                sb.append(" ").append(tsMs);
+                sb.append(" ").append(tsMs * 1000_000L);
             }
 
             return sb.toString();
