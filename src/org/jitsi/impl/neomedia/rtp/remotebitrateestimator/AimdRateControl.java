@@ -251,8 +251,8 @@ class AimdRateControl
         {
             logger.trace(diagnosticContext
                     .makeTimeSeriesPoint("aimd_region", nowMs)
-                    .addKey("aimd", hashCode())
-                    .addField("value", region));
+                    .addKey("aimd_id", hashCode())
+                    .addField("region", region));
         }
     }
 
@@ -294,8 +294,8 @@ class AimdRateControl
         {
             logger.trace(diagnosticContext
                     .makeTimeSeriesPoint("aimd_state", nowMs)
-                    .addKey("aimd", hashCode())
-                    .addField("value", rateControlState));
+                    .addKey("aimd_id", hashCode())
+                    .addField("state", rateControlState));
         }
     }
 
@@ -416,8 +416,8 @@ class AimdRateControl
         {
             logger.trace(diagnosticContext
                     .makeTimeSeriesPoint("aimd_rtt", System.currentTimeMillis())
-                    .addKey("aimd", hashCode())
-                    .addField("value", rtt));
+                    .addKey("aimd_id", hashCode())
+                    .addField("rtt", rtt));
         }
 
         this.rtt = rtt;
@@ -470,10 +470,10 @@ class AimdRateControl
         if (logger.isTraceEnabled() && isValidEstimate())
         {
             logger.trace(diagnosticContext
-                .makeTimeSeriesPoint("new_rate_estimate", nowMs)
-                .addKey("aimd", hashCode())
-                .addField("estimate", currentBitrateBps)
-                .addField("incoming", currentInput.incomingBitRate));
+                .makeTimeSeriesPoint("aimd_estimate", nowMs)
+                .addKey("aimd_id", hashCode())
+                .addField("estimate_bps", currentBitrateBps)
+                .addField("incoming_bps", currentInput.incomingBitRate));
         }
 
         if (nowMs - timeOfLastLog > kLogIntervalMs)
