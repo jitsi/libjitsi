@@ -139,8 +139,17 @@ public class DiagnosticContext
                 {
                     sb.append(isFirstField ? " " : ",")
                         .append(fieldEntry.getKey())
-                        .append("=")
-                        .append(fieldEntry.getValue());
+                        .append("=");
+
+                    Object value = fieldEntry.getValue();
+                    if (value instanceof Number)
+                    {
+                        sb.append(value);
+                    }
+                    else
+                    {
+                        sb.append("\"").append(value).append("\"");
+                    }
 
                     isFirstField = false;
                 }
