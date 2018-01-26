@@ -40,7 +40,7 @@ class AimdRateControl
      * logging output.
      */
     private static final Logger logger
-        = Logger.getLogger(AimdRateControl.class);
+        = Logger.getTimeSeriesLogger(AimdRateControl.class);
 
     private static final int kDefaultRttMs = 200;
 
