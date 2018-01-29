@@ -18,11 +18,14 @@ package org.jitsi.impl.neomedia.rtp.remotebitrateestimator;
 
 import org.ice4j.util.*;
 import org.jitsi.service.neomedia.rtp.*;
+import org.jitsi.service.configuration.*;
+import org.jitsi.service.libjitsi.*;
 import org.jitsi.util.Logger;
 import org.jitsi.util.*;
 import org.jetbrains.annotations.*;
 
 import java.util.*;
+import java.util.concurrent.atomic.*;
 
 /**
  * webrtc.org abs_send_time implementation as of June 26, 2017.
@@ -34,6 +37,14 @@ import java.util.*;
 public class RemoteBitrateEstimatorAbsSendTime
     implements RemoteBitrateEstimator
 {
+    /**
+     * The name of the system property that indicates the max number of
+     * simultaneous packet delivery time traces to be logged.
+     */
+    public static final String MAX_SIMULTANEOUS_PACKET_TRACES_PNAME
+        = RemoteBitrateEstimatorAbsSendTime.class.getName()
+        + ".MAX_SIMULTANEOUS_PACKET_TRACES";
+
     /**
      * The <tt>Logger</tt> used by the
      * <tt>RemoteBitrateEstimatorAbsSendTime</tt> class and its instances for
@@ -49,6 +60,12 @@ public class RemoteBitrateEstimatorAbsSendTime
     private static final TimeSeriesLogger timeSeriesLogger
         = TimeSeriesLogger.getTimeSeriesLogger(
                 RemoteBitrateEstimatorAbsSendTime.class);
+
+    /**
+     * The default max number of simultaneous packet delivery time traces to
+     * be logged.
+     */
+    private final static int kDefaultMaxSimultaneousPacketTraces = 0;
 
     /**
      * Defines the number of digits in the AST representation (24 bits, 6.18
@@ -127,6 +144,27 @@ public class RemoteBitrateEstimatorAbsSendTime
     private final static int kExpectedNumberOfProbes = 3;
 
     /**
+     * The maximum simultaneous packet delivery time traces to be logged,
+     * combined for all the instances of this class on this JVM. 0 means we're
+     * packet delivery time tracing is disabled, whereas a negative value means
+     * there can be any number of simultaneous packet delivery time tracers.
+     */
+    private final static int maxSimultaneousPacketTraces;
+
+    /**
+     * Static fields initializer.
+     */
+    static
+    {
+        ConfigurationService cfg = LibJitsi.getConfigurationService();
+        maxSimultaneousPacketTraces = cfg == null
+            ? kDefaultMaxSimultaneousPacketTraces
+            : cfg.getInt(
+                MAX_SIMULTANEOUS_PACKET_TRACES_PNAME,
+                kDefaultMaxSimultaneousPacketTraces);
+    }
+
+    /**
      * Reduces the effects of allocations and garbage collection of the method
      * {@code incomingPacket}.
      */
@@ -162,6 +200,17 @@ public class RemoteBitrateEstimatorAbsSendTime
      * The list of probes that this instance has received.
      */
     private final List<Probe> probes = new ArrayList<>();
+
+    /**
+     * The sync root object for the numOfPacketTraces field.
+     */
+    private final static Object numOfPacketTracesSyncRoot = new Object();
+
+    /**
+     * An integer that indicates the number of packet delivery time tracers
+     * that are currently running on this JVM.
+     */
+    private static int numOfPacketTraces = 0;
 
     /**
      * The total number of probing packets we've seen so far.
@@ -214,6 +263,12 @@ public class RemoteBitrateEstimatorAbsSendTime
     private final DiagnosticContext diagnosticContext;
 
     /**
+     * A boolean that determines whether or not this instance will log its
+     * packet delivery time traces.
+     */
+    private final boolean enablePacketTracing;
+
+    /**
      * Ctor.
      *
      * @param observer the observer to notify on bitrate estimation changes.
@@ -231,6 +286,55 @@ public class RemoteBitrateEstimatorAbsSendTime
         this.totalProbesReceived = 0;
         this.firstPacketTimeMs = -1;
         this.lastUpdateMs = -1;
+
+        // Determine whether or not this instance will perform packet
+        // delivery times tracing.
+        if (timeSeriesLogger.isTraceEnabled())
+        {
+            if (maxSimultaneousPacketTraces > 0)
+            {
+                synchronized (numOfPacketTracesSyncRoot)
+                {
+                    enablePacketTracing
+                        = numOfPacketTraces < maxSimultaneousPacketTraces;
+
+                    if (enablePacketTracing)
+                    {
+                        numOfPacketTraces++;
+                    }
+                }
+            }
+            else
+            {
+                enablePacketTracing = maxSimultaneousPacketTraces < 0;
+            }
+        }
+        else
+        {
+            enablePacketTracing = false;
+        }
+    }
+
+    /**
+     * Packet tracing related logic.
+     */
+    protected void finalize()
+        throws Throwable
+    {
+        try
+        {
+            if (enablePacketTracing && maxSimultaneousPacketTraces > 0)
+            {
+                synchronized (numOfPacketTracesSyncRoot)
+                {
+                    numOfPacketTraces--;
+                }
+            }
+        }
+        finally
+        {
+            super.finalize();
+        }
     }
 
     /**
@@ -467,7 +571,7 @@ public class RemoteBitrateEstimatorAbsSendTime
         // time.
         long nowMs = System.currentTimeMillis();
 
-        if (timeSeriesLogger.isTraceEnabled())
+        if (enablePacketTracing)
         {
             timeSeriesLogger.trace(diagnosticContext
                 .makeTimeSeriesPoint("in_pkt", nowMs)
