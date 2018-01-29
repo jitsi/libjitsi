@@ -74,10 +74,12 @@ class SendSideBandwidthEstimation
             = Logger.getLogger(SendSideBandwidthEstimation.class);
 
     /**
-     * The {@link Logger} to be used by this instance to print time series.
+     * The {@link TimeSeriesLogger} to be used by this instance to print time
+     * series.
      */
-    private static final Logger timeSeriesLogger
-            = Logger.getTimeSeriesLogger(SendSideBandwidthEstimation.class);
+    private static final TimeSeriesLogger timeSeriesLogger
+            = TimeSeriesLogger.getTimeSeriesLogger(
+                    SendSideBandwidthEstimation.class);
 
     /**
      * send_side_bandwidth_estimation.h

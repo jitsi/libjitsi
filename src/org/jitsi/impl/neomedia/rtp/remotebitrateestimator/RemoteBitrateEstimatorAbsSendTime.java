@@ -43,10 +43,12 @@ public class RemoteBitrateEstimatorAbsSendTime
         = Logger.getLogger(RemoteBitrateEstimatorAbsSendTime.class);
 
     /**
-     * The {@link Logger} to be used by this instance to print time series.
+     * The {@link TimeSeriesLogger} to be used by this instance to print time
+     * series.
      */
-    private static final Logger timeSeriesLogger
-        = Logger.getTimeSeriesLogger(RemoteBitrateEstimatorAbsSendTime.class);
+    private static final TimeSeriesLogger timeSeriesLogger
+        = TimeSeriesLogger.getTimeSeriesLogger(
+                RemoteBitrateEstimatorAbsSendTime.class);
 
     /**
      * Defines the number of digits in the AST representation (24 bits, 6.18

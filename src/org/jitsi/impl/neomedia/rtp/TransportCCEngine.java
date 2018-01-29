@@ -63,10 +63,11 @@ public class TransportCCEngine
         = Logger.getLogger(TransportCCEngine.class);
 
     /**
-     * The {@link Logger} to be used by this instance to print time series.
+     * The {@link TimeSeriesLogger} to be used by this instance to print time
+     * series.
      */
-    private static final Logger timeSeriesLogger
-        = Logger.getTimeSeriesLogger(TransportCCEngine.class);
+    private static final TimeSeriesLogger timeSeriesLogger
+        = TimeSeriesLogger.getTimeSeriesLogger(TransportCCEngine.class);
 
     /**
      * The engine which handles incoming RTP packets for this instance. It
@@ -438,12 +439,12 @@ public class TransportCCEngine
             long arrivalTimeMs = arrivalTime250Us / 4
                 - remoteReferenceTimeMs + localReferenceTimeMs;
 
-            if (timeSeriesLogger.isDebugEnabled())
+            if (timeSeriesLogger.isTraceEnabled())
             {
                 if (previousArrivalTimeMs != -1)
                 {
                     long diff_ms = arrivalTimeMs - previousArrivalTimeMs;
-                    timeSeriesLogger.debug(diagnosticContext
+                    timeSeriesLogger.trace(diagnosticContext
                             .makeTimeSeriesPoint("ingress_tcc_ack")
                             .addField("seq", entry.getKey())
                             .addField("arrival_time_ms", arrivalTimeMs)
@@ -451,7 +452,7 @@ public class TransportCCEngine
                 }
                 else
                 {
-                    timeSeriesLogger.debug(diagnosticContext
+                    timeSeriesLogger.trace(diagnosticContext
                             .makeTimeSeriesPoint("ingress_tcc_ack")
                             .addField("seq", entry.getKey())
                             .addField("arrival_time_ms", arrivalTimeMs));
@@ -604,9 +605,9 @@ public class TransportCCEngine
                     ext.getOffset() + 1,
                     (short) seq);
 
-                if (timeSeriesLogger.isDebugEnabled())
+                if (timeSeriesLogger.isTraceEnabled())
                 {
-                    timeSeriesLogger.debug(diagnosticContext
+                    timeSeriesLogger.trace(diagnosticContext
                             .makeTimeSeriesPoint("egress_tcc_pkt")
                             .addField("rtp_seq", pkt.getSequenceNumber())
                             .addField("pt", RawPacket.getPayloadType(pkt))

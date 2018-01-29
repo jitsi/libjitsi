@@ -34,20 +34,6 @@ public abstract class Logger
      * @return a suitable Logger
      * @throws NullPointerException if the class is null.
      */
-    public static Logger getTimeSeriesLogger(Class<?> clazz)
-        throws NullPointerException
-    {
-        return getLogger("timeseries." + clazz.getName());
-    }
-
-    /**
-     * Create a logger for the specified class.
-     * <p>
-     * @param clazz The class for which to create a logger.
-     * <p>
-     * @return a suitable Logger
-     * @throws NullPointerException if the class is null.
-     */
     public static Logger getLogger(Class<?> clazz)
         throws NullPointerException
     {
