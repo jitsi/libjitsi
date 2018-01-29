@@ -43,6 +43,14 @@ public class RemoteBitrateEstimatorAbsSendTime
         = Logger.getLogger(RemoteBitrateEstimatorAbsSendTime.class);
 
     /**
+     * The {@link TimeSeriesLogger} to be used by this instance to print time
+     * series.
+     */
+    private static final TimeSeriesLogger timeSeriesLogger
+        = TimeSeriesLogger.getTimeSeriesLogger(
+                RemoteBitrateEstimatorAbsSendTime.class);
+
+    /**
      * Defines the number of digits in the AST representation (24 bits, 6.18
      * fixed point) after the radix.
      */
@@ -459,9 +467,9 @@ public class RemoteBitrateEstimatorAbsSendTime
         // time.
         long nowMs = System.currentTimeMillis();
 
-        if (logger.isTraceEnabled())
+        if (timeSeriesLogger.isTraceEnabled())
         {
-            logger.trace(diagnosticContext
+            timeSeriesLogger.trace(diagnosticContext
                 .makeTimeSeriesPoint("in_pkt", nowMs)
                 .addKey("rbe_id", hashCode())
                 .addField("recv_ts_ms", arrivalTimeMs)

@@ -63,6 +63,13 @@ public class TransportCCEngine
         = Logger.getLogger(TransportCCEngine.class);
 
     /**
+     * The {@link TimeSeriesLogger} to be used by this instance to print time
+     * series.
+     */
+    private static final TimeSeriesLogger timeSeriesLogger
+        = TimeSeriesLogger.getTimeSeriesLogger(TransportCCEngine.class);
+
+    /**
      * The engine which handles incoming RTP packets for this instance. It
      * reads transport-wide sequence numbers and registers arrival times.
      */
@@ -209,10 +216,10 @@ public class TransportCCEngine
             incomingPackets.put(seq, now);
         }
 
-        if (logger.isTraceEnabled())
+        if (timeSeriesLogger.isTraceEnabled())
         {
-            logger.trace(diagnosticContext
-                    .makeTimeSeriesPoint("packet_received", now)
+            timeSeriesLogger.trace(diagnosticContext
+                    .makeTimeSeriesPoint("ingress_tcc_pkt", now)
                     .addField("seq", seq)
                     .addField("pt", pt));
         }
@@ -432,23 +439,21 @@ public class TransportCCEngine
             long arrivalTimeMs = arrivalTime250Us / 4
                 - remoteReferenceTimeMs + localReferenceTimeMs;
 
-            if (logger.isDebugEnabled())
+            if (timeSeriesLogger.isTraceEnabled())
             {
                 if (previousArrivalTimeMs != -1)
                 {
                     long diff_ms = arrivalTimeMs - previousArrivalTimeMs;
-                    logger.debug(diagnosticContext
-                            .makeTimeSeriesPoint("packet_ack")
-                            .addKey("tcc_engine", hashCode())
+                    timeSeriesLogger.trace(diagnosticContext
+                            .makeTimeSeriesPoint("ingress_tcc_ack")
                             .addField("seq", entry.getKey())
                             .addField("arrival_time_ms", arrivalTimeMs)
                             .addField("diff_ms", diff_ms));
                 }
                 else
                 {
-                    logger.debug(diagnosticContext
-                            .makeTimeSeriesPoint("packet_ack")
-                            .addKey("tcc_engine", hashCode())
+                    timeSeriesLogger.trace(diagnosticContext
+                            .makeTimeSeriesPoint("ingress_tcc_ack")
                             .addField("seq", entry.getKey())
                             .addField("arrival_time_ms", arrivalTimeMs));
                 }
@@ -600,11 +605,13 @@ public class TransportCCEngine
                     ext.getOffset() + 1,
                     (short) seq);
 
-                if (logger.isDebugEnabled())
+                if (timeSeriesLogger.isTraceEnabled())
                 {
-                    logger.debug("rtp_seq=" + pkt.getSequenceNumber()
-                            + ",pt=" + RawPacket.getPayloadType(pkt)
-                            + ",tcc_seq=" + seq);
+                    timeSeriesLogger.trace(diagnosticContext
+                            .makeTimeSeriesPoint("egress_tcc_pkt")
+                            .addField("rtp_seq", pkt.getSequenceNumber())
+                            .addField("pt", RawPacket.getPayloadType(pkt))
+                            .addField("tcc_seq", seq));
                 }
 
                 synchronized (sentPacketsSyncRoot)

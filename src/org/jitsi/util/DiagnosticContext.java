@@ -51,7 +51,7 @@ public class DiagnosticContext
      */
     public TimeSeriesPoint makeTimeSeriesPoint(String timeSeriesName)
     {
-        return new TimeSeriesPoint(timeSeriesName, -1);
+        return new TimeSeriesPointImpl(timeSeriesName, -1);
     }
 
     /**
@@ -63,14 +63,11 @@ public class DiagnosticContext
      */
     public TimeSeriesPoint makeTimeSeriesPoint(String timeSeriesName, long tsMs)
     {
-        return new TimeSeriesPoint(timeSeriesName, tsMs);
+        return new TimeSeriesPointImpl(timeSeriesName, tsMs);
     }
 
-    /**
-     * Represents a time series point. The <tt>toString</tt> method outputs
-     * the time series point in influx DB line protocol format.
-     */
-    public class TimeSeriesPoint
+    class TimeSeriesPointImpl
+            implements TimeSeriesPoint
     {
         private final String timeSeriesName;
 
@@ -86,7 +83,7 @@ public class DiagnosticContext
          * @param timeSeriesName the name of the time series
          * @param tsMs the timestamp of the time series point (in millis)
          */
-        public TimeSeriesPoint(String timeSeriesName, long tsMs)
+        public TimeSeriesPointImpl(String timeSeriesName, long tsMs)
         {
             this.timeSeriesName = timeSeriesName;
             this.keys = new HashMap<>(ctxKeys /* snapshot of the ctx keys */);
@@ -97,6 +94,7 @@ public class DiagnosticContext
         /**
          * Adds a key to the time series point.
          */
+        @Override
         public TimeSeriesPoint addKey(String key, Object value)
         {
             if (key != null && value != null)
@@ -109,6 +107,7 @@ public class DiagnosticContext
         /**
          * Adds a field to the time series point.
          */
+        @Override
         public TimeSeriesPoint addField(String key, Object value)
         {
             if (key != null && value != null)

@@ -35,12 +35,12 @@ import java.util.*;
 class AimdRateControl
 {
     /**
-     * The <tt>Logger</tt> used by the
+     * The <tt>TimeSeriesLogger</tt> used by the
      * <tt>RemoteBitrateEstimatorAbsSendTime</tt> class and its instances for
      * logging output.
      */
-    private static final Logger logger
-        = Logger.getLogger(AimdRateControl.class);
+    private static final TimeSeriesLogger logger
+        = TimeSeriesLogger.getTimeSeriesLogger(AimdRateControl.class);
 
     private static final int kDefaultRttMs = 200;
 

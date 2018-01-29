@@ -74,6 +74,14 @@ class SendSideBandwidthEstimation
             = Logger.getLogger(SendSideBandwidthEstimation.class);
 
     /**
+     * The {@link TimeSeriesLogger} to be used by this instance to print time
+     * series.
+     */
+    private static final TimeSeriesLogger timeSeriesLogger
+            = TimeSeriesLogger.getTimeSeriesLogger(
+                    SendSideBandwidthEstimation.class);
+
+    /**
      * send_side_bandwidth_estimation.h
      */
     private long first_report_time_ms_ = -1;
@@ -225,9 +233,9 @@ class SendSideBandwidthEstimation
                 // rates).
                 bitrate += 1000;
 
-                if (logger.isTraceEnabled())
+                if (timeSeriesLogger.isTraceEnabled())
                 {
-                    logger.trace(diagnosticContext
+                    timeSeriesLogger.trace(diagnosticContext
                             .makeTimeSeriesPoint("loss_estimate", now)
                             .addField("action", "increase")
                             .addField("last_fraction_loss", last_fraction_loss_)
@@ -239,9 +247,9 @@ class SendSideBandwidthEstimation
             {
                 // Loss between 2% - 10%: Do nothing.
 
-                if (logger.isTraceEnabled())
+                if (timeSeriesLogger.isTraceEnabled())
                 {
-                    logger.trace(diagnosticContext
+                    timeSeriesLogger.trace(diagnosticContext
                             .makeTimeSeriesPoint("loss_estimate", now)
                             .addField("action", "keep")
                             .addField("last_fraction_loss", last_fraction_loss_)
@@ -265,9 +273,9 @@ class SendSideBandwidthEstimation
                         (bitrate * (512 - last_fraction_loss_)) / 512.0);
                     has_decreased_since_last_fraction_loss_ = true;
 
-                    if (logger.isTraceEnabled())
+                    if (timeSeriesLogger.isTraceEnabled())
                     {
-                        logger.trace(diagnosticContext
+                        timeSeriesLogger.trace(diagnosticContext
                                 .makeTimeSeriesPoint("loss_estimate", now)
                                 .addField("action", "decrease")
                                 .addField("last_fraction_loss", last_fraction_loss_)
