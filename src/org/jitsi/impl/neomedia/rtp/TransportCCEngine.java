@@ -416,7 +416,7 @@ public class TransportCCEngine
     }
 
     /**
-     * Calls the bitrate estimator with receiver and sender parameters.
+     * Handles an incoming RTCP transport-cc feedback packet.
      *
      * @param tccPacket the received TCC packet.
      */

@@ -128,10 +128,36 @@ public class RTCPTCCPacket
      * {@link RTCPTCCPacket#RTCPTCCPacket(long, long, PacketMap, byte,
      * DiagnosticContext)}.
      *
+     * Note that packets described as lost are NOT included in the results.
+     *
      * @param fciBuffer the buffer which contains the FCI portion of the RTCP
      * feedback packet.
      */
     public static PacketMap getPacketsFci(ByteArrayBuffer fciBuffer)
+    {
+        return getPacketsFci(fciBuffer, false);
+    }
+
+    /**
+     * @return the packets represented in the FCI portion of an RTCP
+     * transport-cc feedback packet.
+     *
+     * Warning: the timestamps are represented in the 250µs format used by the
+     * on-the-wire format, and don't represent local time. This is different
+     * than the timestamps expected as input when constructing a packet with
+     * {@link RTCPTCCPacket#RTCPTCCPacket(long, long, PacketMap, byte,
+     * DiagnosticContext)}.
+     *
+     * @param fciBuffer the buffer which contains the FCI portion of the RTCP
+     * feedback packet.
+     * @param includeNotReceived whether the returned map should include the
+     * packets described in the feedback packet as lost. Note that the RLE
+     * encoding allows ~2^16 packets to be described as lost in just a few
+     * bytes, so when parsing packets coming over the network it is wise to
+     * not blindly set this option to {@code true}.
+     */
+    static PacketMap getPacketsFci(
+        ByteArrayBuffer fciBuffer, boolean includeNotReceived)
     {
         if (fciBuffer == null)
         {
@@ -193,74 +219,91 @@ public class RTCPTCCPacket
                 = Math.min(getPacketCount(buf, pscOff), packetsRemaining);
 
             int chunkType = getChunkType(buf, pscOff);
-            // TODO: do not loop for RLE NR chunks.
-            // Read deltas for all packets in the chunk.
-            for (int i = 0; i < packetsInChunk; i++)
+
+            if (packetsInChunk > 0 && chunkType == CHUNK_TYPE_RLE
+                && readSymbol(buf, pscOff, chunkType, 0) == SYMBOL_NOT_RECEIVED)
             {
-                int symbol = readSymbol(buf, pscOff, chunkType, i);
-                // -1 or delta in 250µs increments
-                int delta = -1;
-                switch (symbol)
+                // This is an RLE chunk with NOT_RECEIVED symbols. So we can
+                // avoid reading every symbol individually in a loop.
+                if (includeNotReceived)
                 {
-                case SYMBOL_SMALL_DELTA:
-                    // The delta is an 8-bit unsigned integer.
-                    if (deltaOff >= off + len)
+                    for (int i = 0; i < packetsInChunk; i++)
                     {
-                        logger.warn(PARSE_ERROR
-                                + "reached the end while reading delta.");
-                        return null;
+                        packets.put(
+                            (baseSeq + i) % 0xffff,
+                            NEGATIVE_ONE,
+                            -1,
+                            SYMBOL_NOT_RECEIVED);
                     }
-                    delta = buf[deltaOff++] & 0xff;
-                    break;
-                case SYMBOL_LARGE_DELTA:
-                    // The delta is a 16-bit signed integer.
-                    if (deltaOff + 1 >= off + len) // we're about to read 2 bytes
-                    {
-                        logger.warn(PARSE_ERROR
-                                + "reached the end while reading long delta.");
-                        return null;
-                    }
-                    delta = RTPUtils.readInt16AsInt(buf, deltaOff);
-                    deltaOff += 2;
-                    break;
-                case SYMBOL_NOT_RECEIVED:
-                default:
-                    delta = -1;
-                    break;
                 }
+                baseSeq = (baseSeq + packetsInChunk) % 0xffff;
+            }
+            else
+            {
+                // Read deltas for all packets in the chunk.
+                for (int i = 0; i < packetsInChunk; i++)
+                {
+                    int symbol = readSymbol(buf, pscOff, chunkType, i);
+                    // -1 or delta in 250µs increments
+                    int delta = -1;
+                    switch (symbol)
+                    {
+                    case SYMBOL_SMALL_DELTA:
+                        // The delta is an 8-bit unsigned integer.
+                        if (deltaOff >= off + len)
+                        {
+                            logger.warn(
+                                PARSE_ERROR
+                                    + "reached the end while reading delta.");
 
-                if (delta == -1)
-                {
-                    // Packet not received. We don't update the reference time,
-                    // but we push the packet in the map to indicate that it was
-                    // marked as not received.
-                    packets.put(baseSeq, NEGATIVE_ONE);
-                    if (logger.isDebugEnabled())
-                    {
-                        logger.debug("seq=" + baseSeq
-                                + ",reference_time=" + referenceTime
-                                + ",delta=" + -1
-                                + ",symbol=" + symbol);
+                            return null;
+                        }
+                        delta = buf[deltaOff++] & 0xff;
+                        break;
+                    case SYMBOL_LARGE_DELTA:
+                        // The delta is a 16-bit signed integer.
+                        if (deltaOff + 1 >= off + len) // we're about to read
+                            // 2 bytes
+                        {
+                            logger.warn(PARSE_ERROR
+                                            + "reached the end while reading " +
+                                            "long delta.");
+                            return null;
+                        }
+                        delta = RTPUtils.readInt16AsInt(buf, deltaOff);
+                        deltaOff += 2;
+                        break;
+                    case SYMBOL_NOT_RECEIVED:
+                    default:
+                        delta = -1;
+                        break;
                     }
-                }
-                else
-                {
-                    // The draft is not clear about what the reference time for
-                    // each packet is. We adhere to the webrtc.org behavior so
-                    // that every packet for which there is a delta updates 
-                    // the reference (even if the delta is negative).
-                    if (logger.isDebugEnabled())
-                    {
-                        logger.debug("seq=" + baseSeq
-                                + ",reference_time=" + referenceTime
-                                + ",delta=" + delta
-                                + ",symbol=" + symbol);
-                    }
-                    referenceTime += delta;
-                    packets.put(baseSeq, referenceTime);
-                }
 
-                baseSeq = (baseSeq + 1) & 0xffff;
+                    if (delta == -1)
+                    {
+                        // Packet not received. We don't update the reference
+                        // time,
+                        // but we push the packet in the map to indicate that
+                        // it was
+                        // marked as not received.
+                        if (includeNotReceived)
+                        {
+                            packets.put(baseSeq, NEGATIVE_ONE, delta, symbol);
+                        }
+                    }
+                    else
+                    {
+                        // The draft is not clear about what the reference time
+                        // for each packet is. We adhere to the webrtc.org
+                        // behavior so that every packet for which there is a
+                        // delta updates the reference (even if the delta is
+                        // negative).
+                        referenceTime += delta;
+                        packets.put(baseSeq, referenceTime, delta, symbol);
+                    }
+
+                    baseSeq = (baseSeq + 1) & 0xffff;
+                }
             }
 
             // next packet status chunk
@@ -729,6 +772,29 @@ public class RTCPTCCPacket
         public PacketMap()
         {
             super(RTPUtils.sequenceNumberComparator);
+        }
+
+        /**
+         * Adds a sequence number number with a particular reference time to
+         * the map and logs a debug message if debug logging is enabled.
+         *
+         * @param seq the sequence number to add.
+         * @param referenceTime the time.
+         * @param delta the delta (only used for logging).
+         * @param symbol the symbol (only used for logging).
+         */
+        private void put(int seq, long referenceTime, int delta, int symbol)
+        {
+            put(seq, referenceTime);
+
+            if (logger.isDebugEnabled())
+            {
+                logger.debug(
+                    "seq=" + seq
+                        + ",reference_time=" + referenceTime
+                        + ",delta=" + delta
+                        + ",symbol=" + symbol);
+            }
         }
     }
 }
