@@ -192,11 +192,12 @@ public class RTCPTCCPacket
             int packetsInChunk
                 = Math.min(getPacketCount(buf, pscOff), packetsRemaining);
 
+            int chunkType = getChunkType(buf, pscOff);
             // TODO: do not loop for RLE NR chunks.
             // Read deltas for all packets in the chunk.
             for (int i = 0; i < packetsInChunk; i++)
             {
-                int symbol = readSymbol(buf, pscOff, i);
+                int symbol = readSymbol(buf, pscOff, chunkType, i);
                 // -1 or delta in 250µs increments
                 int delta = -1;
                 switch (symbol)
@@ -271,6 +272,17 @@ public class RTCPTCCPacket
     }
 
     /**
+     * @return the type of a Packet Status Chunk contained in {@code buf} at
+     * offset {@code off}.
+     * @param buf the buffer which contains the Packet Status Chunk.
+     * @param off the offset in {@code buf} at which the Packet Status Chunk
+     */
+    private static int getChunkType(byte[] buf, int off)
+    {
+        return (buf[off] & 0x80) >> 7;
+    }
+
+    /**
      * Reads the {@code i}-th (zero-based) symbol from the Packet Status Chunk
      * contained in {@code buf} at offset {@code off}. Returns -1 if the index
      * is found to be invalid (although the validity check is not performed
@@ -282,9 +294,8 @@ public class RTCPTCCPacket
      * @param i the zero-based index of the symbol to return.
      * @return the {@code i}-th symbol from the given Packet Status Chunk.
      */
-    private static int readSymbol(byte[] buf, int off, int i)
+    private static int readSymbol(byte[] buf, int off, int chunkType, int i)
     {
-        int chunkType = (buf[off] & 0x80) >> 7;
         if (chunkType == CHUNK_TYPE_VECTOR)
         {
             int symbolType = (buf[off] & 0x40) >> 6;
@@ -364,7 +375,7 @@ public class RTCPTCCPacket
      */
     private static int getPacketCount(byte[] buf, int off)
     {
-        int chunkType = (buf[off] & 0x80) >> 7;
+        int chunkType = getChunkType(buf, off);
         if (chunkType == CHUNK_TYPE_VECTOR)
         {
             // A vector chunk looks like this:
