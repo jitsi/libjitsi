@@ -61,6 +61,12 @@ public class RTCPTCCPacket
     extends RTCPFBPacket
 {
     /**
+     * The maximum number of packets (including missing packets) to include
+     * in an {@link RTCPTCCPacket} being constructed for a list of packets.
+     */
+    public static final int MAX_PACKET_COUNT = 200;
+
+    /**
      * Gets a boolean indicating whether or not the RTCP packet specified in the
      * {@link ByteArrayBuffer} that is passed as an argument is a TCC packet or
      * not.
@@ -81,7 +87,8 @@ public class RTCPTCCPacket
      * Warning: the timestamps are represented in the 250µs format used by the
      * on-the-wire format, and don't represent local time. This is different
      * than the timestamps expected as input when constructing a packet with
-     * {@link RTCPTCCPacket#RTCPTCCPacket(long, long, PacketMap, byte)}.
+     * {@link RTCPTCCPacket#RTCPTCCPacket(long, long, PacketMap, byte,
+     * DiagnosticContext)}.
      *
      * @param baf the buffer which contains the RTCP packet.
      */
@@ -118,7 +125,8 @@ public class RTCPTCCPacket
      * Warning: the timestamps are represented in the 250µs format used by the
      * on-the-wire format, and don't represent local time. This is different
      * than the timestamps expected as input when constructing a packet with
-     * {@link RTCPTCCPacket#RTCPTCCPacket(long, long, PacketMap, byte)}.
+     * {@link RTCPTCCPacket#RTCPTCCPacket(long, long, PacketMap, byte,
+     * DiagnosticContext)}.
      *
      * @param fciBuffer the buffer which contains the FCI portion of the RTCP
      * feedback packet.
@@ -506,8 +514,12 @@ public class RTCPTCCPacket
         Map.Entry<Integer, Long> first = packets.firstEntry();
         int firstSeq = first.getKey();
         Map.Entry<Integer, Long> last = packets.lastEntry();
-        int packetCount
-            = 1 + RTPUtils.getSequenceNumberDelta(last.getKey(), firstSeq);
+        int packetCount = 1 + RTPUtils.subtractNumber(last.getKey(), firstSeq);
+
+        if (packetCount > MAX_PACKET_COUNT)
+        {
+            throw new IllegalArgumentException("Too many packets.");
+        }
 
         // Temporary buffer to store the fixed fields (8 bytes) and the list of
         // packet status chunks (see the format above). The buffer may be longer
@@ -669,7 +681,8 @@ public class RTCPTCCPacket
      * Warning: the timestamps are represented in the 250µs format used by the
      * on-the-wire format, and don't represent local time. This is different
      * than the timestamps expected as input when constructing a packet with
-     * {@link RTCPTCCPacket#RTCPTCCPacket(long, long, PacketMap, byte)}.
+     * {@link RTCPTCCPacket#RTCPTCCPacket(long, long, PacketMap, byte,
+     * DiagnosticContext)}.
      */
     synchronized public PacketMap getPackets()
     {
