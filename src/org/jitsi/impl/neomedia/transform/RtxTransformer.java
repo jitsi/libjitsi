@@ -302,8 +302,18 @@ public class RtxTransformer
                 continue;
             }
 
-            Byte pt = entry.getKey(),
-                apt = Byte.parseByte(format.getFormatParameters().get("apt"));
+            Byte pt = entry.getKey();
+            String aptString = format.getFormatParameters().get("apt");
+            Byte apt;
+            try
+            {
+                apt = Byte.parseByte(aptString);
+            }
+            catch (NumberFormatException nfe)
+            {
+                logger.error("Failed to parse apt: " + aptString);
+                continue;
+            }
 
             apt2rtx.put(apt, pt);
             rtx2apt.put(pt, apt);
