@@ -1384,33 +1384,40 @@ public class ConfigurationServiceImpl
         if (!logger.isInfoEnabled())
             return;
 
-        // Password system properties
-        Pattern exclusion = null;
-        if (PASSWORD_SYS_PROPS != null)
+        try
         {
-            exclusion = Pattern.compile(
-                PASSWORD_SYS_PROPS, Pattern.CASE_INSENSITIVE);
-        }
-        // Password command line arguments
-        String[] passwordArgs = null;
-        if (PASSWORD_CMD_LINE_ARGS != null)
-            passwordArgs = PASSWORD_CMD_LINE_ARGS.split(",");
+            // Password system properties
+            Pattern exclusion = null;
+            if (PASSWORD_SYS_PROPS != null)
+            {
+                exclusion = Pattern.compile(
+                    PASSWORD_SYS_PROPS, Pattern.CASE_INSENSITIVE);
+            }
+            // Password command line arguments
+            String[] passwordArgs = null;
+            if (PASSWORD_CMD_LINE_ARGS != null)
+                passwordArgs = PASSWORD_CMD_LINE_ARGS.split(",");
 
-        for (Map.Entry<Object,Object> e : System.getProperties().entrySet())
+            for (Map.Entry<Object,Object> e : System.getProperties().entrySet())
+            {
+                String key = String.valueOf(e.getKey());
+                String value = String.valueOf(e.getValue());
+                // Check if this key value should be masked
+                if (exclusion != null && exclusion.matcher(key).find())
+                {
+                    value = "**********";
+                }
+                // Mask command line arguments
+                if (passwordArgs != null && "sun.java.command".equals(key))
+                {
+                    value = PasswordUtil.replacePasswords(value, passwordArgs);
+                }
+                logger.info(key + "=" + value);
+            }
+        }
+        catch (RuntimeException e)
         {
-            String key = String.valueOf(e.getKey());
-            String value = String.valueOf(e.getValue());
-            // Check if this key value should be masked
-            if (exclusion != null && exclusion.matcher(key).find())
-            {
-                value = "**********";
-            }
-            // Mask command line arguments
-            if (passwordArgs != null && "sun.java.command".equals(key))
-            {
-                value = PasswordUtil.replacePasswords(value, passwordArgs);
-            }
-            logger.info(key + "=" + value);
+            logger.warn("An exception occurred while writing debug info", e);
         }
     }
 
