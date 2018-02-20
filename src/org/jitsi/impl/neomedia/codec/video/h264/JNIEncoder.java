@@ -80,7 +80,7 @@ public class JNIEncoder
      * The default value of the {@link #DEFAULT_PROFILE_PNAME}
      * <tt>ConfigurationService</tt> property.
      */
-    public static final String DEFAULT_DEFAULT_PROFILE = MAIN_PROFILE;
+    public static final String DEFAULT_DEFAULT_PROFILE = BASELINE_PROFILE;
 
     /**
      * The frame rate to be assumed by <tt>JNIEncoder</tt> instances in the

@@ -57,7 +57,7 @@
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-lgpl-dependencies</artifactId>
       <optional>true</optional>
-      <version>1.0-20150723.002855-1</version>
+      <version>1.1-20180217.120239-1</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -124,6 +124,7 @@
          <groupId>org.apache.felix</groupId>
          <artifactId>maven-bundle-plugin</artifactId>
          <configuration>
+            <excludeDependencies>jitsi-lgpl-dependencies</excludeDependencies>
             <instructions>
                <Import-Package>*,sun.lwawt,sun.lwawt.macosx</Import-Package>
                <Export-Package>org.jitsi.util.*,

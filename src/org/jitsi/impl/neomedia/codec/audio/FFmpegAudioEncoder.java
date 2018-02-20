@@ -98,7 +98,7 @@ public class FFmpegAudioEncoder
         {
             FFmpeg.avcodeccontext_set_sample_fmt(
                     avctx,
-                    FFmpeg.AV_SAMPLE_FMT_S16);
+                    FFmpeg.AV_SAMPLE_FMT_S16P);
         }
         catch (UnsatisfiedLinkError ule)
         {
@@ -196,7 +196,9 @@ public class FFmpegAudioEncoder
             outBuf.setLength(outLen);
 
             if (inBuf.getLength() > 0)
-                return BUFFER_PROCESSED_OK | INPUT_BUFFER_NOT_CONSUMED;
+                return INPUT_BUFFER_NOT_CONSUMED;
+            else if (outLen == 0)
+                return OUTPUT_BUFFER_NOT_FILLED;
             else
                 return BUFFER_PROCESSED_OK;
         }
