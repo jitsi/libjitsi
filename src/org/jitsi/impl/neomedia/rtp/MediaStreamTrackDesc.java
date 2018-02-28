@@ -218,7 +218,14 @@ public class MediaStreamTrackDesc
     {
         if (!simulcast)
         {
-            frameDesc.getRTPEncoding().setActive(true);
+            RTPEncodingDesc encoding = frameDesc.getRTPEncoding();
+            // Request an independent frame (FIR) if the stream is just becoming active.
+            if(!encoding.isActive() && pkt.getPayloadLength(true) > 0) {
+                ((RTPTranslatorImpl) mediaStreamTrackReceiver.getStream()
+                    .getRTPTranslator()).getRtcpFeedbackMessageSender()
+                    .sendFIR((int) rtpEncodings[0].getPrimarySSRC());
+            }
+            encoding.setActive(true);
             return;
         }
 
