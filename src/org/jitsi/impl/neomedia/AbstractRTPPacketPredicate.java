@@ -89,10 +89,6 @@ public class AbstractRTPPacketPredicate
         {
             result = false;
         }
-        if (!result)
-        {
-            logger.debug("Caught a non-RTCP/RTP packet.");
-        }
 
         return result;
     }
