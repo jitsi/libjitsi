@@ -18,6 +18,7 @@ package org.jitsi.impl.neomedia.rtcp;
 import java.util.*;
 import net.sf.fmj.media.rtp.*;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.util.*;
 
 /**
  * A class which represents an RTCP Generic NACK feedback message, as defined
@@ -66,7 +67,7 @@ public class NACKPacket
      */
     public static boolean isNACKPacket(ByteArrayBuffer baf)
     {
-        int rc = RTCPHeaderUtils.getReportCount(baf);
+        int rc = RTCPUtils.getReportCount(baf);
         return rc == FMT && isRTPFBPacket(baf);
     }
 

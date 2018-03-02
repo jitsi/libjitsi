@@ -22,6 +22,7 @@ import net.sf.fmj.media.rtp.*;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.util.*;
 
 /**
  * Created by gp on 6/24/14.
@@ -264,7 +265,7 @@ public class RTCPREMBPacket extends RTCPFBPacket
      */
     public static boolean isREMBPacket(ByteArrayBuffer baf)
     {
-        int rc = RTCPHeaderUtils.getReportCount(baf);
+        int rc = RTCPUtils.getReportCount(baf);
         return isPSFBPacket(baf) && rc == FMT;
     }
 }

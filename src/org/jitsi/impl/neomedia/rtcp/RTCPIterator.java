@@ -17,6 +17,7 @@ package org.jitsi.impl.neomedia.rtcp;
 
 import net.sf.fmj.media.rtp.*;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.util.*;
 
 import java.util.*;
 
@@ -75,7 +76,7 @@ public class RTCPIterator
     @Override
     public boolean hasNext()
     {
-        return RTCPHeaderUtils.getLength
+        return RTCPUtils.getLength
             (baf.getBuffer(), nextOff, remainingLen) >= RTCPHeader.SIZE;
     }
 
@@ -85,7 +86,7 @@ public class RTCPIterator
     @Override
     public ByteArrayBuffer next()
     {
-        int pktLen = RTCPHeaderUtils.getLength(
+        int pktLen = RTCPUtils.getLength(
             baf.getBuffer(), nextOff, remainingLen);
         if (pktLen < RTCPHeader.SIZE)
         {

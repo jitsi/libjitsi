@@ -19,6 +19,7 @@ import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.util.*;
 
 /**
  * @author George Politis
@@ -62,7 +63,7 @@ extends AbstractFunction<T, T>
             return pktIn;
         }
         else if (RTCPPacketPredicate.INSTANCE.test(pktIn)
-            && RTCPHeaderUtils.getPacketType(pktIn) == RTCPPacket.SR)
+            && RTCPUtils.getPacketType(pktIn) == RTCPPacket.SR)
         {
             // Rewrite the timestamp of an SR packet.
             long srcTs = RTCPSenderInfoUtils.getTimestamp(pktIn);

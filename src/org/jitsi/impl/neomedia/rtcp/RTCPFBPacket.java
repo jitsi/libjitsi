@@ -100,7 +100,7 @@ public class RTCPFBPacket
      */
     public static boolean isRTPFBPacket(ByteArrayBuffer baf)
     {
-        int pt = RTCPHeaderUtils.getPacketType(baf);
+        int pt = RTCPUtils.getPacketType(baf);
         return pt == RTPFB;
     }
 
@@ -114,7 +114,7 @@ public class RTCPFBPacket
      */
     public static boolean isPSFBPacket(ByteArrayBuffer baf)
     {
-        int pt = RTCPHeaderUtils.getPacketType(baf);
+        int pt = RTCPUtils.getPacketType(baf);
         return pt == PSFB;
     }
 
@@ -151,7 +151,7 @@ public class RTCPFBPacket
             return null;
         }
 
-        int length = RTCPHeaderUtils.getLength(baf);
+        int length = RTCPUtils.getLength(baf);
         if (length < 0)
         {
             return null;

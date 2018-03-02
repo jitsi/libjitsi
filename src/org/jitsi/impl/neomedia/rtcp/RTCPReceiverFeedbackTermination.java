@@ -412,7 +412,7 @@ public class RTCPReceiverFeedbackTermination
             while (it.hasNext())
             {
                 ByteArrayBuffer baf = it.next();
-                int pt = RTCPHeaderUtils.getPacketType(baf);
+                int pt = RTCPUtils.getPacketType(baf);
                 if (pt == RTCPRRPacket.RR
                         || RTCPREMBPacket.isREMBPacket(baf)
                         || RTCPTCCPacket.isTCCPacket(baf))
@@ -423,7 +423,7 @@ public class RTCPReceiverFeedbackTermination
 
                 if (!send && pt > -1)
                 {
-                    int fmt = RTCPHeaderUtils.getReportCount(baf);
+                    int fmt = RTCPUtils.getReportCount(baf);
                     if ((pt == RTCPFeedbackMessageEvent.PT_PS
                             && fmt == RTCPFeedbackMessageEvent.FMT_PLI)
                         || (pt == RTCPFeedbackMessageEvent.PT_PS
