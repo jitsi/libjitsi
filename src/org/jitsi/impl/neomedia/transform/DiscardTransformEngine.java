@@ -16,7 +16,6 @@
 package org.jitsi.impl.neomedia.transform;
 
 import net.sf.fmj.media.rtp.*;
-import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
@@ -139,14 +138,14 @@ public class DiscardTransformEngine
 
             // Check RTCP packet validity. This makes sure that pktLen > 0
             // so this loop will eventually terminate.
-            if (!RTCPHeaderUtils.isHeaderValid(buf, offset, length))
+            if (!RTCPUtils.isHeaderValid(buf, offset, length))
             {
                 return pkt;
             }
 
-            int pktLen = RTCPHeaderUtils.getLength(buf, offset, length);
+            int pktLen = RTCPUtils.getLength(buf, offset, length);
 
-            int pt = RTCPHeaderUtils.getPacketType(buf, offset, pktLen);
+            int pt = RTCPUtils.getPacketType(buf, offset, pktLen);
             if (pt == RTCPPacket.SR)
             {
                 long ssrc = RawPacket.getRTCPSSRC(buf, offset, pktLen);

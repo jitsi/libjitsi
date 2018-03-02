@@ -13,17 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jitsi.impl.neomedia.rtcp;
+package org.jitsi.util;
 
 import org.jitsi.service.neomedia.*;
-import org.jitsi.util.*;
 
 /**
  * Utility class that contains static methods for RTCP header manipulation.
  *
  * @author George Politis
  */
-public class RTCPHeaderUtils
+public class RTCPUtils
 {
     /**
      * The values of the Version field for RTCP packets.
@@ -151,13 +150,13 @@ public class RTCPHeaderUtils
      */
     public static boolean isHeaderValid(byte[] buf, int off, int len)
     {
-        int version = RTCPHeaderUtils.getVersion(buf, off, len);
+        int version = RTCPUtils.getVersion(buf, off, len);
         if (version != VERSION)
         {
             return false;
         }
 
-        int pktLen = RTCPHeaderUtils.getLength(buf, off, len);
+        int pktLen = RTCPUtils.getLength(buf, off, len);
         if (pktLen < MIN_SIZE)
         {
             return false;
@@ -256,7 +255,7 @@ public class RTCPHeaderUtils
      * @param len
      * @return {@code true} if the described packet looks like RTCP.
      */
-    private boolean looksLikeRtcp(byte[] buf, int off, int len)
+    public static boolean looksLikeRtcp(byte[] buf, int off, int len)
     {
         if (!isHeaderValid(buf, off, len))
         {
