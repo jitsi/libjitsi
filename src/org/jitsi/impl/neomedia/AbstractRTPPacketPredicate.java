@@ -53,43 +53,22 @@ public class AbstractRTPPacketPredicate
     @Override
     public boolean test(ByteArrayBuffer pkt)
     {
-        // XXX inspired by RtpChannelDatagramFilter.accept().
-        boolean result;
-
-        if (pkt != null)
+        // If isHeaderValid fails, this is not a valid RTP packet either.
+        if (pkt == null
+                || !RTCPUtils.isHeaderValid(
+                    pkt.getBuffer(), pkt.getOffset(), pkt.getLength()))
         {
-            if (pkt.getLength() >= 4)
-            {
-                if (RawPacket.getVersion(pkt) == 2) // RTP/RTCP version field
-                {
-                    byte[] buff = pkt.getBuffer();
-                    int off = pkt.getOffset();
-                    int pt = buff[off + 1] & 0xff;
+            return false;
+        }
 
-                    if (200 <= pt && pt <= 211)
-                    {
-                        result = rtcp;
-                    }
-                    else
-                    {
-                        result = !rtcp;
-                    }
-                }
-                else
-                {
-                    result = false;
-                }
-            }
-            else
-            {
-                result = false;
-            }
+        if (RTCPUtils.looksLikeRtcp(
+            pkt.getBuffer(), pkt.getOffset(), pkt.getLength()))
+        {
+            return rtcp;
         }
         else
         {
-            result = false;
+            return !rtcp;
         }
-
-        return result;
     }
 }
