@@ -15,20 +15,27 @@
  */
 package org.jitsi.impl.neomedia.rtcp;
 
-import net.sf.fmj.media.rtp.*;
-import org.jitsi.impl.neomedia.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
 /**
  * Utility class that contains static methods for RTCP header manipulation.
  *
- * TODO maybe merge into the RTCPHeader class.
- *
  * @author George Politis
  */
 public class RTCPHeaderUtils
 {
+    /**
+     * The values of the Version field for RTCP packets.
+     */
+    public static int VERSION = 2;
+
+    /**
+     * The size in bytes of the smallest possible RTCP packet (e.g. an empty
+     * Receiver Report).
+     */
+    public static int MIN_SIZE = 8;
+
     /**
      * Gets the RTCP packet type.
      *
@@ -131,7 +138,8 @@ public class RTCPHeaderUtils
     }
 
     /**
-     * Checks whether the RTCP header is valid or not. It does so by checking
+     * Checks whether the RTCP header is valid or not (note that a valid header
+     * does not necessarily imply a valid packet). It does so by checking
      * the RTCP header version and makes sure the buffer is at least 8 bytes
      * long.
      *
@@ -144,13 +152,13 @@ public class RTCPHeaderUtils
     public static boolean isValid(byte[] buf, int off, int len)
     {
         int version = RTCPHeaderUtils.getVersion(buf, off, len);
-        if (version != RTCPHeader.VERSION)
+        if (version != VERSION)
         {
             return false;
         }
 
         int pktLen = RTCPHeaderUtils.getLength(buf, off, len);
-        if (pktLen < RTCPHeader.SIZE)
+        if (pktLen < MIN_SIZE)
         {
             return false;
         }
@@ -234,4 +242,31 @@ public class RTCPHeaderUtils
 
         return getLength(baf.getBuffer(), baf.getOffset(), baf.getLength());
     }
+
+    /**
+     * Checks whether the buffer described by the parameters looks like an
+     * RTCP packet. It only checks the Version and Packet Type fields, as
+     * well as a minimum length.
+     * This method returning {@code true} does not necessarily mean that the
+     * given packet is a valid RTCP packet, but it should be parsed as RTCP
+     * (as opposed to as e.g. RTP or STUN).
+     *
+     * @param buf
+     * @param off
+     * @param len
+     * @return {@code true} if the described packet looks like RTCP.
+     */
+    private boolean looksLikeRtcp(byte[] buf, int off, int len)
+    {
+        if (!isValid(buf, off, len))
+        {
+            return false;
+        }
+
+        int pt = getPacketType(buf, off, len);
+
+        // Other packet types are used for RTP.
+        return 200 <= pt && pt <= 211;
+    }
+
 }
