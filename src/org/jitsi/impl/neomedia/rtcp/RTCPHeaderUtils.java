@@ -47,7 +47,7 @@ public class RTCPHeaderUtils
      */
     public static int getPacketType(byte[] buf, int off, int len)
     {
-        if (!isValid(buf, off, len))
+        if (!isHeaderValid(buf, off, len))
         {
             return -1;
         }
@@ -86,7 +86,7 @@ public class RTCPHeaderUtils
     private static int setSenderSSRC(
         byte[] buf, int off, int len, int senderSSRC)
     {
-        if (!isValid(buf, off, len))
+        if (!isHeaderValid(buf, off, len))
         {
             return -1;
         }
@@ -105,7 +105,7 @@ public class RTCPHeaderUtils
      */
     public static int getLength(byte[] buf, int off, int len)
     {
-        // XXX Do not check with isValid.
+        // XXX Do not check with isHeaderValid.
         if (buf == null || buf.length < off + len || len < 4)
         {
             return -1;
@@ -128,7 +128,7 @@ public class RTCPHeaderUtils
      */
     public static int getVersion(byte[] buf, int off, int len)
     {
-        // XXX Do not check with isValid.
+        // XXX Do not check with isHeaderValid.
         if (buf == null || buf.length < off + len || len < 1)
         {
             return -1;
@@ -149,7 +149,7 @@ public class RTCPHeaderUtils
      * data.
      * @return true if the RTCP packet is valid, false otherwise.
      */
-    public static boolean isValid(byte[] buf, int off, int len)
+    public static boolean isHeaderValid(byte[] buf, int off, int len)
     {
         int version = RTCPHeaderUtils.getVersion(buf, off, len);
         if (version != VERSION)
@@ -258,7 +258,7 @@ public class RTCPHeaderUtils
      */
     private boolean looksLikeRtcp(byte[] buf, int off, int len)
     {
-        if (!isValid(buf, off, len))
+        if (!isHeaderValid(buf, off, len))
         {
             return false;
         }
