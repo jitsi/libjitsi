@@ -24,6 +24,14 @@ import java.util.*;
 public class RTPUtils
 {
     /**
+     * Hex characters for converting bytes to readable hex strings
+     */
+    private final static char[] HEXES = new char[]
+        {
+            '0', '1', '2', '3', '4', '5', '6', '7', '8',
+            '9', 'A', 'B', 'C', 'D', 'E', 'F'
+        };
+    /**
      * Returns the delta between two RTP sequence numbers, taking into account
      * rollover.  This will return the 'shortest' delta between the two
      * sequence numbers in the form of the number you'd add to b to get a. e.g.:
@@ -36,9 +44,13 @@ public class RTPUtils
         int diff = a - b;
 
         if (diff < -(1<<15))
-            diff += 1<<16;
+        {
+            diff += 1 << 16;
+        }
         else if (diff > 1<<15)
-            diff -= 1<<16;
+        {
+            diff -= 1 << 16;
+        }
 
         return diff;
     }
@@ -75,7 +87,8 @@ public class RTPUtils
      * @return the sequence number result from doing
      * startingSequenceNumber + delta
      */
-    public static int applySequenceNumberDelta(int startingSequenceNumber, int delta)
+    public static int applySequenceNumberDelta(
+        int startingSequenceNumber, int delta)
     {
         return (startingSequenceNumber + delta) & 0xFFFF;
     }
@@ -135,42 +148,42 @@ public class RTPUtils
     }
 
     /**
-     * Read a integer from a buffer at a specified offset.
+     * Read an integer from a buffer at a specified offset.
      *
-     * @param buffer the buffer.
-     * @param offset start offset of the integer to be read.
+     * @param buf the buffer.
+     * @param off start offset of the integer to be read.
      */
-    public static int readInt(byte[] buffer, int offset)
+    public static int readInt(byte[] buf, int off)
     {
         return
-            ((buffer[offset++] & 0xFF) << 24)
-                | ((buffer[offset++] & 0xFF) << 16)
-                | ((buffer[offset++] & 0xFF) << 8)
-                | (buffer[offset] & 0xFF);
+            ((buf[off++] & 0xFF) << 24)
+                | ((buf[off++] & 0xFF) << 16)
+                | ((buf[off++] & 0xFF) << 8)
+                | (buf[off] & 0xFF);
     }
 
     /**
      * Reads a 32-bit unsigned integer from the given buffer at the given
      * offset and returns its {@link long} representation.
-     * @param buffer the buffer.
-     * @param offset start offset of the integer to be read.
+     * @param buf the buffer.
+     * @param off start offset of the integer to be read.
      */
-    public static long readUint32AsLong(byte[] buffer, int offset)
+    public static long readUint32AsLong(byte[] buf, int off)
     {
-        return readInt(buffer, offset) & 0xFFFFFFFFL;
+        return readInt(buf, off) & 0xFFFF_FFFFL;
     }
 
     /**
      * Read an unsigned short at a specified offset as an int.
      *
-     * @param buffer the buffer from which to read.
-     * @param offset start offset of the unsigned short
+     * @param buf the buffer from which to read.
+     * @param off start offset of the unsigned short
      * @return the int value of the unsigned short at offset
      */
-    public static int readUint16AsInt(byte[] buffer, int offset)
+    public static int readUint16AsInt(byte[] buf, int off)
     {
-        int b1 = (0xFF & (buffer[offset + 0]));
-        int b2 = (0xFF & (buffer[offset + 1]));
+        int b1 = (0xFF & (buf[off + 0]));
+        int b2 = (0xFF & (buf[off + 1]));
         int val = b1 << 8 | b2;
         return val;
     }
@@ -178,14 +191,14 @@ public class RTPUtils
     /**
      * Read a signed short at a specified offset as an int.
      *
-     * @param buffer the buffer from which to read.
-     * @param offset start offset of the unsigned short
+     * @param buf the buffer from which to read.
+     * @param off start offset of the unsigned short
      * @return the int value of the unsigned short at offset
      */
-    public static int readInt16AsInt(byte[] buffer, int offset)
+    public static int readInt16AsInt(byte[] buf, int off)
     {
-        int ret = ((0xFF & (buffer[offset])) << 8)
-            | (0xFF & (buffer[offset + 1]));
+        int ret = ((0xFF & (buf[off])) << 8)
+            | (0xFF & (buf[off + 1]));
         if ((ret & 0x8000) != 0)
         {
             ret = ret | 0xFFFF_0000;
@@ -197,15 +210,15 @@ public class RTPUtils
     /**
      * Read an unsigned short at specified offset as a int
      *
-     * @param buffer
-     * @param offset start offset of the unsigned short
+     * @param buf
+     * @param off start offset of the unsigned short
      * @return the int value of the unsigned short at offset
      */
-    public static int readUint24AsInt(byte[] buffer, int offset)
+    public static int readUint24AsInt(byte[] buf, int off)
     {
-        int b1 = (0xFF & (buffer[offset + 0]));
-        int b2 = (0xFF & (buffer[offset + 1]));
-        int b3 = (0xFF & (buffer[offset + 2]));
+        int b1 = (0xFF & (buf[off + 0]));
+        int b2 = (0xFF & (buf[off + 1]));
+        int b3 = (0xFF & (buf[off + 2]));
         return b1 << 16 | b2 << 8 | b3;
     }
 
@@ -228,7 +241,7 @@ public class RTPUtils
      */
     public static long as32Bits(long value)
     {
-        return value & 0xFFFFFFFFL;
+        return value & 0xFFFF_FFFFL;
     }
 
     /**
@@ -255,16 +268,24 @@ public class RTPUtils
             else if (a > b)
             {
                 if (a - b < 0x10000)
+                {
                     return 1;
+                }
                 else
+                {
                     return -1;
+                }
             }
             else //a < b
             {
                 if (b - a < 0x10000)
+                {
                     return -1;
+                }
                 else
+                {
                     return 1;
+                }
             }
         }
     };
@@ -277,9 +298,13 @@ public class RTPUtils
     {
         long diff = a - b;
         if (diff < -(1L<<31))
-            diff+= 1L<<32;
+        {
+            diff += 1L << 32;
+        }
         else if (diff > 1L<<31)
-            diff-= 1L<<32;
+        {
+            diff -= 1L << 32;
+        }
 
         return diff;
     }
@@ -296,15 +321,6 @@ public class RTPUtils
     }
 
     /**
-     * Hex characters for converting bytes to readable hex strings
-     */
-    private static char[] hexes = new char[]
-        {
-            '0', '1', '2', '3', '4', '5', '6', '7', '8',
-            '9', 'A', 'B', 'C', 'D', 'E', 'F'
-        };
-
-    /**
      * Return a string containing the hex string version of the given byte
      * @param b
      * @return
@@ -312,52 +328,55 @@ public class RTPUtils
     private static String toHexString(byte b)
     {
 
-        StringBuilder hexStringBuilder
-            = new StringBuilder(2);
+        StringBuilder hexStringBuilder = new StringBuilder(2);
 
-        hexStringBuilder.append(hexes[(b & 0xF0) >> 4]);
-        hexStringBuilder.append(hexes[b & 0x0F]);
+        hexStringBuilder.append(HEXES[(b & 0xF0) >> 4]);
+        hexStringBuilder.append(HEXES[b & 0x0F]);
 
         return hexStringBuilder.toString();
     }
 
     /**
      * Return a string containing the hex string version of the given bytes
-     * @param bytes
+     * @param buf
      * @return
      */
-    public static String toHexString(byte[] bytes)
+    public static String toHexString(byte[] buf)
     {
-        return toHexString(bytes, 0, bytes.length);
+        return toHexString(buf, 0, buf.length);
     }
 
     /**
      * Return a string containing the hex string version of the given byte
-     * @param bytes
-     * @param offset
-     * @param length
+     * @param buf
+     * @param off
+     * @param len
      * @return
      */
-    public static String toHexString(byte[] bytes, int offset, int length)
+    public static String toHexString(byte[] buf, int off, int len)
     {
-        if (bytes == null)
+        if (buf == null)
+        {
             return null;
+        }
         else
         {
             StringBuilder hexStringBuilder
-                = new StringBuilder(2 * bytes.length);
+                = new StringBuilder(2 * buf.length);
 
-            for (int i = 0; i < length; i++)
+            for (int i = 0; i < len; i++)
             {
                 if (i % 16 == 0)
                 {
-                    hexStringBuilder.append("\n").append(toHexString((byte)i)).append("  ");
+                    hexStringBuilder.append("\n")
+                        .append(toHexString((byte)i))
+                        .append("  ");
                 }
                 else if (i % 8 == 0)
                 {
                     hexStringBuilder.append(" ");
                 }
-                byte b = bytes[offset + i];
+                byte b = buf[off + i];
 
                 hexStringBuilder.append(toHexString(b));
                 hexStringBuilder.append(" ");
