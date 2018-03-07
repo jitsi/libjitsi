@@ -115,6 +115,12 @@ public class MediaStreamTrackDesc
     private final Statistics statistics = new Statistics();
 
     /**
+     * A string which identifies the owner of this track (e.g. the endpoint
+     * which is the sender of the track).
+     */
+    private final String owner;
+
+    /**
      * Ctor.
      *
      * @param mediaStreamTrackReceiver The {@link MediaStreamTrackReceiver} that
@@ -125,11 +131,39 @@ public class MediaStreamTrackDesc
      */
     public MediaStreamTrackDesc(
         MediaStreamTrackReceiver mediaStreamTrackReceiver,
-        RTPEncodingDesc[] rtpEncodings, boolean simulcast)
+        RTPEncodingDesc[] rtpEncodings,
+        boolean simulcast)
+    {
+        this(mediaStreamTrackReceiver, rtpEncodings, simulcast, null);
+    }
+
+    /**
+     * Ctor.
+     *
+     * @param mediaStreamTrackReceiver The {@link MediaStreamTrackReceiver} that
+     * receives this instance.
+     * @param rtpEncodings The {@link RTPEncodingDesc}s that this instance
+     * possesses.
+     * @param simulcast true to enable simulcast logic, false otherwise
+     */
+    public MediaStreamTrackDesc(
+        MediaStreamTrackReceiver mediaStreamTrackReceiver,
+        RTPEncodingDesc[] rtpEncodings,
+        boolean simulcast,
+        String owner)
     {
         this.rtpEncodings = rtpEncodings;
         this.mediaStreamTrackReceiver = mediaStreamTrackReceiver;
         this.simulcast = simulcast;
+        this.owner = owner;
+    }
+
+    /**
+     * @return the identifier of the owner of this track.
+     */
+    public String getOwner()
+    {
+        return owner;
     }
 
     /**
