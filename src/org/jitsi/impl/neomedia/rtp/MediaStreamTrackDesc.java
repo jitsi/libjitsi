@@ -167,6 +167,14 @@ public class MediaStreamTrackDesc
     }
 
     /**
+     * @return the {@link MediaType} of this {@link MediaStreamTrackDesc}.
+     */
+    public MediaType getMediaType()
+    {
+        return getMediaStreamTrackReceiver().getStream().getMediaType();
+    }
+
+    /**
      * Gets the stats for this {@link MediaStreamTrackDesc} instance.
      *
      * @return gets the stats for this {@link MediaStreamTrackDesc} instance.
