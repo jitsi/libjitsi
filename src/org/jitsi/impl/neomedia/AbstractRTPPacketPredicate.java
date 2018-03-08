@@ -61,7 +61,7 @@ public class AbstractRTPPacketPredicate
             return false;
         }
 
-        if (RTCPUtils.looksLikeRtcp(
+        if (RTCPUtils.isRtcp(
             pkt.getBuffer(), pkt.getOffset(), pkt.getLength()))
         {
             return rtcp;
