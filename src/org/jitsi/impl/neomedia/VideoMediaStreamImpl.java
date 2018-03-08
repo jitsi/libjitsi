@@ -424,7 +424,7 @@ public class VideoMediaStreamImpl
      * remote endpoint.
      */
     private final MediaStreamTrackReceiver mediaStreamTrackReceiver
-        = new MediaStreamTrackReceiver(this);
+        = new VideoMediaStreamTrackReceiver(this);
 
     /**
      * The transformer which handles outgoing rtx (RFC-4588) packets for this
