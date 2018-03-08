@@ -409,13 +409,13 @@ public class MediaStreamTrackDesc
     }
 
     /**
-     * Finds the {@link RTPEncodingDesc} that corresponds to the packet that is
-     * specified in the buffer passed in as an argument.
+     * Finds the {@link RTPEncodingDesc} that corresponds to the specified
+     * {@code ssrc}.
      *
      * @param ssrc the SSRC of the {@link RTPEncodingDesc} to find. If multiple
      * encodings share the same SSRC, the first match will be returned.
-     * @return the {@link RTPEncodingDesc} that corresponds to the packet that
-     * is specified in the buffer passed in as an argument, or null.
+     * @return the {@link RTPEncodingDesc} that corresponds to the specified
+     * {@code ssrc}.
      */
     RTPEncodingDesc findRTPEncodingDesc(long ssrc)
     {
@@ -473,9 +473,12 @@ public class MediaStreamTrackDesc
     }
 
     /**
+     * FIXME: this should probably check whether the specified SSRC is part
+     * of this track (i.e. check all encodings and include secondary SSRCs).
      *
-     * @param ssrc
-     * @return
+     * @param ssrc the SSRC to match.
+     * @return {@code true} if the specified {@code ssrc} is the primary SSRC
+     * for this track.
      */
     public boolean matches(long ssrc)
     {
