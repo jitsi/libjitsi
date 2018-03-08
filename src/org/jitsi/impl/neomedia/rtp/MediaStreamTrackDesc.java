@@ -115,6 +115,12 @@ public class MediaStreamTrackDesc
     private final Statistics statistics = new Statistics();
 
     /**
+     * A string which identifies the owner of this track (e.g. the endpoint
+     * which is the sender of the track).
+     */
+    private final String owner;
+
+    /**
      * Ctor.
      *
      * @param mediaStreamTrackReceiver The {@link MediaStreamTrackReceiver} that
@@ -125,11 +131,39 @@ public class MediaStreamTrackDesc
      */
     public MediaStreamTrackDesc(
         MediaStreamTrackReceiver mediaStreamTrackReceiver,
-        RTPEncodingDesc[] rtpEncodings, boolean simulcast)
+        RTPEncodingDesc[] rtpEncodings,
+        boolean simulcast)
+    {
+        this(mediaStreamTrackReceiver, rtpEncodings, simulcast, null);
+    }
+
+    /**
+     * Ctor.
+     *
+     * @param mediaStreamTrackReceiver The {@link MediaStreamTrackReceiver} that
+     * receives this instance.
+     * @param rtpEncodings The {@link RTPEncodingDesc}s that this instance
+     * possesses.
+     * @param simulcast true to enable simulcast logic, false otherwise
+     */
+    public MediaStreamTrackDesc(
+        MediaStreamTrackReceiver mediaStreamTrackReceiver,
+        RTPEncodingDesc[] rtpEncodings,
+        boolean simulcast,
+        String owner)
     {
         this.rtpEncodings = rtpEncodings;
         this.mediaStreamTrackReceiver = mediaStreamTrackReceiver;
         this.simulcast = simulcast;
+        this.owner = owner;
+    }
+
+    /**
+     * @return the identifier of the owner of this track.
+     */
+    public String getOwner()
+    {
+        return owner;
     }
 
     /**
@@ -375,13 +409,13 @@ public class MediaStreamTrackDesc
     }
 
     /**
-     * Finds the {@link RTPEncodingDesc} that corresponds to the packet that is
-     * specified in the buffer passed in as an argument.
+     * Finds the {@link RTPEncodingDesc} that corresponds to the specified
+     * {@code ssrc}.
      *
      * @param ssrc the SSRC of the {@link RTPEncodingDesc} to find. If multiple
      * encodings share the same SSRC, the first match will be returned.
-     * @return the {@link RTPEncodingDesc} that corresponds to the packet that
-     * is specified in the buffer passed in as an argument, or null.
+     * @return the {@link RTPEncodingDesc} that corresponds to the specified
+     * {@code ssrc}.
      */
     RTPEncodingDesc findRTPEncodingDesc(long ssrc)
     {
@@ -439,9 +473,12 @@ public class MediaStreamTrackDesc
     }
 
     /**
+     * FIXME: this should probably check whether the specified SSRC is part
+     * of this track (i.e. check all encodings and include secondary SSRCs).
      *
-     * @param ssrc
-     * @return
+     * @param ssrc the SSRC to match.
+     * @return {@code true} if the specified {@code ssrc} is the primary SSRC
+     * for this track.
      */
     public boolean matches(long ssrc)
     {
