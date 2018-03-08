@@ -255,7 +255,7 @@ public class RTCPUtils
      * @param len
      * @return {@code true} if the described packet looks like RTCP.
      */
-    public static boolean looksLikeRtcp(byte[] buf, int off, int len)
+    public static boolean isRtcp(byte[] buf, int off, int len)
     {
         if (!isHeaderValid(buf, off, len))
         {
