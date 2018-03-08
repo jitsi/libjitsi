@@ -139,6 +139,13 @@ public class AudioMediaStreamImpl
     private SsrcTransformEngine ssrcTransformEngine;
 
     /**
+     * The instance that is aware of all of the {@link RTPEncodingDesc} of the
+     * remote endpoint.
+     */
+    private final MediaStreamTrackReceiver mediaStreamTrackReceiver
+        = new MediaStreamTrackReceiver(this);
+
+    /**
      * Initializes a new <tt>AudioMediaStreamImpl</tt> instance which will use
      * the specified <tt>MediaDevice</tt> for both capture and playback of audio
      * exchanged via the specified <tt>StreamConnector</tt>.
@@ -801,5 +808,14 @@ public class AudioMediaStreamImpl
     protected TransformEngine getRTCPTermination()
     {
         return rtcpTermination;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public MediaStreamTrackReceiver getMediaStreamTrackReceiver()
+    {
+        return mediaStreamTrackReceiver;
     }
 }

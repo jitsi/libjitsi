@@ -21,13 +21,19 @@ import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
 /**
- * This class is inserted in the receive transform chain and it updates the
- * {@link MediaStreamTrackDesc}s that is configured to receive.
+ * Contains the {@link MediaStreamTrackDesc}s for a {@link MediaStream}. It
+ * is also part of the {@link MediaStream}'s transform chain and has the
+ * opportunity to update its {@link MediaStreamTrackDesc}s with received
+ * packets.
+ * This default implementation does no update the {@link MediaStreamTrackDesc}s,
+ * it only serves to contain the signalled tracks and encodings.
  *
  * @author George Politis
+ * @author Boris Grozev
  */
 public class MediaStreamTrackReceiver
-    implements TransformEngine, PacketTransformer
+    extends SinglePacketTransformerAdapter
+    implements TransformEngine
 {
     /**
      * The {@link MediaStreamImpl} that owns this instance.
@@ -48,6 +54,8 @@ public class MediaStreamTrackReceiver
      */
     public MediaStreamTrackReceiver(MediaStreamImpl stream)
     {
+        super(RTPPacketPredicate.INSTANCE);
+
         this.stream = stream;
     }
 
@@ -127,15 +135,6 @@ public class MediaStreamTrackReceiver
     }
 
     /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void close()
-    {
-
-    }
-
-    /**
      * Gets the {@link MediaStreamTrackDesc}s that this instance is configured
      * to receive.
      *
@@ -201,9 +200,9 @@ public class MediaStreamTrackReceiver
     }
 
     /**
-     * Gets the {@code RtpChannel} that owns this instance.
+     * Gets the {@link MediaStream} that owns this instance.
      *
-     * @return the {@code RtpChannel} that owns this instance.
+     * @return the {@link MediaStream} that owns this instance.
      */
     public MediaStreamImpl getStream()
     {
@@ -234,40 +233,5 @@ public class MediaStreamTrackReceiver
         }
 
         return null;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public RawPacket[] reverseTransform(RawPacket[] pkts)
-    {
-        long nowMs = System.currentTimeMillis();
-        for (RawPacket pkt : pkts)
-        {
-            if (!RTPPacketPredicate.INSTANCE.test(pkt)
-                || pkt.isInvalid())
-            {
-                continue;
-            }
-
-            RTPEncodingDesc encoding = findRTPEncodingDesc(pkt);
-
-            if (encoding != null)
-            {
-                encoding.update(pkt, nowMs);
-            }
-        }
-
-        return pkts;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public RawPacket[] transform(RawPacket[] pkts)
-    {
-        return pkts;
     }
 }
