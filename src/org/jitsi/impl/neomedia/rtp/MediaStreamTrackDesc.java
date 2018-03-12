@@ -222,21 +222,21 @@ public class MediaStreamTrackDesc
             return;
         }
 
-        if (nowMs - statistics.lastKeyframeMs < MIN_KEY_FRAME_WAIT_MS)
-        {
-            // The webrtc engine is sending keyframes from high to low and less
-            // often than 300 millis. The first fresh keyframe that we observe
-            // after we've waited for that long determines the streams that are
-            // streaming (not suspended).
-            //
-            // On the other hand, if this packet is not a keyframe, the only
-            // other action we can do is send an FIR and it's pointless to spam
-            // the engine.
-            return;
-        }
-
         if (!frameDesc.isIndependent())
         {
+            if (nowMs - statistics.lastKeyframeMs < MIN_KEY_FRAME_WAIT_MS)
+            {
+                // The webrtc engine is sending keyframes from high to low and less
+                // often than 300 millis. The first fresh keyframe that we observe
+                // after we've waited for that long determines the streams that are
+                // streaming (not suspended).
+                //
+                // On the other hand, if this packet is not a keyframe, the only
+                // other action we can do is send an FIR and it's pointless to spam
+                // the engine.
+                return;
+            }
+
             if (!isPacketOfNewFrame)
             {
                 // We only check for stream suspension if this is the first
@@ -308,7 +308,7 @@ public class MediaStreamTrackDesc
             {
                 // This is a late key frame header packet that we've missed.
 
-                if (!encoding.isActive())
+                if (!encoding.isActive() && !(nowMs - statistics.lastKeyframeMs < MIN_KEY_FRAME_WAIT_MS))
                 {
                     if (logger.isTraceEnabled())
                     {
