@@ -148,10 +148,18 @@ public class MediaStreamTrackReceiver
 
     /**
      * Updates this {@link MediaStreamTrackReceiver} with the new RTP encoding
-     * parameters.
+     * parameters. Note that in order to avoid losing the state of existing
+     * {@link MediaStreamTrackDesc} instances, when one of the new instances
+     * matches (i.e. the primary SSRC of its first encoding matches) an old
+     * instance we keep the old instance.
+     * Currently we also keep the old instance's configuration (TODO use the
+     * new configuration).
      *
      * @param newTracks the {@link MediaStreamTrackDesc}s that this instance
-     * will receive.
+     * will receive. Note that the actual {@link MediaStreamTrackDesc} instances
+     * might not match. To get the actual instances call
+     * {@link #getMediaStreamTracks()}.
+     *
      * @return true if the MSTs have changed, otherwise false.
      */
     public boolean setMediaStreamTracks(MediaStreamTrackDesc[] newTracks)
@@ -182,6 +190,8 @@ public class MediaStreamTrackReceiver
                     {
                         mergedTracks[i] = oldTracks[j];
                         cntMatched++;
+                        // TODO: update the old track instance with the
+                        // configuration of the new one.
                         break;
                     }
                 }
