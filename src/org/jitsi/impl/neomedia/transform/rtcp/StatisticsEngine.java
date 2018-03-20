@@ -888,9 +888,8 @@ public class StatisticsEngine
                     || compound.packets.length == 0)
             {
                 logger.info(
-                    "Failed to analyze an incoming RTCP packet for the"
-                        + " purposes of statistics.",
-                    ex);
+                    "Failed to parse an incoming RTCP packet: " +
+                        (ex == null ? "null" : ex.getMessage()));
 
                 // Either this is an empty packet, or parsing failed. In any
                 // case, drop the packet to make sure we're not forwarding
