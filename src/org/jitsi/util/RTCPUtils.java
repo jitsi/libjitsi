@@ -94,7 +94,9 @@ public class RTCPUtils
     }
 
     /**
-     * Gets the RTCP packet length in bytes.
+     * Gets the RTCP packet length in bytes as specified by the length field
+     * of the RTCP packet (does not verify that the buffer is actually large
+     * enough).
      *
      * @param buf the byte buffer that contains the RTCP header.
      * @param off the offset in the byte buffer where the RTCP header starts.
