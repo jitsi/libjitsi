@@ -78,39 +78,16 @@ public class StatisticsEngine
      */
     private static int getLengthIfRTCP(byte[] buf, int off, int len)
     {
-        if ((off >= 0)
-                && (len >= 4)
-                && (buf != null)
-                && (buf.length >= (off + len)))
+        if (off >= 0 && RTCPUtils.isRtcp(buf, off, len))
         {
-            int v = (buf[off] & 0xc0) >>> 6;
+            int bytes = RTCPUtils.getLength(buf, off, len);
 
-            if (v == RTCPHeader.VERSION)
+            if (bytes <= len)
             {
-                int words
-                    = ((buf[off + 2] & 0xff) << 8) | (buf[off + 3] & 0xff);
-                int bytes = (words + 1) * 4;
-
-                if (bytes <= len)
-                    return bytes;
+                return bytes;
             }
         }
         return -1;
-    }
-
-    /**
-     * Determines whether a specific <tt>RawPacket</tt> appears to represent an
-     * RTCP packet.
-     *
-     * @param pkt the <tt>RawPacket</tt> to be examined
-     * @return <tt>true</tt> if the specified <tt>pkt</tt> appears to represent
-     * an RTCP packet
-     */
-    private static boolean isRTCP(RawPacket pkt)
-    {
-        return
-            getLengthIfRTCP(pkt.getBuffer(), pkt.getOffset(), pkt.getLength())
-                > 0;
     }
 
     /**
@@ -879,7 +856,7 @@ public class StatisticsEngine
     public RawPacket reverseTransform(RawPacket pkt)
     {
         // SRTP may send non-RTCP packets.
-        if (isRTCP(pkt))
+        if (RTCPUtils.isRtcp(pkt.getBuffer(), pkt.getOffset(), pkt.getLength()))
         {
             mediaStreamStats.rtcpPacketReceived(
                 pkt.getRTCPSSRC(), pkt.getLength());
@@ -911,9 +888,8 @@ public class StatisticsEngine
                     || compound.packets.length == 0)
             {
                 logger.info(
-                    "Failed to analyze an incoming RTCP packet for the"
-                        + " purposes of statistics.",
-                    ex);
+                    "Failed to parse an incoming RTCP packet: " +
+                        (ex == null ? "null" : ex.getMessage()));
 
                 // Either this is an empty packet, or parsing failed. In any
                 // case, drop the packet to make sure we're not forwarding
@@ -1055,7 +1031,7 @@ public class StatisticsEngine
     public RawPacket transform(RawPacket pkt)
     {
         // SRTP may send non-RTCP packets.
-        if (isRTCP(pkt))
+        if (RTCPUtils.isRtcp(pkt.getBuffer(), pkt.getOffset(), pkt.getLength()))
         {
             mediaStreamStats.rtcpPacketSent(pkt.getRTCPSSRC(),
                                             pkt.getLength());

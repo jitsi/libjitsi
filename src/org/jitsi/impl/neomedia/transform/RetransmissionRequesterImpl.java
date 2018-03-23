@@ -65,7 +65,9 @@ public class RetransmissionRequesterImpl
      * Create a single executor to service the nack processing for all the
      * {@link RetransmissionRequesterImpl} instances
      */
-    private static RecurringRunnableExecutor recurringRunnableExecutor = new RecurringRunnableExecutor();
+    private static RecurringRunnableExecutor recurringRunnableExecutor
+        = new RecurringRunnableExecutor(
+            RetransmissionRequesterImpl.class.getSimpleName());
 
     public RetransmissionRequesterImpl(MediaStream stream)
     {

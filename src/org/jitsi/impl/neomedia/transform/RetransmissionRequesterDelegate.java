@@ -301,15 +301,22 @@ public class RetransmissionRequesterDelegate
 
         for (Requester dueRequester : dueRequesters)
         {
-            Set<Integer> missingPackets = dueRequester.getMissingSeqNums();
-            if (!missingPackets.isEmpty())
+            synchronized (dueRequester)
             {
-                if (logger.isTraceEnabled())
+                Set<Integer> missingPackets = dueRequester.getMissingSeqNums();
+                if (!missingPackets.isEmpty())
                 {
-                    logger.trace(hashCode() + " Sending nack with packets " + missingPackets + " for ssrc " + dueRequester.ssrc);
+                    if (logger.isTraceEnabled())
+                    {
+                        logger.trace(
+                            hashCode() + " Sending nack with packets "
+                                + missingPackets
+                                + " for ssrc " + dueRequester.ssrc);
+
+                    }
+                    packetsToRequest.put(dueRequester.ssrc, missingPackets);
+                    dueRequester.notifyNackCreated(now, missingPackets);
                 }
-                packetsToRequest.put(dueRequester.ssrc, missingPackets);
-                dueRequester.notifyNackCreated(now, missingPackets);
             }
         }
 
