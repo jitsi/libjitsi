@@ -793,8 +793,10 @@ public class MediaStreamImpl
          * be gathered from the ReceiveStream. We need to do this before
          * calling stop().
          */
-        if(logger.isInfoEnabled())
+        if(logger.isDebugEnabled())
+        {
             printReceiveStreamStatistics();
+        }
 
         stop();
         closeSendStreams();
@@ -2337,14 +2339,17 @@ public class MediaStreamImpl
     {
         mediaStreamStatsImpl.updateStats();
 
-        StringBuilder buff
-            = new StringBuilder(
-                    "\nReceive stream stats: discarded RTP packets: ")
+        if (logger.isDebugEnabled())
+        {
+            StringBuilder sb
+                = new StringBuilder(
+                "\nReceive stream stats: discarded RTP packets: ")
                 .append(mediaStreamStatsImpl.getNbDiscarded())
                 .append("\nReceive stream stats: decoded with FEC: ")
                 .append(mediaStreamStatsImpl.getNbFec());
 
-        logger.info(buff);
+            logger.debug(sb);
+        }
     }
 
     /**

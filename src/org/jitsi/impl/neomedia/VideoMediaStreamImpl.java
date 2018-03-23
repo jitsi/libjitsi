@@ -1399,7 +1399,11 @@ public class VideoMediaStreamImpl
         if (bandwidthEstimator == null)
         {
             bandwidthEstimator = new BandwidthEstimatorImpl(this);
-            logger.info("Creating a BandwidthEstimator for stream " + this);
+            if (logger.isDebugEnabled())
+            {
+                logger.debug(
+                    "Creating a BandwidthEstimator for stream " + this);
+            }
         }
         return bandwidthEstimator;
     }
