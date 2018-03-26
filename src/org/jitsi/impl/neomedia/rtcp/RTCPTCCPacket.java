@@ -159,38 +159,39 @@ public class RTCPTCCPacket
     static PacketMap getPacketsFci(
         ByteArrayBuffer fciBuffer, boolean includeNotReceived)
     {
-        int len = -1;
-        if (fciBuffer == null || (len = fciBuffer.getLength()) < MIN_FCI_LENGTH)
+        int fciLen = -1;
+        if (fciBuffer == null
+            || (fciLen = fciBuffer.getLength()) < MIN_FCI_LENGTH)
         {
             logger.warn(
-                PARSE_ERROR + "buffer is null or length too small: " + len);
+                PARSE_ERROR + "buffer is null or length too small: " + fciLen);
             return null;
         }
 
-        byte[] buf = fciBuffer.getBuffer();
-        int off = fciBuffer.getOffset();
+        byte[] fciBuf = fciBuffer.getBuffer();
+        int fciOff = fciBuffer.getOffset();
 
         // The fixed fields. The current sequence number starts from the one
         // in the 'base sequence number' field and increments as we parse.
-        int currentSeq = RTPUtils.readUint16AsInt(buf, off);
-        int packetStatusCount = RTPUtils.readUint16AsInt(buf, off + 2);
+        int currentSeq = RTPUtils.readUint16AsInt(fciBuf, fciOff);
+        int packetStatusCount = RTPUtils.readUint16AsInt(fciBuf, fciOff + 2);
 
         long referenceTime = getReferenceTime250us(fciBuffer);
 
         // The offset at which the packet status chunk list starts.
-        int pscOff = off + PACKET_STATUS_CHUNK_OFFSET;
+        int pscOff = fciOff + PACKET_STATUS_CHUNK_OFFSET;
 
         // First find where the delta list begins.
         int packetsRemaining = packetStatusCount;
         while (packetsRemaining > 0)
         {
-            if (pscOff + CHUNK_SIZE_BYTES > off + len)
+            if (pscOff + CHUNK_SIZE_BYTES > fciOff + fciLen)
             {
                 logger.warn(PARSE_ERROR + "reached the end while reading chunks");
                 return null;
             }
 
-            int packetsInChunk = getPacketCount(buf, pscOff);
+            int packetsInChunk = getPacketCount(fciBuf, pscOff);
             packetsRemaining -= packetsInChunk;
 
             pscOff += CHUNK_SIZE_BYTES;
@@ -202,7 +203,7 @@ public class RTCPTCCPacket
         int deltaOff = pscOff;
 
         // Reset to the start of the chunks list.
-        pscOff = off + PACKET_STATUS_CHUNK_OFFSET;
+        pscOff = fciOff + PACKET_STATUS_CHUNK_OFFSET;
         packetsRemaining = packetStatusCount;
         PacketMap packets = new PacketMap();
         while (packetsRemaining > 0 && pscOff < deltaStart)
@@ -213,12 +214,12 @@ public class RTCPTCCPacket
             // don't really know by the chunk alone how many packets are
             // described.
             int packetsInChunk
-                = Math.min(getPacketCount(buf, pscOff), packetsRemaining);
+                = Math.min(getPacketCount(fciBuf, pscOff), packetsRemaining);
 
-            int chunkType = getChunkType(buf, pscOff);
+            int chunkType = getChunkType(fciBuf, pscOff);
 
             if (packetsInChunk > 0 && chunkType == CHUNK_TYPE_RLE
-                && readSymbol(buf, pscOff, chunkType, 0) == SYMBOL_NOT_RECEIVED)
+                && readSymbol(fciBuf, pscOff, chunkType, 0) == SYMBOL_NOT_RECEIVED)
             {
                 // This is an RLE chunk with NOT_RECEIVED symbols. So we can
                 // avoid reading every symbol individually in a loop.
@@ -240,14 +241,14 @@ public class RTCPTCCPacket
                 // Read deltas for all packets in the chunk.
                 for (int i = 0; i < packetsInChunk; i++)
                 {
-                    int symbol = readSymbol(buf, pscOff, chunkType, i);
+                    int symbol = readSymbol(fciBuf, pscOff, chunkType, i);
                     // -1 or delta in 250µs increments
                     int delta = -1;
                     switch (symbol)
                     {
                     case SYMBOL_SMALL_DELTA:
                         // The delta is an 8-bit unsigned integer.
-                        if (deltaOff >= off + len)
+                        if (deltaOff >= fciOff + fciLen)
                         {
                             logger.warn(
                                 PARSE_ERROR
@@ -255,11 +256,11 @@ public class RTCPTCCPacket
 
                             return null;
                         }
-                        delta = buf[deltaOff++] & 0xff;
+                        delta = fciBuf[deltaOff++] & 0xff;
                         break;
                     case SYMBOL_LARGE_DELTA:
                         // The delta is a 16-bit signed integer.
-                        if (deltaOff + 1 >= off + len) // we're about to read
+                        if (deltaOff + 1 >= fciOff + fciLen) // we're about to read
                             // 2 bytes
                         {
                             logger.warn(PARSE_ERROR
@@ -267,7 +268,7 @@ public class RTCPTCCPacket
                                             "long delta.");
                             return null;
                         }
-                        delta = RTPUtils.readInt16AsInt(buf, deltaOff);
+                        delta = RTPUtils.readInt16AsInt(fciBuf, deltaOff);
                         deltaOff += 2;
                         break;
                     case SYMBOL_NOT_RECEIVED:
