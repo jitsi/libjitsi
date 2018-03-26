@@ -430,6 +430,12 @@ public class RTCPReceiverFeedbackTermination
                             && fmt == RTCPFeedbackMessageEvent.FMT_FIR))
                     {
                         long source = RTCPFBPacket.getSourceSSRC(baf);
+
+                        if (logger.isTraceEnabled())
+                        {
+                            logger.trace("Relaying a PLI to " + source);
+                        }
+
                         ((RTPTranslatorImpl) stream.getRTPTranslator())
                             .getRtcpFeedbackMessageSender()
                             .requestKeyframe(source);
