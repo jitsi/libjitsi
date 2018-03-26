@@ -272,9 +272,11 @@ public class RTCPTCCPacket
                         currentDeltaOff += 2;
                         break;
                     case SYMBOL_NOT_RECEIVED:
-                    default:
                         delta = -1;
                         break;
+                    default:
+                        logger.warn(PARSE_ERROR + " invalid symbol: " + symbol);
+                        return null;
                     }
 
                     if (delta == -1)
