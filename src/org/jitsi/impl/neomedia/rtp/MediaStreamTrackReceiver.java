@@ -36,6 +36,12 @@ public class MediaStreamTrackReceiver
     implements TransformEngine
 {
     /**
+     * An empty array of {@link MediaStreamTrackDesc}.
+     */
+    private static final MediaStreamTrackDesc[] NO_TRACKS
+        = new MediaStreamTrackDesc[0];
+
+    /**
      * The {@link MediaStreamImpl} that owns this instance.
      */
     private final MediaStreamImpl stream;
@@ -44,7 +50,7 @@ public class MediaStreamTrackReceiver
      * The {@link MediaStreamTrackDesc}s that this instance is configured to
      * receive.
      */
-    private MediaStreamTrackDesc[] tracks;
+    private MediaStreamTrackDesc[] tracks = NO_TRACKS;
 
     /**
      * Ctor.
@@ -143,7 +149,7 @@ public class MediaStreamTrackReceiver
      */
     public MediaStreamTrackDesc[] getMediaStreamTracks()
     {
-        return tracks;
+        return tracks == null ? NO_TRACKS : tracks;
     }
 
     /**
@@ -164,14 +170,18 @@ public class MediaStreamTrackReceiver
      */
     public boolean setMediaStreamTracks(MediaStreamTrackDesc[] newTracks)
     {
+        if (newTracks == null)
+        {
+            newTracks = NO_TRACKS;
+        }
+
         MediaStreamTrackDesc[] oldTracks = tracks;
         int oldTracksLen = oldTracks == null ? 0 : oldTracks.length;
-        int newTracksLen = newTracks == null ? 0 : newTracks.length;
 
-        if (oldTracksLen == 0 || newTracksLen == 0)
+        if (oldTracksLen == 0 || newTracks.length == 0)
         {
             tracks = newTracks;
-            return oldTracksLen != newTracksLen;
+            return oldTracksLen != newTracks.length;
         }
         else
         {
@@ -205,7 +215,8 @@ public class MediaStreamTrackReceiver
             tracks = mergedTracks;
 
             return
-                oldTracksLen != newTracksLen || cntMatched != oldTracks.length;
+                oldTracksLen != newTracks.length
+                    || cntMatched != oldTracks.length;
         }
     }
 
