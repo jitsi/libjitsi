@@ -311,6 +311,13 @@ public class RTCPTCCPacket
             packetsRemaining -= packetsInChunk;
         }
 
+        if (packetsRemaining > 0)
+        {
+            logger.warn(
+                "Reached the end of the buffer before having read all expected"
+                    + " packets. Ill-formatted RTCP packet?");
+        }
+
         return packets;
     }
 
@@ -572,7 +579,8 @@ public class RTCPTCCPacket
 
         if (packetCount > MAX_PACKET_COUNT)
         {
-            throw new IllegalArgumentException("Too many packets.");
+            throw
+                new IllegalArgumentException("Too many packets: " + packetCount);
         }
 
         // Temporary buffer to store the fixed fields (8 bytes) and the list of
