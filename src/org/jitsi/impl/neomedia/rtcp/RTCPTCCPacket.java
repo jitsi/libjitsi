@@ -199,14 +199,14 @@ public class RTCPTCCPacket
 
         // At this point we have the the beginning of the delta list. Start
         // reading from the chunk and delta lists together.
-        int deltaStart = currentPscOff;
+        int deltaOff = currentPscOff;
         int currentDeltaOff = currentPscOff;
 
         // Reset to the start of the chunks list.
         currentPscOff = fciOff + PACKET_STATUS_CHUNK_OFFSET;
         packetsRemaining = packetStatusCount;
         PacketMap packets = new PacketMap();
-        while (packetsRemaining > 0 && currentPscOff < deltaStart)
+        while (packetsRemaining > 0 && currentPscOff < deltaOff)
         {
             // packetsRemaining is based on the "packet status count" field,
             // which helps us find the correct number of packets described in
