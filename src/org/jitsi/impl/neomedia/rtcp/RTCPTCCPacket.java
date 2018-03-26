@@ -159,20 +159,16 @@ public class RTCPTCCPacket
     static PacketMap getPacketsFci(
         ByteArrayBuffer fciBuffer, boolean includeNotReceived)
     {
-        if (fciBuffer == null)
+        int len = -1;
+        if (fciBuffer == null || (len = fciBuffer.getLength()) < MIN_FCI_LENGTH)
         {
+            logger.warn(
+                PARSE_ERROR + "buffer is null or length too small: " + len);
             return null;
         }
 
         byte[] buf = fciBuffer.getBuffer();
         int off = fciBuffer.getOffset();
-        int len = fciBuffer.getLength();
-
-        if (len < MIN_FCI_LENGTH)
-        {
-            logger.warn(PARSE_ERROR + "length too small: " + len);
-            return null;
-        }
 
         // The fixed fields
         int baseSeq = RTPUtils.readUint16AsInt(buf, off);
