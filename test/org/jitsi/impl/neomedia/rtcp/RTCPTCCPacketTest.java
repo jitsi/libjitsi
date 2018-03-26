@@ -64,7 +64,7 @@ public class RTCPTCCPacketTest
     {
         // Note that this excludes packets reported as not received.
         RTCPTCCPacket.PacketMap packetMap
-            = RTCPTCCPacket.getPacketsFci(new ByteArrayBufferImpl(fci));
+            = RTCPTCCPacket.getPacketsFromFci(new ByteArrayBufferImpl(fci));
 
         // Values from the packet defined above
         int received = 14;
@@ -87,7 +87,7 @@ public class RTCPTCCPacketTest
     {
         // Note that this excludes packets reported as not received.
         RTCPTCCPacket.PacketMap packetMap
-            = RTCPTCCPacket.getPacketsFci(
+            = RTCPTCCPacket.getPacketsFromFci(
                 new ByteArrayBufferImpl(fci),
                 true /* includeNotReceived */);
 
@@ -135,7 +135,7 @@ public class RTCPTCCPacketTest
                 0, 0, before, (byte) fbPacketCount, new DiagnosticContext());
 
         RTCPTCCPacket.PacketMap after
-            = RTCPTCCPacket.getPacketsFci(new ByteArrayBufferImpl(packet.fci));
+            = RTCPTCCPacket.getPacketsFromFci(new ByteArrayBufferImpl(packet.fci));
 
         assertEquals(received, after.size());
         assertEquals(first, (int) after.firstKey());
@@ -171,7 +171,7 @@ public class RTCPTCCPacketTest
                 0, 0, before, (byte) fbPacketCount, new DiagnosticContext());
 
         RTCPTCCPacket.PacketMap after
-            = RTCPTCCPacket.getPacketsFci(
+            = RTCPTCCPacket.getPacketsFromFci(
                 new ByteArrayBufferImpl(packet.fci),
                 true /* includeNotReceived */);
 
@@ -201,7 +201,7 @@ public class RTCPTCCPacketTest
                 0, 0, before, (byte) fbPacketCount, new DiagnosticContext());
 
         ByteArrayBufferImpl afterBaf = new ByteArrayBufferImpl(packet.fci);
-        RTCPTCCPacket.PacketMap after = RTCPTCCPacket.getPacketsFci(afterBaf);
+        RTCPTCCPacket.PacketMap after = RTCPTCCPacket.getPacketsFromFci(afterBaf);
 
         assertEquals(7, after.size());
         assertEquals(1268, (int) after.firstKey());

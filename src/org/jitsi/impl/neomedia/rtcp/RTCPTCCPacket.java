@@ -94,7 +94,7 @@ public class RTCPTCCPacket
      */
     public static PacketMap getPackets(ByteArrayBuffer baf)
     {
-        return getPacketsFci(getFCI(baf));
+        return getPacketsFromFci(getFCI(baf));
     }
 
     /**
@@ -133,9 +133,9 @@ public class RTCPTCCPacket
      * @param fciBuffer the buffer which contains the FCI portion of the RTCP
      * feedback packet.
      */
-    public static PacketMap getPacketsFci(ByteArrayBuffer fciBuffer)
+    public static PacketMap getPacketsFromFci(ByteArrayBuffer fciBuffer)
     {
-        return getPacketsFci(fciBuffer, false);
+        return getPacketsFromFci(fciBuffer, false);
     }
 
     /**
@@ -156,7 +156,7 @@ public class RTCPTCCPacket
      * bytes, so when parsing packets coming over the network it is wise to
      * not blindly set this option to {@code true}.
      */
-    static PacketMap getPacketsFci(
+    static PacketMap getPacketsFromFci(
         ByteArrayBuffer fciBuffer, boolean includeNotReceived)
     {
         int fciLen = -1;
@@ -759,7 +759,8 @@ public class RTCPTCCPacket
     {
         if (packets == null)
         {
-            packets = getPacketsFci(new ByteArrayBufferImpl(fci, 0, fci.length));
+            packets
+                = getPacketsFromFci(new ByteArrayBufferImpl(fci, 0, fci.length));
         }
 
         return packets;
