@@ -170,8 +170,9 @@ public class RTCPTCCPacket
         byte[] buf = fciBuffer.getBuffer();
         int off = fciBuffer.getOffset();
 
-        // The fixed fields
-        int baseSeq = RTPUtils.readUint16AsInt(buf, off);
+        // The fixed fields. The current sequence number starts from the one
+        // in the 'base sequence number' field and increments as we parse.
+        int currentSeq = RTPUtils.readUint16AsInt(buf, off);
         int packetStatusCount = RTPUtils.readUint16AsInt(buf, off + 2);
 
         long referenceTime = getReferenceTime250us(fciBuffer);
@@ -226,13 +227,13 @@ public class RTCPTCCPacket
                     for (int i = 0; i < packetsInChunk; i++)
                     {
                         packets.put(
-                            (baseSeq + i) % 0xffff,
+                            (currentSeq + i) % 0xffff,
                             NEGATIVE_ONE,
                             -1,
                             SYMBOL_NOT_RECEIVED);
                     }
                 }
-                baseSeq = (baseSeq + packetsInChunk) % 0xffff;
+                currentSeq = (currentSeq + packetsInChunk) % 0xffff;
             }
             else
             {
@@ -284,7 +285,7 @@ public class RTCPTCCPacket
                         // marked as not received.
                         if (includeNotReceived)
                         {
-                            packets.put(baseSeq, NEGATIVE_ONE, delta, symbol);
+                            packets.put(currentSeq, NEGATIVE_ONE, delta, symbol);
                         }
                     }
                     else
@@ -295,10 +296,10 @@ public class RTCPTCCPacket
                         // delta updates the reference (even if the delta is
                         // negative).
                         referenceTime += delta;
-                        packets.put(baseSeq, referenceTime, delta, symbol);
+                        packets.put(currentSeq, referenceTime, delta, symbol);
                     }
 
-                    baseSeq = (baseSeq + 1) & 0xffff;
+                    currentSeq = (currentSeq + 1) & 0xffff;
                 }
             }
 
