@@ -181,13 +181,13 @@ public class RTCPTCCPacket
         long referenceTime = getReferenceTime250us(fciBuffer);
 
         // The offset at which the packet status chunk list starts.
-        int pscOff = off + 8;
+        int pscOff = off + PACKET_STATUS_CHUNK_OFFSET;
 
         // First find where the delta list begins.
         int packetsRemaining = packetStatusCount;
         while (packetsRemaining > 0)
         {
-            if (pscOff + 2 > off + len)
+            if (pscOff + CHUNK_SIZE_BYTES > off + len)
             {
                 logger.warn(PARSE_ERROR + "reached the end while reading chunks");
                 return null;
@@ -196,7 +196,7 @@ public class RTCPTCCPacket
             int packetsInChunk = getPacketCount(buf, pscOff);
             packetsRemaining -= packetsInChunk;
 
-            pscOff += 2; // all chunks are 16bit
+            pscOff += CHUNK_SIZE_BYTES;
         }
 
         // At this point we have the the beginning of the delta list. Start
@@ -205,7 +205,7 @@ public class RTCPTCCPacket
         int deltaOff = pscOff;
 
         // Reset to the start of the chunks list.
-        pscOff = off + 8;
+        pscOff = off + PACKET_STATUS_CHUNK_OFFSET;
         packetsRemaining = packetStatusCount;
         PacketMap packets = new PacketMap();
         while (packetsRemaining > 0 && pscOff < deltaStart)
@@ -307,7 +307,7 @@ public class RTCPTCCPacket
             }
 
             // next packet status chunk
-            pscOff += 2;
+            pscOff += CHUNK_SIZE_BYTES;
             packetsRemaining -= packetsInChunk;
         }
 
@@ -522,6 +522,17 @@ public class RTCPTCCPacket
      * packet status chunk.
      */
     private static final int MIN_FCI_LENGTH = 10;
+
+    /**
+     * The size in bytes of a packet status chunk.
+     */
+    private static final int CHUNK_SIZE_BYTES = 2;
+
+    /**
+     * The offset of the first packet status chunk relative to the start of the
+     * FCI.
+     */
+    private static final int PACKET_STATUS_CHUNK_OFFSET = 8;
 
     /**
      * An error message to use when parsing failed.
