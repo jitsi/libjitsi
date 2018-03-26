@@ -227,11 +227,9 @@ public class RTCPTCCPacket
                 {
                     for (int i = 0; i < packetsInChunk; i++)
                     {
-                        packets.put(
-                            (currentSeq + i) % 0xffff,
-                            NEGATIVE_ONE,
-                            -1,
-                            SYMBOL_NOT_RECEIVED);
+                        int seq = (currentSeq + 1) % 0xffff;
+                        logPacket(seq, NEGATIVE_ONE, -1, SYMBOL_NOT_RECEIVED);
+                        packets.put(seq, NEGATIVE_ONE);
                     }
                 }
                 currentSeq = (currentSeq + packetsInChunk) % 0xffff;
@@ -288,7 +286,8 @@ public class RTCPTCCPacket
                         // marked as not received.
                         if (includeNotReceived)
                         {
-                            packets.put(currentSeq, NEGATIVE_ONE, delta, symbol);
+                            logPacket(currentSeq, NEGATIVE_ONE, delta, symbol);
+                            packets.put(currentSeq, NEGATIVE_ONE);
                         }
                     }
                     else
@@ -299,7 +298,8 @@ public class RTCPTCCPacket
                         // delta updates the reference (even if the delta is
                         // negative).
                         referenceTime += delta;
-                        packets.put(currentSeq, referenceTime, delta, symbol);
+                        logPacket(currentSeq, referenceTime, delta, symbol);
+                        packets.put(currentSeq, referenceTime);
                     }
 
                     currentSeq = (currentSeq + 1) & 0xffff;
@@ -784,6 +784,23 @@ public class RTCPTCCPacket
     }
 
     /**
+     * Logs a message message about a packet in debug level (if debug logging
+     * is enabled).
+     */
+    private static void logPacket(
+        int seq, long referenceTime, int delta, int symbol)
+    {
+        if (logger.isDebugEnabled())
+        {
+            logger.debug(
+                "seq=" + seq
+                    + ",reference_time=" + referenceTime
+                    + ",delta=" + delta
+                    + ",symbol=" + symbol);
+        }
+    }
+
+    /**
      * An ordered collection which maps sequence numbers to timestamps, the
      * order is by the sequence number.
      */
@@ -792,29 +809,6 @@ public class RTCPTCCPacket
         public PacketMap()
         {
             super(RTPUtils.sequenceNumberComparator);
-        }
-
-        /**
-         * Adds a sequence number number with a particular reference time to
-         * the map and logs a debug message if debug logging is enabled.
-         *
-         * @param seq the sequence number to add.
-         * @param referenceTime the time.
-         * @param delta the delta (only used for logging).
-         * @param symbol the symbol (only used for logging).
-         */
-        private void put(int seq, long referenceTime, int delta, int symbol)
-        {
-            put(seq, referenceTime);
-
-            if (logger.isDebugEnabled())
-            {
-                logger.debug(
-                    "seq=" + seq
-                        + ",reference_time=" + referenceTime
-                        + ",delta=" + delta
-                        + ",symbol=" + symbol);
-            }
         }
     }
 }
