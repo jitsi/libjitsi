@@ -200,7 +200,7 @@ public class RTCPTCCPacket
         // At this point we have the the beginning of the delta list. Start
         // reading from the chunk and delta lists together.
         int deltaStart = currentPscOff;
-        int deltaOff = currentPscOff;
+        int currentDeltaOff = currentPscOff;
 
         // Reset to the start of the chunks list.
         currentPscOff = fciOff + PACKET_STATUS_CHUNK_OFFSET;
@@ -248,7 +248,7 @@ public class RTCPTCCPacket
                     {
                     case SYMBOL_SMALL_DELTA:
                         // The delta is an 8-bit unsigned integer.
-                        if (deltaOff >= fciOff + fciLen)
+                        if (currentDeltaOff >= fciOff + fciLen)
                         {
                             logger.warn(
                                 PARSE_ERROR
@@ -256,11 +256,11 @@ public class RTCPTCCPacket
 
                             return null;
                         }
-                        delta = fciBuf[deltaOff++] & 0xff;
+                        delta = fciBuf[currentDeltaOff++] & 0xff;
                         break;
                     case SYMBOL_LARGE_DELTA:
                         // The delta is a 16-bit signed integer.
-                        if (deltaOff + 1 >= fciOff + fciLen) // we're about to read
+                        if (currentDeltaOff + 1 >= fciOff + fciLen) // we're about to read
                             // 2 bytes
                         {
                             logger.warn(PARSE_ERROR
@@ -268,8 +268,8 @@ public class RTCPTCCPacket
                                             "long delta.");
                             return null;
                         }
-                        delta = RTPUtils.readInt16AsInt(fciBuf, deltaOff);
-                        deltaOff += 2;
+                        delta = RTPUtils.readInt16AsInt(fciBuf, currentDeltaOff);
+                        currentDeltaOff += 2;
                         break;
                     case SYMBOL_NOT_RECEIVED:
                     default:
