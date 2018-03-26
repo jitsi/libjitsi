@@ -179,34 +179,34 @@ public class RTCPTCCPacket
         long referenceTime = getReferenceTime250us(fciBuffer);
 
         // The offset at which the packet status chunk list starts.
-        int pscOff = fciOff + PACKET_STATUS_CHUNK_OFFSET;
+        int currentPscOff = fciOff + PACKET_STATUS_CHUNK_OFFSET;
 
         // First find where the delta list begins.
         int packetsRemaining = packetStatusCount;
         while (packetsRemaining > 0)
         {
-            if (pscOff + CHUNK_SIZE_BYTES > fciOff + fciLen)
+            if (currentPscOff + CHUNK_SIZE_BYTES > fciOff + fciLen)
             {
                 logger.warn(PARSE_ERROR + "reached the end while reading chunks");
                 return null;
             }
 
-            int packetsInChunk = getPacketCount(fciBuf, pscOff);
+            int packetsInChunk = getPacketCount(fciBuf, currentPscOff);
             packetsRemaining -= packetsInChunk;
 
-            pscOff += CHUNK_SIZE_BYTES;
+            currentPscOff += CHUNK_SIZE_BYTES;
         }
 
         // At this point we have the the beginning of the delta list. Start
         // reading from the chunk and delta lists together.
-        int deltaStart = pscOff;
-        int deltaOff = pscOff;
+        int deltaStart = currentPscOff;
+        int deltaOff = currentPscOff;
 
         // Reset to the start of the chunks list.
-        pscOff = fciOff + PACKET_STATUS_CHUNK_OFFSET;
+        currentPscOff = fciOff + PACKET_STATUS_CHUNK_OFFSET;
         packetsRemaining = packetStatusCount;
         PacketMap packets = new PacketMap();
-        while (packetsRemaining > 0 && pscOff < deltaStart)
+        while (packetsRemaining > 0 && currentPscOff < deltaStart)
         {
             // packetsRemaining is based on the "packet status count" field,
             // which helps us find the correct number of packets described in
@@ -214,12 +214,12 @@ public class RTCPTCCPacket
             // don't really know by the chunk alone how many packets are
             // described.
             int packetsInChunk
-                = Math.min(getPacketCount(fciBuf, pscOff), packetsRemaining);
+                = Math.min(getPacketCount(fciBuf, currentPscOff), packetsRemaining);
 
-            int chunkType = getChunkType(fciBuf, pscOff);
+            int chunkType = getChunkType(fciBuf, currentPscOff);
 
             if (packetsInChunk > 0 && chunkType == CHUNK_TYPE_RLE
-                && readSymbol(fciBuf, pscOff, chunkType, 0) == SYMBOL_NOT_RECEIVED)
+                && readSymbol(fciBuf, currentPscOff, chunkType, 0) == SYMBOL_NOT_RECEIVED)
             {
                 // This is an RLE chunk with NOT_RECEIVED symbols. So we can
                 // avoid reading every symbol individually in a loop.
@@ -241,7 +241,7 @@ public class RTCPTCCPacket
                 // Read deltas for all packets in the chunk.
                 for (int i = 0; i < packetsInChunk; i++)
                 {
-                    int symbol = readSymbol(fciBuf, pscOff, chunkType, i);
+                    int symbol = readSymbol(fciBuf, currentPscOff, chunkType, i);
                     // -1 or delta in 250µs increments
                     int delta = -1;
                     switch (symbol)
@@ -305,7 +305,7 @@ public class RTCPTCCPacket
             }
 
             // next packet status chunk
-            pscOff += CHUNK_SIZE_BYTES;
+            currentPscOff += CHUNK_SIZE_BYTES;
             packetsRemaining -= packetsInChunk;
         }
 
