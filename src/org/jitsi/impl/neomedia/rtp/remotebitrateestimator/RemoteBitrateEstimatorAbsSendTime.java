@@ -358,7 +358,7 @@ public class RemoteBitrateEstimatorAbsSendTime
                     / cluster.meanRecvDeltaMs;
                 if (logger.isDebugEnabled())
                 {
-                    logger.warn(
+                    logger.debug(
                         "Probe failed, sent at " + sendBitrateBps
                             + " bps, received at " + recvBitrateBps
                             + " bps. Mean send delta: " + cluster.meanSendDeltaMs
