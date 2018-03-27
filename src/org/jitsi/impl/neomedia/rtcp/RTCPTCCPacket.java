@@ -227,7 +227,7 @@ public class RTCPTCCPacket
                 {
                     for (int i = 0; i < packetsInChunk; i++)
                     {
-                        int seq = (currentSeq + 1) % 0xffff;
+                        int seq = (currentSeq + i) % 0xffff;
                         logPacket(seq, NEGATIVE_ONE, -1, SYMBOL_NOT_RECEIVED);
                         packets.put(seq, NEGATIVE_ONE);
                     }
