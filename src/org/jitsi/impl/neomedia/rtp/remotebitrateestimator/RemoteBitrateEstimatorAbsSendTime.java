@@ -356,11 +356,15 @@ public class RemoteBitrateEstimatorAbsSendTime
                     / cluster.meanSendDeltaMs;
                 double recvBitrateBps = cluster.meanSize * 8 * 1000
                     / cluster.meanRecvDeltaMs;
-                logger.warn("Probe failed, sent at " + sendBitrateBps
-                    + " bps, received at " + recvBitrateBps
-                    + " bps. Mean send delta: " + cluster.meanSendDeltaMs
-                    + " ms, mean recv delta: " + cluster.meanRecvDeltaMs
-                    + " ms, num probes: " + cluster.count);
+                if (logger.isDebugEnabled())
+                {
+                    logger.warn(
+                        "Probe failed, sent at " + sendBitrateBps
+                            + " bps, received at " + recvBitrateBps
+                            + " bps. Mean send delta: " + cluster.meanSendDeltaMs
+                            + " ms, mean recv delta: " + cluster.meanRecvDeltaMs
+                            + " ms, num probes: " + cluster.count);
+                }
                 break;
             }
         }
@@ -398,13 +402,16 @@ public class RemoteBitrateEstimatorAbsSendTime
 
         if (isBitrateImproving(probeBitrateBps))
         {
-            logger.warn("Probe successful, sent at "
-                + bestProbe.getSendBitrateBps() +
-                " bps, received at "
-                + bestProbe.getRecvBitrateBps()
-                + " bps. Mean send delta: " + bestProbe.meanSendDeltaMs
-                + " ms, mean recv delta: " + bestProbe.meanRecvDeltaMs
-                + " ms, num probes: " + bestProbe.count);
+            if (logger.isDebugEnabled())
+            {
+                logger.debug(
+                    "Probe successful, sent at "
+                        + bestProbe.getSendBitrateBps()
+                        + " bps, received at " + bestProbe.getRecvBitrateBps()
+                        + " bps. Mean send delta: " + bestProbe.meanSendDeltaMs
+                        + " ms, mean recv delta: " + bestProbe.meanRecvDeltaMs
+                        + " ms, num probes: " + bestProbe.count);
+            }
             remoteRate.setEstimate(probeBitrateBps, nowMs);
             return true;
         }
@@ -532,11 +539,14 @@ public class RemoteBitrateEstimatorAbsSendTime
                         recvDeltaMs = arrivalTimeMs - probes
                             .get(probes.size() - 1).recvTimeMs;
                     }
-                    logger.warn("Probe packet received: send time="
-                        + sendTimeMs
-                        + " ms, recv time=" + arrivalTimeMs
-                        + " ms, send delta=" + sendDeltaMs
-                        + " ms, recv delta=" + recvDeltaMs + " ms.");
+                    if (logger.isDebugEnabled())
+                    {
+                        logger.debug(
+                            "Probe packet received: send time=" + sendTimeMs
+                                    + " ms, recv time=" + arrivalTimeMs
+                                    + " ms, send delta=" + sendDeltaMs
+                                    + " ms, recv delta=" + recvDeltaMs + " ms.");
+                    }
                 }
                 probes.add(
                     new Probe(sendTimeMs, arrivalTimeMs, payloadSize));
