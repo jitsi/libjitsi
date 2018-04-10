@@ -71,8 +71,8 @@
         destdir="${dest}"
         fork="true"
         optimize="true"
-        source="1.7"
-        target="1.7">
+        source="1.8"
+        target="1.8">
       <src path="${src}"/>
     </javac>
   </target>
@@ -84,8 +84,8 @@
             destdir="${dest.test}"
             fork="true"
             optimize="true"
-            source="1.7"
-            target="1.7">
+            source="1.8"
+            target="1.8">
           <src path="${src.test}"/>
       </javac>
   </target>
@@ -110,8 +110,8 @@
         destdir="${dest}"
         fork="true"
         optimize="true"
-        source="1.7"
-        target="1.7">
+        source="1.8"
+        target="1.8">
         <src path="${src}"/>
     </javac>
   </target>
@@ -180,7 +180,7 @@
       description="Generates project javadoc.">
       <javadoc author="true" destdir="${java.doc}" package="true"
           version="true" use="true" windowtitle="Jitsi API"
-          classpathref="compile.class.path" source="1.7+" maxmemory="256m">
+          classpathref="compile.class.path" source="1.8+" maxmemory="256m">
           <packageset dir="${src}">
               <include name="**"/>
           </packageset>

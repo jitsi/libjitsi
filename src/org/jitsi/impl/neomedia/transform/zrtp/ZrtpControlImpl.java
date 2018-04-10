@@ -382,6 +382,6 @@ public class ZrtpControlImpl
         engine.setEnableZrtp(zrtpAutoStart);
         engine.sendInfo(
                 ZrtpCodes.MessageSeverity.Info,
-                EnumSet.of(ZRTPCustomInfoCodes.ZRTPEnabledByDefault));
+                (EnumSet<?>) EnumSet.of(ZRTPCustomInfoCodes.ZRTPEnabledByDefault));
     }
 }
