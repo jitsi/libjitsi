@@ -788,7 +788,8 @@ public class ZRTPTransformEngine
                 securityEventManager
                     .showMessage(
                         ZrtpCodes.MessageSeverity.Warning,
-                        EnumSet.of(ZrtpCodes.WarningCodes.WarningCRCmismatch));
+                        (EnumSet<?>) EnumSet.of(
+                            ZrtpCodes.WarningCodes.WarningCRCmismatch));
             }
             // Check if it is really a ZRTP packet, if not don't process it
             else if (zPkt.hasMagic())
