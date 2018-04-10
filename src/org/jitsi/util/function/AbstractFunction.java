@@ -21,7 +21,9 @@ package org.jitsi.util.function;
  * 1.8.
  *
  * @author George Politis
+ * @deprecated Use {@link java.util.function.Function}.
  */
+@Deprecated
 public abstract class AbstractFunction<T, R>
 {
     /**

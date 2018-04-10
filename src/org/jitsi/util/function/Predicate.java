@@ -20,8 +20,10 @@ package org.jitsi.util.function;
  * <tt>Predicate</tt> interface found in Java 1.8.
  *
  * @author George Politis
+ * @deprecated Use {@link java.util.function.Predicate}
  */
 
+@Deprecated
 public interface Predicate<T>
 {
     boolean test(T t);

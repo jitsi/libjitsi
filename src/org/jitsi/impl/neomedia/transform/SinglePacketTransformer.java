@@ -15,9 +15,12 @@
  */
 package org.jitsi.impl.neomedia.transform;
 
+import java.util.concurrent.atomic.*;
+import java.util.function.*;
+
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
-import org.jitsi.util.function.*;
+import org.jitsi.util.function.Predicate;
 
 /**
  * Extends the <tt>PacketTransformer</tt> interface with methods which allow
@@ -51,12 +54,12 @@ public abstract class SinglePacketTransformer
     /**
      * The number of exceptions caught in {@link #reverseTransform(RawPacket)}.
      */
-    private long exceptionsInReverseTransform;
+    private AtomicInteger exceptionsInReverseTransform = new AtomicInteger();
 
     /**
      * The number of exceptions caught in {@link #transform(RawPacket)}.
      */
-    private long exceptionsInTransform;
+    private AtomicInteger exceptionsInTransform = new AtomicInteger();
 
     /**
      * The idea is to have <tt>PacketTransformer</tt> implementations strictly
@@ -121,43 +124,11 @@ public abstract class SinglePacketTransformer
     @Override
     public RawPacket[] reverseTransform(RawPacket[] pkts)
     {
-        if (pkts != null)
-        {
-            for (int i = 0; i < pkts.length; i++)
-            {
-                RawPacket pkt = pkts[i];
-
-                if (pkt != null
-                        && (packetPredicate == null
-                            || packetPredicate.test(pkt)))
-                {
-                    try
-                    {
-                        pkts[i] = reverseTransform(pkt);
-                    }
-                    catch (Throwable t)
-                    {
-                        exceptionsInReverseTransform++;
-                        if ((exceptionsInReverseTransform % EXCEPTIONS_TO_LOG)
-                                    == 0
-                                || exceptionsInReverseTransform == 1)
-                        {
-                            logger.error(
-                                    "Failed to reverse-transform RawPacket(s)!",
-                                    t);
-                        }
-                        if (t instanceof Error)
-                            throw (Error) t;
-                        else if (t instanceof RuntimeException)
-                            throw (RuntimeException) t;
-                        else
-                            throw new RuntimeException(t);
-                    }
-                }
-            }
-        }
-
-        return pkts;
+        return transformArray(
+            pkts,
+            this::reverseTransform,
+            exceptionsInReverseTransform,
+            "reverseTransform");
     }
 
     /**
@@ -177,6 +148,28 @@ public abstract class SinglePacketTransformer
     @Override
     public RawPacket[] transform(RawPacket[] pkts)
     {
+        return transformArray(
+            pkts, this::transform, exceptionsInTransform, "transform");
+    }
+
+    /**
+     * Applies a specific transformation function to an array of
+     * {@link RawPacket}s.
+     * @param pkts the array to transform.
+     * @param transformFunction the function to apply to each (non-null) element
+     * of the array.
+     * @param exceptionCounter a counter of the number of exceptions
+     * encountered.
+     * @param logMessage a name of the transformation function, to be used
+     * when logging exceptions.
+     * @return {@code pkts}.
+     */
+    private RawPacket[] transformArray(
+        RawPacket[] pkts,
+        Function<RawPacket, RawPacket> transformFunction,
+        AtomicInteger exceptionCounter,
+        String logMessage)
+    {
         if (pkts != null)
         {
             for (int i = 0; i < pkts.length; i++)
@@ -184,29 +177,34 @@ public abstract class SinglePacketTransformer
                 RawPacket pkt = pkts[i];
 
                 if (pkt != null
-                        && (packetPredicate == null
-                            || packetPredicate.test(pkt)))
+                    && (packetPredicate == null || packetPredicate.test(pkt)))
                 {
                     try
                     {
-                        pkts[i] = transform(pkt);
+                        pkts[i] = transformFunction.apply(pkt);
                     }
                     catch (Throwable t)
                     {
-                        exceptionsInTransform++;
-                        if ((exceptionsInTransform % EXCEPTIONS_TO_LOG) == 0
-                                || exceptionsInTransform == 1)
+                        exceptionCounter.incrementAndGet();
+                        if ((exceptionCounter.get() % EXCEPTIONS_TO_LOG) == 0
+                            || exceptionCounter.get() == 1)
                         {
                             logger.error(
-                                    "Failed to transform RawPacket(s)!",
-                                    t);
+                                "Failed to " + logMessage + " RawPacket(s)!",
+                                t);
                         }
                         if (t instanceof Error)
+                        {
                             throw (Error) t;
+                        }
                         else if (t instanceof RuntimeException)
+                        {
                             throw (RuntimeException) t;
+                        }
                         else
+                        {
                             throw new RuntimeException(t);
+                        }
                     }
                 }
             }
