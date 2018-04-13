@@ -43,6 +43,12 @@ import org.jitsi.util.*;
 public class MediaUtils
 {
     /**
+     * The <tt>Logger</tt> used by the <tt>MediaUtils</tt> class
+     * for logging output.
+     */
+    private static final Logger logger = Logger.getLogger(MediaUtils.class);
+
+    /**
      * An empty array with <tt>MediaFormat</tt> element type. Explicitly defined
      * in order to reduce unnecessary allocations, garbage collection.
      */
@@ -267,10 +273,15 @@ public class MediaUtils
         boolean h264Enabled = false;
         if (enableFfmpeg)
         {
-            long avcodec = FFmpeg.avcodec_find_encoder(FFmpeg.CODEC_ID_H264);
-
-            if (avcodec != 0)
-                h264Enabled = true;
+            try
+            {
+                h264Enabled
+                    = FFmpeg.avcodec_find_encoder(FFmpeg.CODEC_ID_H264) != 0;
+            }
+            catch (Throwable t)
+            {
+                logger.debug("H264 codec not found", t);
+            }
         }
         if (h264Enabled)
         {
