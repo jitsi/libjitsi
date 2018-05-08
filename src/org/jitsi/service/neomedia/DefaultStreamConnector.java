@@ -103,7 +103,7 @@ public class DefaultStreamConnector
             bindRetries = cfg.getInt(BIND_RETRIES_PROPERTY_NAME, bindRetries);
         if (maxPort < 0)
         {
-            maxPort = 6000;
+            maxPort = 20000;
             if (cfg != null)
                 maxPort = cfg.getInt(MAX_PORT_NUMBER_PROPERTY_NAME, maxPort);
         }
@@ -112,7 +112,7 @@ public class DefaultStreamConnector
         {
             if ((minPort < 0) || (minPort > maxPort))
             {
-                minPort = 5000;
+                minPort = 10001;
                 if (cfg != null)
                 {
                     minPort
