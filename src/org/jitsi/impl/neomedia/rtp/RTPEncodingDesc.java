@@ -61,6 +61,16 @@ public class RTPEncodingDesc
      */
     private static final int FRAMES_HISTORY_SZ = 60;
 
+     /**
+      * The maximum time interval (in millis) an encoding can be considered
+      * active without new frames. This value corresponds to 7.5fps + 65 millis
+      * to compensate for network noise. If the network is clogged and we don't
+      * get a new frame within 200 millis, and if the encoding is being
+      * received, then we will ask for a new key frame (this is done in the
+      * JVB in SimulcastController).
+      */
+    private static final int SUSPENSION_THRESHOLD_MS = 200;
+
     /**
      * The primary SSRC for this layering/encoding.
      */
@@ -155,12 +165,6 @@ public class RTPEncodingDesc
      * The {@link RTPEncodingDesc} on which this layer depends.
      */
     private final RTPEncodingDesc[] dependencyEncodings;
-
-    /**
-     * A boolean flag that indicates whether or not this instance is streaming
-     * or if it's suspended.
-     */
-    private boolean active = false;
 
     /**
      * The last "stable" bitrate (in bps) for this instance.
@@ -435,40 +439,28 @@ public class RTPEncodingDesc
      *
      * @return true if this instance is streaming, false otherwise.
      */
-    public boolean isActive()
+    public boolean isActive(long nowMs)
     {
-        return active;
-    }
-
-    /**
-     * Gets a boolean value indicating whether or not this instance is
-     * streaming.
-     *
-     * @param performTimeoutCheck  when true, it requires fresh data and not
-     * just the active property to be set.
-     *
-     * @return true if this instance is streaming, false otherwise.
-     */
-    public boolean isActive(boolean performTimeoutCheck)
-    {
-        if (active && performTimeoutCheck)
+        if (lastReceivedFrame == null)
         {
-            if (lastReceivedFrame == null)
-            {
-                return false;
-            }
-            else
-            {
-                long timeSinceLastReceivedFrameMs = System.currentTimeMillis()
-                    - lastReceivedFrame.getReceivedMs();
-
-                return timeSinceLastReceivedFrameMs
-                    <= MediaStreamTrackDesc.SUSPENSION_THRESHOLD_MS;
-            }
+            return false;
         }
         else
         {
-            return active;
+            RTPEncodingDesc[] encodings = track.getRTPEncodings();
+            boolean nextIsActive = encodings != null
+                && encodings.length > idx + 1
+                && encodings[idx + 1].isActive(nowMs);
+
+            if (nextIsActive)
+            {
+                return true;
+            }
+
+            long timeSinceLastReceivedFrameMs
+                = nowMs - lastReceivedFrame.getReceivedMs();
+
+            return timeSinceLastReceivedFrameMs <= SUSPENSION_THRESHOLD_MS;
         }
     }
 
@@ -483,7 +475,6 @@ public class RTPEncodingDesc
             ",secondary_ssrcs=" + secondarySsrcs +
             ",temporal_id=" + tid +
             ",spatial_id=" + sid +
-            ",active=" + active +
             ",last_stable_bitrate_bps=" + lastStableBitrateBps;
     }
 
@@ -597,18 +588,6 @@ public class RTPEncodingDesc
     }
 
     /**
-     * Gets a boolean flag that indicates whether or not this instance is
-     * streaming or if it's suspended.
-     *
-     * @param active true if this {@link RTPEncodingDesc} is active, otherwise
-     * false.
-     */
-    void setActive(boolean active)
-    {
-        this.active = active;
-    }
-
-    /**
      *
      * @param pkt
      * @param nowMs
@@ -670,8 +649,6 @@ public class RTPEncodingDesc
                 applyFrameBoundsHeuristics(floorEntry.getValue(), frame);
             }
         }
-
-        track.update(pkt, frame, isPacketOfNewFrame, nowMs);
     }
 
 
