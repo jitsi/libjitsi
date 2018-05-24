@@ -15,9 +15,6 @@
  */
 package org.jitsi.impl.neomedia.rtp;
 
-import org.jitsi.impl.neomedia.rtp.translator.*;
-import org.jitsi.service.configuration.*;
-import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
@@ -30,19 +27,6 @@ import org.jitsi.util.*;
  */
 public class MediaStreamTrackDesc
 {
-    /**
-     * The {@link Logger} used by the {@link MediaStreamTrackDesc} class and its
-     * instances for logging output.
-     */
-    private static final Logger logger
-        = Logger.getLogger(MediaStreamTrackDesc.class);
-
-    /**
-     * The ConfigurationService to get config values from.
-     */
-    private static final ConfigurationService
-        cfg = LibJitsi.getConfigurationService();
-
     /**
      * The {@link RTPEncodingDesc}s that this {@link MediaStreamTrackDesc}
      * possesses, ordered by their subjective quality from low to high.
@@ -136,9 +120,6 @@ public class MediaStreamTrackDesc
      * index. The "stable" bitrate is measured on every new frame and with a
      * 5000ms window.
      *
-     * @param performTimeoutCheck when true, it requires the matching encoding
-     * to have fresh data and not just its active property to be set to true.
-     *
      * @return the last "stable" bitrate (bps) of the encoding at the specified
      * index.
      */
@@ -215,25 +196,6 @@ public class MediaStreamTrackDesc
         }
 
         return null;
-    }
-
-    /**
-     * Finds the {@link FrameDesc} that corresponds to the packet that is
-     * specified in the buffer passed in as an argument.
-     *
-     * @param buf the byte array that holds the RTP packet.
-     * @param off the offset in the byte array where the actual data starts
-     * @param len the length of the actual data
-     * @return the {@link FrameDesc} that corresponds to the packet that is
-     * specified in the buffer passed in as an argument, or null.
-     * @Deprecated use findFrameDesc(long, long)
-     */
-    @Deprecated
-    public FrameDesc findFrameDesc(byte[] buf, int off, int len)
-    {
-        return findFrameDesc(
-            RawPacket.getSSRCAsLong(buf, off, len),
-            RawPacket.getTimestamp(buf, off, len));
     }
 
     /**
