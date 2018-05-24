@@ -63,13 +63,13 @@ public class RTPEncodingDesc
 
      /**
       * The maximum time interval (in millis) an encoding can be considered
-      * active without new frames. This value corresponds to 7.5fps + 65 millis
+      * active without new frames. This value corresponds to 4fps + 50 millis
       * to compensate for network noise. If the network is clogged and we don't
-      * get a new frame within 200 millis, and if the encoding is being
+      * get a new frame within 300 millis, and if the encoding is being
       * received, then we will ask for a new key frame (this is done in the
       * JVB in SimulcastController).
       */
-    private static final int SUSPENSION_THRESHOLD_MS = 200;
+    private static final int SUSPENSION_THRESHOLD_MS = 300;
 
     /**
      * The primary SSRC for this layering/encoding.
