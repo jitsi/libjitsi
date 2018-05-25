@@ -28,8 +28,6 @@ import java.util.concurrent.atomic.*;
  * Keeps track of how many channels receive it, its subjective quality index,
  * its last stable bitrate and other useful things for adaptivity/routing.
  *
- * TODO rename to Flow.
- *
  * @author George Politis
  */
 public class RTPEncodingDesc
@@ -62,6 +60,16 @@ public class RTPEncodingDesc
      * The number of incoming frames to keep track of.
      */
     private static final int FRAMES_HISTORY_SZ = 60;
+
+     /**
+      * The maximum time interval (in millis) an encoding can be considered
+      * active without new frames. This value corresponds to 4fps + 50 millis
+      * to compensate for network noise. If the network is clogged and we don't
+      * get a new frame within 300 millis, and if the encoding is being
+      * received, then we will ask for a new key frame (this is done in the
+      * JVB in SimulcastController).
+      */
+    private static final int SUSPENSION_THRESHOLD_MS = 300;
 
     /**
      * The primary SSRC for this layering/encoding.
@@ -159,12 +167,6 @@ public class RTPEncodingDesc
     private final RTPEncodingDesc[] dependencyEncodings;
 
     /**
-     * A boolean flag that indicates whether or not this instance is streaming
-     * or if it's suspended.
-     */
-    private boolean active = false;
-
-    /**
      * The last "stable" bitrate (in bps) for this instance.
      */
     private long lastStableBitrateBps;
@@ -182,7 +184,8 @@ public class RTPEncodingDesc
     /**
      * Ctor.
      *
-     * @param track the {@link MediaStreamTrackDesc} that this instance belongs to.
+     * @param track the {@link MediaStreamTrackDesc} that this instance
+     * belongs to.
      * @param primarySSRC The primary SSRC for this layering/encoding.
      */
     public RTPEncodingDesc(
@@ -256,12 +259,15 @@ public class RTPEncodingDesc
             FrameDesc olderFrame,
             FrameDesc newerFrame)
     {
-        if (olderFrame.lastSequenceNumberKnown() && newerFrame.lastSequenceNumberKnown())
+        if (olderFrame.lastSequenceNumberKnown()
+                && newerFrame.lastSequenceNumberKnown())
         {
-            // We already know the last sequence number of olderFrame and the first
-            // sequence number of newerFrame, no need for further heuristics.
+            // We already know the last sequence number of olderFrame and the
+            // first sequence number of newerFrame, no need for further
+            // heuristics.
             return;
         }
+
         if (!TimestampUtils.isNewerTimestamp(
                 newerFrame.getTimestamp(), olderFrame.getTimestamp()))
         {
@@ -270,21 +276,26 @@ public class RTPEncodingDesc
         }
         int lowestSeenSeqNumOfNewerFrame = newerFrame.getMinSeen();
         int highestSeenSeqNumOfOlderFrame = olderFrame.getMaxSeen();
-        int seqNumDiff =
-                RTPUtils.getSequenceNumberDelta(lowestSeenSeqNumOfNewerFrame, highestSeenSeqNumOfOlderFrame);
+        int seqNumDiff = RTPUtils.getSequenceNumberDelta(
+                lowestSeenSeqNumOfNewerFrame, highestSeenSeqNumOfOlderFrame);
 
         boolean guessed = false;
 
-        // For a stream that supports frame marking, we will conclusively know the start and end packets of a frame
-        // via the marking.  If those packets have been received, the start/end of the frame will already be
-        // conclusively known at this point.  Because of this, we can still make a guess even when the sequence
-        // number gap is bigger (see further comments for each scenario below)
+        // For a stream that supports frame marking, we will conclusively know
+        // the start and end packets of a frame via the marking.  If those
+        // packets have been received, the start/end of the frame will already
+        // be conclusively known at this point.  Because of this, we can still
+        // make a guess even when the sequence number gap is bigger (see
+        // further comments for each scenario below)
+
         boolean framesSupportFrameBoundaries =
-            olderFrame.supportsFrameBoundaries() && newerFrame.supportsFrameBoundaries();
+            olderFrame.supportsFrameBoundaries()
+            && newerFrame.supportsFrameBoundaries();
 
         if (framesSupportFrameBoundaries)
         {
-            if (olderFrame.lastSequenceNumberKnown() || newerFrame.firstSequenceNumberKnown())
+            if (olderFrame.lastSequenceNumberKnown()
+                    || newerFrame.firstSequenceNumberKnown())
             {
 
                 // XXX(bgrozev): for VPX codecs with PictureID we could find
@@ -298,43 +309,56 @@ public class RTPEncodingDesc
                 {
                     if (!olderFrame.lastSequenceNumberKnown())
                     {
-                        // If we haven't yet seen the last sequence number of this frame, we know it must be
-                        // the packet in the 'gap' here (since, had the biggest one we've seen for that frame so
-                        // far been the last one, it would've been marked)
-                        olderFrame.setEnd(RTPUtils.as16Bits(highestSeenSeqNumOfOlderFrame + 1));
+                        // If we haven't yet seen the last sequence number of
+                        // this frame, we know it must be the packet in the
+                        // 'gap' here (since, had the biggest one we've seen
+                        // for that frame so far been the last one, it would've
+                        // been marked)
+
+                        olderFrame.setEnd(RTPUtils.as16Bits(
+                                    highestSeenSeqNumOfOlderFrame + 1));
                     }
                     else
                     {
-                        newerFrame.setStart(RTPUtils.as16Bits(lowestSeenSeqNumOfNewerFrame - 1));
+                        newerFrame.setStart(RTPUtils.as16Bits(
+                                    lowestSeenSeqNumOfNewerFrame - 1));
                     }
                     guessed = true;
                 }
             }
             else
             {
-                // Neither the last packet of the older frame nor the first packet of the newer frame
-                // has been seen, so we know the start/end packets must be held within this gap
+                // Neither the last packet of the older frame nor the first
+                // packet of the newer frame has been seen, so we know the
+                // start/end packets must be held within this gap
+
                 if (seqNumDiff == 3)
                 {
-                    olderFrame.setEnd(RTPUtils.as16Bits(highestSeenSeqNumOfOlderFrame + 1));
-                    newerFrame.setStart(RTPUtils.as16Bits(lowestSeenSeqNumOfNewerFrame - 1));
+                    olderFrame.setEnd(RTPUtils.as16Bits(
+                                highestSeenSeqNumOfOlderFrame + 1));
+
+                    newerFrame.setStart(RTPUtils.as16Bits(
+                                lowestSeenSeqNumOfNewerFrame - 1));
                     guessed = true;
                 }
             }
         }
         else
         {
-            if (olderFrame.lastSequenceNumberKnown() || newerFrame.firstSequenceNumberKnown())
+            if (olderFrame.lastSequenceNumberKnown()
+                    || newerFrame.firstSequenceNumberKnown())
             {
                 if (seqNumDiff == 1)
                 {
                     if (!olderFrame.lastSequenceNumberKnown())
                     {
-                        olderFrame.setEnd(RTPUtils.as16Bits(highestSeenSeqNumOfOlderFrame));
+                        olderFrame.setEnd(RTPUtils.as16Bits(
+                                    highestSeenSeqNumOfOlderFrame));
                     }
                     else
                     {
-                        newerFrame.setStart(RTPUtils.as16Bits(lowestSeenSeqNumOfNewerFrame));
+                        newerFrame.setStart(RTPUtils.as16Bits(
+                                    lowestSeenSeqNumOfNewerFrame));
                     }
 
                     guessed = true;
@@ -342,14 +366,16 @@ public class RTPEncodingDesc
             }
             else
             {
-                // XXX(bgrozev): Can't do much here. If diff==2 and
-                // we don't know either the first sequence number of the newer frame or
-                // the last sequence number of the older frame, then there is
-                // 1 packet between olderFrameLastSeen and newerFrameFirstSeen. And we don't
-                // know whether this packet belongs to olderFrame or to newerFrame, or is olderFrame
-                // separate frame of its own (since in this if branch there
-                // is no support for frame boundaries, which means that e.g.
-                // olderFrameLastSeen could be the end of olderFrame even if lastSeqNumOfOlderFrame == -1).
+                // XXX(bgrozev): Can't do much here. If diff==2 and we don't
+                // know either the first sequence number of the newer frame or
+                // the last sequence number of the older frame, then there is 1
+                // packet between olderFrameLastSeen and newerFrameFirstSeen.
+                // And we don't know whether this packet belongs to olderFrame
+                // or to newerFrame, or is olderFrame separate frame of its own
+                // (since in this if branch there is no support for frame
+                // boundaries, which means that e.g.  olderFrameLastSeen could
+                // be the end of olderFrame even if lastSeqNumOfOlderFrame ==
+                // -1).
             }
         }
 
@@ -413,40 +439,28 @@ public class RTPEncodingDesc
      *
      * @return true if this instance is streaming, false otherwise.
      */
-    public boolean isActive()
+    public boolean isActive(long nowMs)
     {
-        return active;
-    }
-
-    /**
-     * Gets a boolean value indicating whether or not this instance is
-     * streaming.
-     *
-     * @param performTimeoutCheck  when true, it requires fresh data and not
-     * just the active property to be set.
-     *
-     * @return true if this instance is streaming, false otherwise.
-     */
-    public boolean isActive(boolean performTimeoutCheck)
-    {
-        if (active && performTimeoutCheck)
+        if (lastReceivedFrame == null)
         {
-            if (lastReceivedFrame == null)
-            {
-                return false;
-            }
-            else
-            {
-                long timeSinceLastReceivedFrameMs = System.currentTimeMillis()
-                    - lastReceivedFrame.getReceivedMs();
-
-                return timeSinceLastReceivedFrameMs
-                    <= MediaStreamTrackDesc.SUSPENSION_THRESHOLD_MS;
-            }
+            return false;
         }
         else
         {
-            return active;
+            RTPEncodingDesc[] encodings = track.getRTPEncodings();
+            boolean nextIsActive = encodings != null
+                && encodings.length > idx + 1
+                && encodings[idx + 1].isActive(nowMs);
+
+            if (nextIsActive)
+            {
+                return true;
+            }
+
+            long timeSinceLastReceivedFrameMs
+                = nowMs - lastReceivedFrame.getReceivedMs();
+
+            return timeSinceLastReceivedFrameMs <= SUSPENSION_THRESHOLD_MS;
         }
     }
 
@@ -461,7 +475,6 @@ public class RTPEncodingDesc
             ",secondary_ssrcs=" + secondarySsrcs +
             ",temporal_id=" + tid +
             ",spatial_id=" + sid +
-            ",active=" + active +
             ",last_stable_bitrate_bps=" + lastStableBitrateBps;
     }
 
@@ -575,18 +588,6 @@ public class RTPEncodingDesc
     }
 
     /**
-     * Gets a boolean flag that indicates whether or not this instance is
-     * streaming or if it's suspended.
-     *
-     * @param active true if this {@link RTPEncodingDesc} is active, otherwise
-     * false.
-     */
-    void setActive(boolean active)
-    {
-        this.active = active;
-    }
-
-    /**
      *
      * @param pkt
      * @param nowMs
@@ -648,8 +649,6 @@ public class RTPEncodingDesc
                 applyFrameBoundsHeuristics(floorEntry.getValue(), frame);
             }
         }
-
-        track.update(pkt, frame, isPacketOfNewFrame, nowMs);
     }
 
 

@@ -65,6 +65,30 @@ public class TimeSeriesLogger
     }
 
     /**
+     * Check if a message with a WARNING level would actually be logged by this
+     * logger.
+     *
+     * @return true if the WARNING level is currently being logged, otherwise
+     * false.
+     */
+    public boolean isWarnEnabled()
+    {
+        return logger.isWarnEnabled();
+    }
+
+    /**
+     * Check if a message with a INFO level would actually be logged by this
+     * logger.
+     *
+     * @return true if the INFO level is currently being logged, otherwise
+     * false.
+     */
+    public boolean isInfoEnabled()
+    {
+        return logger.isInfoEnabled();
+    }
+
+    /**
      * Traces a {@link TimeSeriesPoint}.
      *
      * @param timeSeriesPoint the {@link TimeSeriesPoint} to trace.
@@ -72,5 +96,25 @@ public class TimeSeriesLogger
     public void trace(TimeSeriesPoint timeSeriesPoint)
     {
         logger.trace(timeSeriesPoint);
+    }
+
+    /**
+     * Logs a {@link TimeSeriesPoint} in WARNING level.
+     *
+     * @param timeSeriesPoint the {@link TimeSeriesPoint} to log.
+     */
+    public void warn(TimeSeriesPoint timeSeriesPoint)
+    {
+        logger.warn(timeSeriesPoint);
+    }
+
+    /**
+     * Logs a {@link TimeSeriesPoint} in INFO level.
+     *
+     * @param timeSeriesPoint the {@link TimeSeriesPoint} to log.
+     */
+    public void info(TimeSeriesPoint timeSeriesPoint)
+    {
+        logger.info(timeSeriesPoint);
     }
 }
