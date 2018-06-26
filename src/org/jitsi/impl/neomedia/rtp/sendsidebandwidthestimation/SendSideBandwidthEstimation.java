@@ -156,6 +156,11 @@ class SendSideBandwidthEstimation
      */
     private final MediaStream mediaStream;
 
+    /**
+     * The instance that holds stats for this instance.
+     */
+    private final StatisticsImpl statistics = new StatisticsImpl();
+
     SendSideBandwidthEstimation(MediaStreamImpl stream, long startBitrate)
     {
         mediaStream = stream;
@@ -233,28 +238,14 @@ class SendSideBandwidthEstimation
                 // rates).
                 bitrate += 1000;
 
-                if (timeSeriesLogger.isTraceEnabled())
-                {
-                    timeSeriesLogger.trace(diagnosticContext
-                            .makeTimeSeriesPoint("loss_estimate", now)
-                            .addField("action", "increase")
-                            .addField("last_fraction_loss", last_fraction_loss_)
-                            .addField("bitrate_bps", bitrate));
-                }
+                statistics.update(now, LossRegion.LossFree);
 
             }
             else if (last_fraction_loss_ <= 26)
             {
                 // Loss between 2% - 10%: Do nothing.
 
-                if (timeSeriesLogger.isTraceEnabled())
-                {
-                    timeSeriesLogger.trace(diagnosticContext
-                            .makeTimeSeriesPoint("loss_estimate", now)
-                            .addField("action", "keep")
-                            .addField("last_fraction_loss", last_fraction_loss_)
-                            .addField("bitrate_bps", bitrate));
-                }
+                statistics.update(now, LossRegion.LossLimited);
             }
             else
             {
@@ -273,14 +264,7 @@ class SendSideBandwidthEstimation
                         (bitrate * (512 - last_fraction_loss_)) / 512.0);
                     has_decreased_since_last_fraction_loss_ = true;
 
-                    if (timeSeriesLogger.isTraceEnabled())
-                    {
-                        timeSeriesLogger.trace(diagnosticContext
-                                .makeTimeSeriesPoint("loss_estimate", now)
-                                .addField("action", "decrease")
-                                .addField("last_fraction_loss", last_fraction_loss_)
-                                .addField("bitrate_bps", bitrate));
-                    }
+                    statistics.update(now, LossRegion.LossDegraded);
                 }
             }
         }
@@ -446,6 +430,12 @@ class SendSideBandwidthEstimation
         updateReceiverEstimate(remb.getBitrate());
     }
 
+    @Override
+    public StatisticsImpl getStatistics()
+    {
+        return statistics;
+    }
+
     /**
      * Returns the last calculated RTT to the endpoint.
      * @return the last calculated RTT to the endpoint.
@@ -487,5 +477,145 @@ class SendSideBandwidthEstimation
             first = a;
             second = b;
         }
+    }
+
+    public class StatisticsImpl implements Statistics
+    {
+        private LossRegion currentState = null;
+
+        // looping over the same state is still a transition.
+        private long lastTransitionTimestampMs = -1;
+
+        // Current state statistics.
+        private long currentStateCumulativeDurationMs;
+        private int currentStateConsecutiveVisits;
+        private long currentStateStartBitrateBps;
+        private LongSummaryStatistics currentStateBitrateStatistics
+            = new LongSummaryStatistics();
+        private IntSummaryStatistics currentStateLossStatistics
+            = new IntSummaryStatistics();
+
+        // State duration statistics.
+        private final LongSummaryStatistics
+            lossFreeMsStats = new LongSummaryStatistics(),
+            lossDegradedMsStats = new LongSummaryStatistics(),
+            lossLimitedMsStats = new LongSummaryStatistics();
+
+        @Override
+        public void update(long nowMs)
+        {
+            synchronized (SendSideBandwidthEstimation.this)
+            {
+                update(nowMs, null);
+            }
+        }
+
+        // This method is synchronized on SendSideBandwidthEstimation.this.
+        void update(long nowMs, LossRegion nextState)
+        {
+            if (lastTransitionTimestampMs > -1)
+            {
+                currentStateCumulativeDurationMs
+                    += nowMs - lastTransitionTimestampMs;
+            }
+
+            lastTransitionTimestampMs = nowMs;
+            currentStateLossStatistics.accept(last_fraction_loss_);
+            currentStateConsecutiveVisits++; // we start counting from 0.
+
+            if (this.currentState == nextState)
+            {
+                currentStateBitrateStatistics.accept(bitrate_);
+                return;
+            }
+
+            if (this.currentState != null)
+            {
+                // This is not a loop, we're transitioning to another state.
+                // Record how much time we've spent on this state, how many
+                // times we've looped through it and what was the impact on the
+                // bitrate.
+                switch (this.currentState)
+                {
+                case LossDegraded:
+                    lossDegradedMsStats.accept(
+                        currentStateCumulativeDurationMs);
+                    break;
+                case LossFree:
+                    lossFreeMsStats.accept(currentStateCumulativeDurationMs);
+                    break;
+                case LossLimited:
+                    lossLimitedMsStats.accept(
+                        currentStateCumulativeDurationMs);
+                    break;
+                }
+
+                if (timeSeriesLogger.isTraceEnabled())
+                {
+                    timeSeriesLogger.trace(diagnosticContext
+                        .makeTimeSeriesPoint("loss_estimate")
+                        .addField("state", currentState.name())
+                        .addField("max_loss",
+                            currentStateLossStatistics.getMax() / 256.0f)
+                        .addField("min_loss",
+                            currentStateLossStatistics.getMin() / 256.0f)
+                        .addField("avg_loss",
+                            currentStateLossStatistics.getAverage() / 256.0f)
+                        .addField("max_bps",
+                            currentStateBitrateStatistics.getMax())
+                        .addField("min_bps",
+                            currentStateBitrateStatistics.getMin())
+                        .addField("avg_bps",
+                            currentStateBitrateStatistics.getAverage())
+                        .addField("duration_ms",
+                            currentStateCumulativeDurationMs)
+                        .addField("consecutive_visits",
+                            currentStateConsecutiveVisits)
+                        .addField("delta_bps",
+                            bitrate_ - currentStateStartBitrateBps));
+                }
+            }
+
+            currentState = nextState;
+            currentStateLossStatistics = new IntSummaryStatistics();
+            currentStateConsecutiveVisits = 0;
+            currentStateCumulativeDurationMs = 0;
+            currentStateStartBitrateBps = bitrate_;
+            currentStateBitrateStatistics.accept(bitrate_);
+        }
+
+        @Override
+        public long getLossLimitedMs()
+        {
+            synchronized (SendSideBandwidthEstimation.this)
+            {
+                return lossLimitedMsStats.getSum();
+            }
+        }
+
+        @Override
+        public long getLossDegradedMs()
+        {
+            synchronized (SendSideBandwidthEstimation.this)
+            {
+                return lossDegradedMsStats.getSum();
+            }
+        }
+
+        @Override
+        public long getLossFreeMs()
+        {
+            synchronized (SendSideBandwidthEstimation.this)
+            {
+                return lossFreeMsStats.getSum();
+            }
+        }
+    }
+
+    private enum LossRegion
+    {
+        LossLimited,
+        LossDegraded,
+        LossFree
     }
 }

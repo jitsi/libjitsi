@@ -217,4 +217,13 @@ public class BandwidthEstimatorImpl
     {
         return sendSideBandwidthEstimation.getLatestFractionLoss();
     }
+
+    /**
+     * @return the send-side bwe-specific statistics.
+     */
+    @Override
+    public SendSideBandwidthEstimation.StatisticsImpl getStatistics()
+    {
+        return sendSideBandwidthEstimation.getStatistics();
+    }
 }
