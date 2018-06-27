@@ -291,7 +291,7 @@ public class RTCPReceiverFeedbackTermination
                 {
                     logger.trace(stream.getDiagnosticContext()
                             .makeTimeSeriesPoint("created_report_block")
-                            .addKey("rtcp_termination", hashCode())
+                            .addField("rtcp_termination", hashCode())
                             .addField("ssrc", reportBlock.getSSRC())
                             .addField("num_lost", reportBlock.getNumLost())
                             .addField("fraction_lost",

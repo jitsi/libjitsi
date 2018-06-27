@@ -18,8 +18,6 @@ package org.jitsi.impl.neomedia.rtp.remotebitrateestimator;
 import org.jitsi.util.*;
 import org.jetbrains.annotations.*;
 
-import java.util.*;
-
 /**
  * webrtc/modules/remote_bitrate_estimator/overuse_detector.cc
  * webrtc/modules/remote_bitrate_estimator/overuse_detector.h
@@ -147,7 +145,7 @@ class OveruseDetector
         {
             logger.trace(diagnosticContext
                 .makeTimeSeriesPoint("utilization_hypothesis", nowMs)
-                .addKey("detector", hashCode())
+                .addField("detector", hashCode())
                 .addField("offset", offset)
                 .addField("prev_offset", prev_offset)
                 .addField("T", T)

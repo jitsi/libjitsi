@@ -471,7 +471,7 @@ public class RemoteBitrateEstimatorAbsSendTime
         {
             timeSeriesLogger.trace(diagnosticContext
                 .makeTimeSeriesPoint("in_pkt", nowMs)
-                .addKey("rbe_id", hashCode())
+                .addField("rbe_id", hashCode())
                 .addField("recv_ts_ms", arrivalTimeMs)
                 .addField("send_ts_ms", sendTimeMs)
                 .addField("pkt_sz_bytes", payloadSize)

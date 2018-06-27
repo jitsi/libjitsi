@@ -19,8 +19,6 @@ import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.*;
 import org.jetbrains.annotations.*;
 
-import java.util.*;
-
 /**
  * A rate control implementation based on additive increases of bitrate when no
  * over-use is detected and multiplicative decreases when over-uses are
@@ -251,7 +249,7 @@ class AimdRateControl
         {
             logger.trace(diagnosticContext
                     .makeTimeSeriesPoint("aimd_region", nowMs)
-                    .addKey("aimd_id", hashCode())
+                    .addField("aimd_id", hashCode())
                     .addField("region", region));
         }
     }
@@ -294,7 +292,7 @@ class AimdRateControl
         {
             logger.trace(diagnosticContext
                     .makeTimeSeriesPoint("aimd_state", nowMs)
-                    .addKey("aimd_id", hashCode())
+                    .addField("aimd_id", hashCode())
                     .addField("state", rateControlState));
         }
     }
@@ -416,7 +414,7 @@ class AimdRateControl
         {
             logger.trace(diagnosticContext
                     .makeTimeSeriesPoint("aimd_rtt", System.currentTimeMillis())
-                    .addKey("aimd_id", hashCode())
+                    .addField("aimd_id", hashCode())
                     .addField("rtt", rtt));
         }
 
@@ -471,7 +469,7 @@ class AimdRateControl
         {
             logger.trace(diagnosticContext
                 .makeTimeSeriesPoint("aimd_estimate", nowMs)
-                .addKey("aimd_id", hashCode())
+                .addField("aimd_id", hashCode())
                 .addField("estimate_bps", currentBitrateBps)
                 .addField("incoming_bps", currentInput.incomingBitRate));
         }
