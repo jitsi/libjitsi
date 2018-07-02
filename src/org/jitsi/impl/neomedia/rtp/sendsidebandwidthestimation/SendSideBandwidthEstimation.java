@@ -18,6 +18,8 @@ package org.jitsi.impl.neomedia.rtp.sendsidebandwidthestimation;
 import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.service.configuration.*;
+import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.*;
@@ -36,6 +38,24 @@ class SendSideBandwidthEstimation
     extends RTCPPacketListenerAdapter
     implements BandwidthEstimator
 {
+    public final static String LOW_LOSS_THRESHOLD_PNAME
+        = SendSideBandwidthEstimation.class.getName() + ".lowLossThreshold";
+
+    public final static String HIGH_LOSS_THRESHOLD_PNAME
+        = SendSideBandwidthEstimation.class.getName() + ".highLossThreshold";
+
+    public final static String BITRATE_THRESHOLD_KBPS_PNAME
+        = SendSideBandwidthEstimation.class.getName() + ".bitrateThresholdKbps";
+
+    public final static String LOSS_EXPERIMENT_PCT_PNAME
+        = SendSideBandwidthEstimation.class.getName() + ".lossExperimentPct";
+
+    /**
+     * The ConfigurationService to get config values from.
+     */
+    private static final ConfigurationService
+        cfg = LibJitsi.getConfigurationService();
+
     /**
      * send_side_bandwidth_estimation.cc
      */
@@ -67,6 +87,31 @@ class SendSideBandwidthEstimation
     private static final int kLimitNumPackets = 20;
 
     /**
+     * send_side_bandwidth_estimation.cc
+     */
+    private static final float kDefaultLowLossThreshold = 0.02f;
+
+    /**
+     * send_side_bandwidth_estimation.cc
+     */
+    private static final float kDefaultHighLossThreshold = 0.1f;
+
+    /**
+     * send_side_bandwidth_estimation.cc
+     */
+    private static final int kDefaultBitrateThresholdKbps = 0;
+
+    /**
+     * Disable the loss experiment by default.
+     */
+    private static final float kDefaultLossExperimentPct = 0;
+
+    /**
+     * The random number generator for all instances of this class.
+     */
+    private static final Random kRandom = new Random();
+
+    /**
      * The <tt>Logger</tt> used by the {@link SendSideBandwidthEstimation} class
      * and its instances for logging output.
      */
@@ -80,6 +125,21 @@ class SendSideBandwidthEstimation
     private static final TimeSeriesLogger timeSeriesLogger
             = TimeSeriesLogger.getTimeSeriesLogger(
                     SendSideBandwidthEstimation.class);
+
+    /**
+     * send_side_bandwidth_estimation.h
+     */
+    private final float low_loss_threshold_;
+
+    /**
+     * send_side_bandwidth_estimation.h
+     */
+    private final float high_loss_threshold_;
+
+    /**
+     * send_side_bandwidth_estimation.h
+     */
+    private final int bitrate_threshold_bps_;
 
     /**
      * send_side_bandwidth_estimation.h
@@ -165,6 +225,26 @@ class SendSideBandwidthEstimation
     {
         mediaStream = stream;
         diagnosticContext = stream.getDiagnosticContext();
+
+        float lossExperimentPct = (float) cfg.getDouble(
+            LOSS_EXPERIMENT_PCT_PNAME, kDefaultLossExperimentPct);
+
+        if (kRandom.nextFloat() < lossExperimentPct)
+        {
+            low_loss_threshold_ = (float) cfg.getDouble(
+                LOW_LOSS_THRESHOLD_PNAME, kDefaultLowLossThreshold);
+            high_loss_threshold_ = (float) cfg.getDouble(
+                HIGH_LOSS_THRESHOLD_PNAME, kDefaultHighLossThreshold);
+            bitrate_threshold_bps_ = 1000 * cfg.getInt(
+                BITRATE_THRESHOLD_KBPS_PNAME, kDefaultBitrateThresholdKbps);
+        }
+        else
+        {
+            low_loss_threshold_ = kDefaultLowLossThreshold;
+            high_loss_threshold_ = kDefaultHighLossThreshold;
+            bitrate_threshold_bps_ = 1000 * kDefaultBitrateThresholdKbps;
+        }
+
         setBitrate(startBitrate);
     }
 
@@ -220,7 +300,12 @@ class SendSideBandwidthEstimation
         // long time.
         if (time_last_receiver_block_ms_ != -1)
         {
-            if (last_fraction_loss_ <= 5)
+            // We only care about loss above a given bitrate threshold.
+            float loss = last_fraction_loss_ / 256.0f;
+            // We only make decisions based on loss when the bitrate is above a
+            // threshold. This is a crude way of handling loss which is
+            // uncorrelated to congestion.
+            if (bitrate_ < bitrate_threshold_bps_ || loss <= low_loss_threshold_)
             {
                 // Loss < 2%: Increase rate by 8% of the min bitrate in the last
                 // kBweIncreaseIntervalMs.
@@ -241,30 +326,33 @@ class SendSideBandwidthEstimation
                 statistics.update(now, LossRegion.LossFree);
 
             }
-            else if (last_fraction_loss_ <= 26)
+            else if (bitrate_ > bitrate_threshold_bps_)
             {
-                // Loss between 2% - 10%: Do nothing.
-
-                statistics.update(now, LossRegion.LossLimited);
-            }
-            else
-            {
-                // Loss > 10%: Limit the rate decreases to once a kBweDecreaseIntervalMs +
-                // rtt.
-                if (!has_decreased_since_last_fraction_loss_ &&
-                        (now - time_last_decrease_ms_) >=
-                                (kBweDecreaseIntervalMs + getRtt()))
+                if (loss <= high_loss_threshold_)
                 {
-                    time_last_decrease_ms_ = now;
+                    // Loss between 2% - 10%: Do nothing.
 
-                    // Reduce rate:
-                    //   newRate = rate * (1 - 0.5*lossRate);
-                    //   where packetLoss = 256*lossRate;
-                    bitrate = (long) (
-                        (bitrate * (512 - last_fraction_loss_)) / 512.0);
-                    has_decreased_since_last_fraction_loss_ = true;
+                    statistics.update(now, LossRegion.LossLimited);
+                }
+                else
+                {
+                    // Loss > 10%: Limit the rate decreases to once a kBweDecreaseIntervalMs +
+                    // rtt.
+                    if (!has_decreased_since_last_fraction_loss_ &&
+                        (now - time_last_decrease_ms_) >=
+                            (kBweDecreaseIntervalMs + getRtt()))
+                    {
+                        time_last_decrease_ms_ = now;
 
-                    statistics.update(now, LossRegion.LossDegraded);
+                        // Reduce rate:
+                        //   newRate = rate * (1 - 0.5*lossRate);
+                        //   where packetLoss = 256*lossRate;
+                        bitrate = (long) (
+                            (bitrate * (512 - last_fraction_loss_)) / 512.0);
+                        has_decreased_since_last_fraction_loss_ = true;
+
+                        statistics.update(now, LossRegion.LossDegraded);
+                    }
                 }
             }
         }
