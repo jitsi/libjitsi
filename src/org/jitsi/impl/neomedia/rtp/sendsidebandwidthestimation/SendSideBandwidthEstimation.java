@@ -38,17 +38,36 @@ class SendSideBandwidthEstimation
     extends RTCPPacketListenerAdapter
     implements BandwidthEstimator
 {
+    /**
+     * The name of the property that specifies the low-loss threshold
+     * (expressed as a proportion of lost packets).
+     * See {@link #low_loss_threshold_}.
+     */
     public final static String LOW_LOSS_THRESHOLD_PNAME
         = SendSideBandwidthEstimation.class.getName() + ".lowLossThreshold";
 
+    /**
+     * The name of the property that specifies the high-loss threshold
+     * (expressed as a proportion of lost packets).
+     * See {@link #high_loss_threshold_}.
+     */
     public final static String HIGH_LOSS_THRESHOLD_PNAME
         = SendSideBandwidthEstimation.class.getName() + ".highLossThreshold";
 
+    /**
+     * The name of the property that specifies the bitrate threshold (in kbps).
+     * See {@link #bitrate_threshold_bps_}.
+     */
     public final static String BITRATE_THRESHOLD_KBPS_PNAME
         = SendSideBandwidthEstimation.class.getName() + ".bitrateThresholdKbps";
 
-    public final static String LOSS_EXPERIMENT_PCT_PNAME
-        = SendSideBandwidthEstimation.class.getName() + ".lossExperimentPct";
+    /**
+     * The name of the property that specifies the probability of enabling the
+     * loss-based experiment.
+     */
+    public final static String LOSS_EXPERIMENT_PROBABILITY_PNAME
+        = SendSideBandwidthEstimation.class.getName()
+        + ".lossExperimentProbability";
 
     /**
      * The ConfigurationService to get config values from.
@@ -104,7 +123,7 @@ class SendSideBandwidthEstimation
     /**
      * Disable the loss experiment by default.
      */
-    private static final float kDefaultLossExperimentPct = 0;
+    private static final float kDefaultLossExperimentProbability = 0;
 
     /**
      * The random number generator for all instances of this class.
@@ -226,10 +245,11 @@ class SendSideBandwidthEstimation
         mediaStream = stream;
         diagnosticContext = stream.getDiagnosticContext();
 
-        float lossExperimentPct = (float) cfg.getDouble(
-            LOSS_EXPERIMENT_PCT_PNAME, kDefaultLossExperimentPct);
+        float lossExperimentProbability = (float) cfg.getDouble(
+            LOSS_EXPERIMENT_PROBABILITY_PNAME,
+            kDefaultLossExperimentProbability);
 
-        if (kRandom.nextFloat() < lossExperimentPct)
+        if (kRandom.nextFloat() < lossExperimentProbability)
         {
             low_loss_threshold_ = (float) cfg.getDouble(
                 LOW_LOSS_THRESHOLD_PNAME, kDefaultLowLossThreshold);
@@ -598,78 +618,80 @@ class SendSideBandwidthEstimation
             }
         }
 
-        // This method is synchronized on SendSideBandwidthEstimation.this.
         void update(long nowMs, LossRegion nextState)
         {
-            if (lastTransitionTimestampMs > -1)
+            synchronized (SendSideBandwidthEstimation.this)
             {
-                currentStateCumulativeDurationMs
-                    += nowMs - lastTransitionTimestampMs;
-            }
+                if (lastTransitionTimestampMs > -1)
+                {
+                    currentStateCumulativeDurationMs
+                        += nowMs - lastTransitionTimestampMs;
+                }
 
-            lastTransitionTimestampMs = nowMs;
-            currentStateLossStatistics.accept(last_fraction_loss_);
-            currentStateConsecutiveVisits++; // we start counting from 0.
+                lastTransitionTimestampMs = nowMs;
+                currentStateLossStatistics.accept(last_fraction_loss_);
+                currentStateConsecutiveVisits++; // we start counting from 0.
 
-            if (this.currentState == nextState)
-            {
+                if (this.currentState == nextState)
+                {
+                    currentStateBitrateStatistics.accept(bitrate_);
+                    return;
+                }
+
+                if (this.currentState != null)
+                {
+                    // This is not a loop, we're transitioning to another state.
+                    // Record how much time we've spent on this state, how many
+                    // times we've looped through it and what was the impact on
+                    // the bitrate.
+                    switch (this.currentState)
+                    {
+                    case LossDegraded:
+                        lossDegradedMsStats.accept(
+                            currentStateCumulativeDurationMs);
+                        break;
+                    case LossFree:
+                        lossFreeMsStats.accept(currentStateCumulativeDurationMs);
+                        break;
+                    case LossLimited:
+                        lossLimitedMsStats.accept(
+                            currentStateCumulativeDurationMs);
+                        break;
+                    }
+
+                    if (timeSeriesLogger.isTraceEnabled())
+                    {
+                        timeSeriesLogger.trace(diagnosticContext
+                            .makeTimeSeriesPoint("loss_estimate")
+                            .addField("state", currentState.name())
+                            .addField("max_loss",
+                                currentStateLossStatistics.getMax() / 256.0f)
+                            .addField("min_loss",
+                                currentStateLossStatistics.getMin() / 256.0f)
+                            .addField("avg_loss",
+                                currentStateLossStatistics.getAverage()/256.0f)
+                            .addField("max_bps",
+                                currentStateBitrateStatistics.getMax())
+                            .addField("min_bps",
+                                currentStateBitrateStatistics.getMin())
+                            .addField("avg_bps",
+                                currentStateBitrateStatistics.getAverage())
+                            .addField("duration_ms",
+                                currentStateCumulativeDurationMs)
+                            .addField("consecutive_visits",
+                                currentStateConsecutiveVisits)
+                            .addField("delta_bps",
+                                bitrate_ - currentStateStartBitrateBps));
+                    }
+                }
+
+                currentState = nextState;
+                currentStateLossStatistics = new IntSummaryStatistics();
+                currentStateConsecutiveVisits = 0;
+                currentStateCumulativeDurationMs = 0;
+                currentStateStartBitrateBps = bitrate_;
                 currentStateBitrateStatistics.accept(bitrate_);
-                return;
             }
-
-            if (this.currentState != null)
-            {
-                // This is not a loop, we're transitioning to another state.
-                // Record how much time we've spent on this state, how many
-                // times we've looped through it and what was the impact on the
-                // bitrate.
-                switch (this.currentState)
-                {
-                case LossDegraded:
-                    lossDegradedMsStats.accept(
-                        currentStateCumulativeDurationMs);
-                    break;
-                case LossFree:
-                    lossFreeMsStats.accept(currentStateCumulativeDurationMs);
-                    break;
-                case LossLimited:
-                    lossLimitedMsStats.accept(
-                        currentStateCumulativeDurationMs);
-                    break;
-                }
-
-                if (timeSeriesLogger.isTraceEnabled())
-                {
-                    timeSeriesLogger.trace(diagnosticContext
-                        .makeTimeSeriesPoint("loss_estimate")
-                        .addField("state", currentState.name())
-                        .addField("max_loss",
-                            currentStateLossStatistics.getMax() / 256.0f)
-                        .addField("min_loss",
-                            currentStateLossStatistics.getMin() / 256.0f)
-                        .addField("avg_loss",
-                            currentStateLossStatistics.getAverage() / 256.0f)
-                        .addField("max_bps",
-                            currentStateBitrateStatistics.getMax())
-                        .addField("min_bps",
-                            currentStateBitrateStatistics.getMin())
-                        .addField("avg_bps",
-                            currentStateBitrateStatistics.getAverage())
-                        .addField("duration_ms",
-                            currentStateCumulativeDurationMs)
-                        .addField("consecutive_visits",
-                            currentStateConsecutiveVisits)
-                        .addField("delta_bps",
-                            bitrate_ - currentStateStartBitrateBps));
-                }
-            }
-
-            currentState = nextState;
-            currentStateLossStatistics = new IntSummaryStatistics();
-            currentStateConsecutiveVisits = 0;
-            currentStateCumulativeDurationMs = 0;
-            currentStateStartBitrateBps = bitrate_;
-            currentStateBitrateStatistics.accept(bitrate_);
         }
 
         @Override
