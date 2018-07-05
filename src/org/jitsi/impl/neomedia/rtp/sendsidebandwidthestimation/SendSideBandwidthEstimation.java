@@ -587,23 +587,56 @@ class SendSideBandwidthEstimation
         }
     }
 
+    /**
+     * This class records statistics information about how much time we spend
+     * in different loss-states (loss-free, loss-limited and loss-degraded).
+     */
     public class StatisticsImpl implements Statistics
     {
+        /**
+         * The current state {@link LossRegion}.
+         */
         private LossRegion currentState = null;
 
-        // looping over the same state is still a transition.
+        /**
+         * Keeps the time (in millis) of the last transition (including a loop).
+         */
         private long lastTransitionTimestampMs = -1;
 
-        // Current state statistics.
+        /**
+         * The cumulative duration (in millis) of the current state
+         * {@link #currentState} after having looped
+         * {@link #currentStateConsecutiveVisits} times.
+         */
         private long currentStateCumulativeDurationMs;
+
+        /**
+         * The number of loops over the current state {@link #currentState}.
+         */
         private int currentStateConsecutiveVisits;
+
+        /**
+         * The bitrate when we entered the current state {@link #currentState}.
+         */
         private long currentStateStartBitrateBps;
+
+        /**
+         * Computes the min/max/avg/sd of the bitrate while in
+         * {@link #currentState}.
+         */
         private LongSummaryStatistics currentStateBitrateStatistics
             = new LongSummaryStatistics();
+
+        /**
+         * Computes the min/max/avg/sd of the loss while in
+         * {@link #currentState}.
+         */
         private IntSummaryStatistics currentStateLossStatistics
             = new IntSummaryStatistics();
 
-        // State duration statistics.
+        /**
+         * Computes the sum of the duration of the different states.
+         */
         private final LongSummaryStatistics
             lossFreeMsStats = new LongSummaryStatistics(),
             lossDegradedMsStats = new LongSummaryStatistics(),
@@ -618,6 +651,12 @@ class SendSideBandwidthEstimation
             }
         }
 
+        /**
+         * Records a state transition and updates the statistics information.
+         *
+         * @param nowMs the time (in millis) of the transition.
+         * @param nextState the that the bwe is transitioning to.
+         */
         void update(long nowMs, LossRegion nextState)
         {
             synchronized (SendSideBandwidthEstimation.this)
@@ -722,10 +761,24 @@ class SendSideBandwidthEstimation
         }
     }
 
+    /**
+     * Represents the loss-based controller states.
+     */
     private enum LossRegion
     {
+        /**
+         * Loss is between 2% and 10%.
+         */
         LossLimited,
+
+        /**
+         * Loss is above 10%.
+         */
         LossDegraded,
+
+        /**
+         * Loss is bellow 2%.
+         */
         LossFree
     }
 }
