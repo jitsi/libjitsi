@@ -16,7 +16,9 @@
 
 package org.jitsi.util;
 
-import java.util.logging.*;
+import org.json.simple.*;
+
+import java.util.*;
 
 /**
  * @author George Politis
@@ -89,32 +91,32 @@ public class TimeSeriesLogger
     }
 
     /**
-     * Traces a {@link TimeSeriesPoint}.
+     * Traces a {@link DiagnosticContext.TimeSeriesPoint}.
      *
-     * @param timeSeriesPoint the {@link TimeSeriesPoint} to trace.
+     * @param point the point to trace.
      */
-    public void trace(TimeSeriesPoint timeSeriesPoint)
+    public void trace(HashMap<String, Object> point)
     {
-        logger.trace(timeSeriesPoint);
+        logger.trace(new JSONObject(point).toJSONString());
     }
 
     /**
-     * Logs a {@link TimeSeriesPoint} in WARNING level.
+     * Logs a {@link DiagnosticContext.TimeSeriesPoint} in WARNING level.
      *
-     * @param timeSeriesPoint the {@link TimeSeriesPoint} to log.
+     * @param point the point to log.
      */
-    public void warn(TimeSeriesPoint timeSeriesPoint)
+    public void warn(HashMap<String, Object> point)
     {
-        logger.warn(timeSeriesPoint);
+        logger.warn(new JSONObject(point).toJSONString());
     }
 
     /**
-     * Logs a {@link TimeSeriesPoint} in INFO level.
+     * Logs a {@link DiagnosticContext.TimeSeriesPoint} in INFO level.
      *
-     * @param timeSeriesPoint the {@link TimeSeriesPoint} to log.
+     * @param point the point to log.
      */
-    public void info(TimeSeriesPoint timeSeriesPoint)
+    public void info(HashMap<String, Object> point)
     {
-        logger.info(timeSeriesPoint);
+        logger.info(new JSONObject(point).toJSONString());
     }
 }

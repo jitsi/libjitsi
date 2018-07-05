@@ -19,8 +19,6 @@ import org.jitsi.impl.neomedia.rtp.TimestampUtils;
 import org.jitsi.util.*;
 import org.jetbrains.annotations.*;
 
-import java.util.*;
-
 /**
  * Helper class to compute the inter-arrival time delta and the size delta
  * between two timestamp groups. A timestamp is a 32 bit unsigned number with a
@@ -233,7 +231,7 @@ class InterArrival
                 {
                     logger.trace(diagnosticContext
                         .makeTimeSeriesPoint("computed_deltas")
-                        .addKey("inter_arrival", hashCode())
+                        .addField("inter_arrival", hashCode())
                         .addField("arrival_time_ms", arrivalTimeMs)
                         .addField("timestamp_delta", deltas[0])
                         .addField("arrival_time_ms_delta", deltas[1])
@@ -319,7 +317,7 @@ class InterArrival
             {
                 logger.trace(diagnosticContext
                         .makeTimeSeriesPoint("reordered_packet")
-                        .addKey("inter_arrival", hashCode())
+                        .addField("inter_arrival", hashCode())
                         .addField("ts_delta_ms", tsDeltaMs));
             }
 

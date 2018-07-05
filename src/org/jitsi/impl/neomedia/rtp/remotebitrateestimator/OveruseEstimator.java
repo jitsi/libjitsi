@@ -260,7 +260,7 @@ class OveruseEstimator
         {
             logger.trace(diagnosticContext
                 .makeTimeSeriesPoint("delay_variation_estimation", systemTimeMs)
-                .addKey("estimator", hashCode())
+                .addField("estimator", hashCode())
                 .addField("time_delta", tDelta)
                 .addField("ts_delta", tsDelta)
                 .addField("tts_delta", tTsDelta)

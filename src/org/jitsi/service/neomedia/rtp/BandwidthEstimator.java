@@ -43,6 +43,11 @@ public interface BandwidthEstimator
     long getLatestREMB();
 
     /**
+     * @return the {@link Statistics} specific to this bandwidth estimator.
+     */
+    Statistics getStatistics();
+
+    /**
      * void SendSideBandwidthEstimation::UpdateReceiverEstimate
      * This is the entry/update point for the estimated bitrate in the
      * REMBPacket or a Delay Based Controller estimated bitrate when the
@@ -61,6 +66,29 @@ public interface BandwidthEstimator
     interface Listener
     {
         void bandwidthEstimationChanged(long newValueBps);
+    }
+
+    /**
+     * Holds stats specific to the bandwidth estimator.
+     */
+    interface Statistics
+    {
+        /**
+         * @return the number of millis spent in the loss-degraded state.
+         */
+        long getLossDegradedMs();
+
+        /**
+         * @return the number of millis spent in the loss-limited state.
+         */
+        long getLossLimitedMs();
+
+        /**
+         * @return the number of millis spent in the loss-free state.
+         */
+        long getLossFreeMs();
+
+        void update(long nowMs);
     }
 }
 
