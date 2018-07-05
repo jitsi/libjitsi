@@ -719,6 +719,12 @@ class SendSideBandwidthEstimation
                                 currentStateCumulativeDurationMs)
                             .addField("consecutive_visits",
                                 currentStateConsecutiveVisits)
+                            .addField("bitrate_threshold",
+                                bitrate_threshold_bps_)
+                            .addField("low_loss_threshold",
+                                low_loss_threshold_)
+                            .addField("high_loss_threshold",
+                                high_loss_threshold_)
                             .addField("delta_bps",
                                 bitrate_ - currentStateStartBitrateBps));
                     }
