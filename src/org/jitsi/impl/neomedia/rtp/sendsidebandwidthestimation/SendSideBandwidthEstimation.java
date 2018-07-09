@@ -70,6 +70,14 @@ class SendSideBandwidthEstimation
         + ".lossExperimentProbability";
 
     /**
+     * The name of the property that specifies the probability of enabling the
+     * timeout experiment.
+     */
+    public final static String TIMEOUT_EXPERIMENT_PROBABILITY_PNAME
+        = SendSideBandwidthEstimation.class.getName()
+        + ".timeoutExperimentProbability";
+
+    /**
      * The ConfigurationService to get config values from.
      */
     private static final ConfigurationService
@@ -105,6 +113,14 @@ class SendSideBandwidthEstimation
      */
     private static final int kLimitNumPackets = 20;
 
+    // Expecting that RTCP feedback is sent uniformly within [0.5, 1.5]s
+    // intervals.
+    private static final long kFeedbackIntervalMs = 1500;
+
+    private static final long kFeedbackTimeoutIntervals = 3;
+
+    private static final long kTimeoutIntervalMs = 1000;
+
     /**
      * send_side_bandwidth_estimation.cc
      */
@@ -124,6 +140,11 @@ class SendSideBandwidthEstimation
      * Disable the loss experiment by default.
      */
     private static final float kDefaultLossExperimentProbability = 0;
+
+    /**
+     * Disable the timeout experiment by default.
+     */
+    private static final float kDefaultTimeoutExperimentProbability = 0;
 
     /**
      * The random number generator for all instances of this class.
@@ -190,7 +211,22 @@ class SendSideBandwidthEstimation
     /**
      * send_side_bandwidth_estimation.h
      */
-    private long time_last_receiver_block_ms_ = -1;
+    private long last_feedback_ms_ = -1;
+
+    /**
+     * send_side_bandwidth_estimation.h
+     */
+    private long last_packet_report_ms_ = -1;
+
+    /**
+     * send_side_bandwidth_estimation.h
+     */
+    private long last_timeout_ms_ = -1;
+
+    /**
+     * send_side_bandwidth_estimation.h
+     */
+    private final boolean in_timeout_experiment_;
 
     /**
      * send_side_bandwidth_estimation.h
@@ -265,6 +301,14 @@ class SendSideBandwidthEstimation
             bitrate_threshold_bps_ = 1000 * kDefaultBitrateThresholdKbps;
         }
 
+
+        float timeoutExperimentProbability = (float) cfg.getDouble(
+            TIMEOUT_EXPERIMENT_PROBABILITY_PNAME,
+            kDefaultTimeoutExperimentProbability);
+
+        in_timeout_experiment_
+            = kRandom.nextFloat() < timeoutExperimentProbability;
+
         setBitrate(startBitrate);
     }
 
@@ -315,10 +359,18 @@ class SendSideBandwidthEstimation
             return;
         }
         updateMinHistory(now);
-        // Only start updating bitrate when receiving receiver blocks.
-        // TODO(pbos): Handle the case when no receiver report is received for a very
-        // long time.
-        if (time_last_receiver_block_ms_ != -1)
+
+        if (last_packet_report_ms_ == -1)
+        {
+            // No feedback received.
+            bitrate_ = capBitrateToThresholds(bitrate_);
+            return;
+        }
+
+        long time_since_packet_report_ms = now - last_packet_report_ms_;
+        long time_since_feedback_ms = now - last_feedback_ms_;
+
+        if (time_since_packet_report_ms < 1.2 * kFeedbackIntervalMs)
         {
             // We only care about loss above a given bitrate threshold.
             float loss = last_fraction_loss_ / 256.0f;
@@ -376,6 +428,23 @@ class SendSideBandwidthEstimation
                 }
             }
         }
+        else if (time_since_feedback_ms >
+                     kFeedbackTimeoutIntervals * kFeedbackIntervalMs &&
+                 (last_timeout_ms_ == -1 ||
+                  now - last_timeout_ms_ > kTimeoutIntervalMs))
+        {
+            if (in_timeout_experiment_)
+            {
+                bitrate_ *= 0.8;
+                // Reset accumulators since we've already acted on missing
+                // feedback and shouldn't to act again on these old lost
+                // packets.
+                lost_packets_since_last_loss_update_Q8_ = 0;
+                expected_packets_since_last_loss_update_ = 0;
+                last_timeout_ms_ = now;
+            }
+        }
+
         setBitrate(capBitrateToThresholds(bitrate));
     }
 
@@ -385,6 +454,7 @@ class SendSideBandwidthEstimation
     synchronized void updateReceiverBlock(
             long fraction_lost, long number_of_packets, long now)
     {
+        last_feedback_ms_ = now;
         if (first_report_time_ms_ == -1)
         {
             first_report_time_ms_ = now;
@@ -411,10 +481,10 @@ class SendSideBandwidthEstimation
             // Reset accumulators.
             lost_packets_since_last_loss_update_Q8_ = 0;
             expected_packets_since_last_loss_update_ = 0;
-        }
 
-        time_last_receiver_block_ms_ = now;
-        updateEstimate(now);
+            last_packet_report_ms_ = now;
+            updateEstimate(now);
+        }
     }
 
     /**
