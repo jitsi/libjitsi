@@ -21,6 +21,7 @@ import org.jitsi.service.libjitsi.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.rtp.*;
+import org.jitsi.util.concurrent.*;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -36,7 +37,7 @@ import java.util.concurrent.*;
  */
 public class BandwidthEstimatorImpl
     extends RTCPReportAdapter
-    implements BandwidthEstimator
+    implements BandwidthEstimator, RecurringRunnable
 {
     /**
      * The system property name of the initial value of the estimation, in bits
@@ -225,5 +226,24 @@ public class BandwidthEstimatorImpl
     public SendSideBandwidthEstimation.StatisticsImpl getStatistics()
     {
         return sendSideBandwidthEstimation.getStatistics();
+    }
+
+    @Override
+    public long getTimeUntilNextRun()
+    {
+        long timeSinceLastProcess
+            = Math.max(System.currentTimeMillis() - lastUpdateTime, 0);
+
+        return Math.max(25 - timeSinceLastProcess, 0);
+    }
+
+    @Override
+    public void run()
+    {
+        synchronized (sendSideBandwidthEstimation)
+        {
+            lastUpdateTime = System.currentTimeMillis();
+            sendSideBandwidthEstimation.updateEstimate(lastUpdateTime);
+        }
     }
 }

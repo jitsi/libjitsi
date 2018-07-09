@@ -654,6 +654,12 @@ public class VideoMediaStreamImpl
                     cachingTransformer);
             }
 
+            if (bandwidthEstimator != null)
+            {
+                recurringRunnableExecutor
+                    .deRegisterRecurringRunnable(bandwidthEstimator);
+            }
+
             if (rtcpFeedbackTermination != null)
             {
                 recurringRunnableExecutor
@@ -1399,6 +1405,10 @@ public class VideoMediaStreamImpl
         if (bandwidthEstimator == null)
         {
             bandwidthEstimator = new BandwidthEstimatorImpl(this);
+
+            recurringRunnableExecutor
+                .registerRecurringRunnable(bandwidthEstimator);
+
             if (logger.isDebugEnabled())
             {
                 logger.debug(
