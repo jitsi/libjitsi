@@ -395,7 +395,7 @@ class SendSideBandwidthEstimation
                 // rates).
                 bitrate += 1000;
 
-                statistics.update(now, LossRegion.LossFree);
+                statistics.update(now, false, LossRegion.LossFree);
 
             }
             else if (bitrate_ > bitrate_threshold_bps_)
@@ -404,7 +404,7 @@ class SendSideBandwidthEstimation
                 {
                     // Loss between 2% - 10%: Do nothing.
 
-                    statistics.update(now, LossRegion.LossLimited);
+                    statistics.update(now, false, LossRegion.LossLimited);
                 }
                 else
                 {
@@ -423,25 +423,30 @@ class SendSideBandwidthEstimation
                             (bitrate * (512 - last_fraction_loss_)) / 512.0);
                         has_decreased_since_last_fraction_loss_ = true;
 
-                        statistics.update(now, LossRegion.LossDegraded);
+                        statistics.update(now, false, LossRegion.LossDegraded);
                     }
                 }
             }
         }
-        else if (time_since_feedback_ms >
-                     kFeedbackTimeoutIntervals * kFeedbackIntervalMs &&
-                 (last_timeout_ms_ == -1 ||
-                  now - last_timeout_ms_ > kTimeoutIntervalMs))
+        else
         {
-            if (in_timeout_experiment_)
+            statistics.update(now, true, null);
+
+            if (time_since_feedback_ms >
+                kFeedbackTimeoutIntervals * kFeedbackIntervalMs
+                && (last_timeout_ms_ == -1
+                || now - last_timeout_ms_ > kTimeoutIntervalMs))
             {
-                bitrate_ *= 0.8;
-                // Reset accumulators since we've already acted on missing
-                // feedback and shouldn't to act again on these old lost
-                // packets.
-                lost_packets_since_last_loss_update_Q8_ = 0;
-                expected_packets_since_last_loss_update_ = 0;
-                last_timeout_ms_ = now;
+                if (in_timeout_experiment_)
+                {
+                    bitrate_ *= 0.8;
+                    // Reset accumulators since we've already acted on missing
+                    // feedback and shouldn't to act again on these old lost
+                    // packets.
+                    lost_packets_since_last_loss_update_Q8_ = 0;
+                    expected_packets_since_last_loss_update_ = 0;
+                    last_timeout_ms_ = now;
+                }
             }
         }
 
@@ -704,6 +709,8 @@ class SendSideBandwidthEstimation
         private IntSummaryStatistics currentStateLossStatistics
             = new IntSummaryStatistics();
 
+        private boolean isDirty = false;
+
         /**
          * Computes the sum of the duration of the different states.
          */
@@ -717,7 +724,13 @@ class SendSideBandwidthEstimation
         {
             synchronized (SendSideBandwidthEstimation.this)
             {
-                update(nowMs, null);
+                long time_since_packet_report_ms
+                    = nowMs - last_packet_report_ms_;
+
+                boolean currentStateHasTimedOut
+                    = time_since_packet_report_ms < 1.2 * kFeedbackIntervalMs;
+
+                update(nowMs, currentStateHasTimedOut, null);
             }
         }
 
@@ -725,26 +738,35 @@ class SendSideBandwidthEstimation
          * Records a state transition and updates the statistics information.
          *
          * @param nowMs the time (in millis) of the transition.
+         * @param currentStateHasTimedOut true if the current state has timed
+         * out, i.e. we haven't received receiver reports "in a while".
          * @param nextState the that the bwe is transitioning to.
          */
-        void update(long nowMs, LossRegion nextState)
+        void update(
+            long nowMs, boolean currentStateHasTimedOut, LossRegion nextState)
         {
             synchronized (SendSideBandwidthEstimation.this)
             {
-                if (lastTransitionTimestampMs > -1)
+                if (lastTransitionTimestampMs > -1 && !currentStateHasTimedOut)
                 {
+                    isDirty = true;
                     currentStateCumulativeDurationMs
                         += nowMs - lastTransitionTimestampMs;
                 }
 
                 lastTransitionTimestampMs = nowMs;
-                currentStateLossStatistics.accept(last_fraction_loss_);
-                currentStateConsecutiveVisits++; // we start counting from 0.
-
-                if (this.currentState == nextState)
+                if (!currentStateHasTimedOut)
                 {
-                    currentStateBitrateStatistics.accept(bitrate_);
-                    return;
+                    isDirty = true;
+                    // If the current state has not timed out, then update the
+                    // stats that we gather.
+                    currentStateLossStatistics.accept(last_fraction_loss_);
+                    currentStateConsecutiveVisits++; // we start counting from 0.
+                    if (this.currentState == nextState)
+                    {
+                        currentStateBitrateStatistics.accept(bitrate_);
+                        return;
+                    }
                 }
 
                 if (this.currentState != null)
@@ -801,10 +823,17 @@ class SendSideBandwidthEstimation
                 }
 
                 currentState = nextState;
-                currentStateLossStatistics = new IntSummaryStatistics();
-                currentStateConsecutiveVisits = 0;
-                currentStateCumulativeDurationMs = 0;
                 currentStateStartBitrateBps = bitrate_;
+
+                if (isDirty)
+                {
+                    currentStateLossStatistics = new IntSummaryStatistics();
+                    currentStateBitrateStatistics = new LongSummaryStatistics();
+                    currentStateConsecutiveVisits = 0;
+                    currentStateCumulativeDurationMs = 0;
+                    isDirty = false;
+                }
+
                 currentStateBitrateStatistics.accept(bitrate_);
             }
         }
