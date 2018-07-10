@@ -113,12 +113,27 @@ class SendSideBandwidthEstimation
      */
     private static final int kLimitNumPackets = 20;
 
-    // Expecting that RTCP feedback is sent uniformly within [0.5, 1.5]s
-    // intervals.
+    /**
+     * send_side_bandwidth_estimation.cc
+     *
+     * Expecting that RTCP feedback is sent uniformly within [0.5, 1.5]s
+     * intervals.
+     */
     private static final long kFeedbackIntervalMs = 1500;
 
+    /**
+     * send_side_bandwidth_estimation.cc
+     */
+    private static final double kPacketReportTimeoutIntervals = 1.2;
+
+    /**
+     * send_side_bandwidth_estimation.cc
+     */
     private static final long kFeedbackTimeoutIntervals = 3;
 
+    /**
+     * send_side_bandwidth_estimation.cc
+     */
     private static final long kTimeoutIntervalMs = 1000;
 
     /**
@@ -370,7 +385,8 @@ class SendSideBandwidthEstimation
         long time_since_packet_report_ms = now - last_packet_report_ms_;
         long time_since_feedback_ms = now - last_feedback_ms_;
 
-        if (time_since_packet_report_ms < 1.2 * kFeedbackIntervalMs)
+        if (time_since_packet_report_ms
+            < kPacketReportTimeoutIntervals * kFeedbackIntervalMs)
         {
             // We only care about loss above a given bitrate threshold.
             float loss = last_fraction_loss_ / 256.0f;
@@ -709,6 +725,11 @@ class SendSideBandwidthEstimation
         private IntSummaryStatistics currentStateLossStatistics
             = new IntSummaryStatistics();
 
+        /**
+         * True when the fields of this class have changed from their default
+         * value. The purpose is to avoid creating new IntSummaryStatistics and
+         * LongSummaryStatistics when it's not needed.
+         */
         private boolean isDirty = false;
 
         /**
@@ -727,8 +748,8 @@ class SendSideBandwidthEstimation
                 long time_since_packet_report_ms
                     = nowMs - last_packet_report_ms_;
 
-                boolean currentStateHasTimedOut
-                    = time_since_packet_report_ms < 1.2 * kFeedbackIntervalMs;
+                boolean currentStateHasTimedOut = time_since_packet_report_ms
+                    < kPacketReportTimeoutIntervals * kFeedbackIntervalMs;
 
                 update(nowMs, currentStateHasTimedOut, null);
             }
