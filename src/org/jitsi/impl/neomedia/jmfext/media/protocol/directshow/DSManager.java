@@ -69,7 +69,7 @@ public class DSManager
     /**
      * Native pointer.
      */
-    private final long ptr;
+    private long ptr;
 
     /**
      * Constructor.
@@ -110,6 +110,30 @@ public class DSManager
                 captureDevices = EMPTY_DEVICES;
         }
         return captureDevices;
+    }
+
+    public void invalidate()
+    {
+        dispose();
+        ptr = init();
+        if (ptr == 0)
+            throw new IllegalStateException("ptr");
+
+        if (captureDevices != null)
+        {
+            long ptrs[] = getCaptureDevices(ptr);
+
+            if ((ptrs != null) && (ptrs.length != 0))
+            {
+                for (int i = 0 ; i < ptrs.length ; i++)
+                {
+                    DSCaptureDevice device = captureDevices[i];
+                    device.setNativePointer(ptrs[i]);
+                }
+            }
+            else
+                captureDevices = EMPTY_DEVICES;
+        }
     }
 
     /**

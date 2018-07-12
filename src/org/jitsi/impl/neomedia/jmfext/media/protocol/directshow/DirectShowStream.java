@@ -117,6 +117,8 @@ public class DirectShowStream
      */
     private long dataTimeStamp;
 
+    private DataSource dataSource;
+
     /**
      * Delegate class to handle video data.
      */
@@ -193,6 +195,7 @@ public class DirectShowStream
     DirectShowStream(DataSource dataSource, FormatControl formatControl)
     {
         super(dataSource, formatControl);
+        this.dataSource = dataSource;
     }
 
     /**
@@ -692,6 +695,9 @@ public class DirectShowStream
 
         try
         {
+            dataSource.invalidate();
+            device.connect();
+            connect();
             setDeviceFormat(getFormat());
 
             if(!automaticallyDropsLateVideoFrames)

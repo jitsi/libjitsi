@@ -135,6 +135,14 @@ public class DataSource
         super(locator);
     }
 
+    public void invalidate()
+    {
+        if (manager != null)
+        {
+            manager.invalidate();
+        }
+    }
+
     /**
      * Creates a new <tt>FrameRateControl</tt> instance which is to allow the
      * getting and setting of the frame rate of this
