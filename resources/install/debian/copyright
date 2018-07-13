@@ -1,11 +1,11 @@
-Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: libjitsi
 Upstream-Contact: Emil Ivov <emcho@jitsi.org>
 Source: http://www.jitsi.org/libjitsi
 
 Files: *
 Copyright:
- 2004-2012 Emil Ivov
+ 2004-2018 Emil Ivov
 License: Apache-2.0
 
 Files: lib/src/fmj/*
