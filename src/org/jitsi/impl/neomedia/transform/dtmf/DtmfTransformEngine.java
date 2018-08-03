@@ -16,6 +16,7 @@
 package org.jitsi.impl.neomedia.transform.dtmf;
 
 import java.util.*;
+import java.util.concurrent.*;
 
 import javax.media.*;
 
@@ -26,6 +27,7 @@ import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.format.*;
 import org.jitsi.utils.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * The class is responsible for sending DTMF tones in an RTP audio stream as
@@ -39,6 +41,13 @@ public class DtmfTransformEngine
     extends SinglePacketTransformer
     implements TransformEngine
 {
+    /**
+     * The <tt>Logger</tt> used by the <tt>DtmfTransformEngine</tt> class and
+     * its instances for logging output.
+     */
+    private static final Logger logger
+        = Logger.getLogger(DtmfTransformEngine.class);
+
     /**
      * The <tt>AudioMediaStreamImpl</tt> that this transform engine was created
      * by and that it's going to deliver DTMF packets for.
@@ -501,10 +510,11 @@ public class DtmfTransformEngine
     }
 
     /**
-     * A simple thread that waits for new tones to be reported from incoming
-     * RTP packets and then delivers them to the <tt>AudioMediaStream</tt>
-     * associated with this engine. The reason we need to do this in a separate
-     * thread is of course the time sensitive nature of incoming RTP packets.
+     * A simple thread that waits for new tone events to be reported from
+     * incoming RTP packets and then delivers them as start / end events to the
+     * <tt>AudioMediaStream</tt> associated with this engine.
+     * The reason we need to do this in a separate thread is of course the
+     * time sensitive nature of incoming RTP packets.
      */
     private class DTMFDispatcher
         implements Runnable
@@ -512,61 +522,96 @@ public class DtmfTransformEngine
         /** Indicates whether this thread is supposed to be running */
         private boolean isRunning = false;
 
-        /** The tone that we last received from the reverseTransform thread*/
-        private DTMFRtpTone lastReceivedTone = null;
-
-        /** The tone that we last received from the reverseTransform thread*/
+        /** The tone that we last reported to the listener */
         private DTMFRtpTone lastReportedTone = null;
 
         /**
-         * Have we received end of the currently started tone.
+         * Timestamp the last reported tone start; used to identify starts
+         * when the marker bit is lost
          */
-        private boolean toEnd = false;
+        private long lastReportedStart = 0;
+
+        /** Timestamp the last reported tone end; used to prevent duplicates */
+        private long lastReportedEnd = 0;
 
         /**
-         * Waits for new tone to be reported via the <tt>addTonePacket()</tt>
-         * method and then delivers them to the <tt>AudioMediaStream</tt> that
-         * we are associated with.
+         * The maximum number of DTMF events that are queued for processing
+         */
+        private int QUEUE_SIZE = 100;
+
+        /**
+         * The queue of <tt>DtmfRawPacket</tt>s pending processing
+         */
+        private final LinkedBlockingQueue<DtmfRawPacket> queue
+            = new LinkedBlockingQueue<>(QUEUE_SIZE);
+
+        /**
+         * Waits for new tone events to be reported via the
+         * <tt>addTonePacket()</tt> method and delivers them as start / end
+         * events to the <tt>AudioMediaStream</tt> that we are associated with.
          */
         public void run()
         {
             isRunning = true;
 
-            DTMFRtpTone temp = null;
-
             while(isRunning)
             {
-                synchronized(this)
-                {
-                    if(lastReceivedTone == null)
-                    {
-                        try
-                        {
-                            wait();
-                        }
-                        catch (InterruptedException ie) {}
-                    }
+                DtmfRawPacket pkt;
+                DTMFRtpTone tone;
 
-                    temp = lastReceivedTone;
-                    // make lastReportedLevels to null
-                    // so we will wait for the next tone on next iteration
-                    lastReceivedTone = null;
+                try
+                {
+                    pkt = queue.poll(500, TimeUnit.MILLISECONDS);
+                }
+                catch (InterruptedException iex)
+                {
+                    continue;
                 }
 
-                if(temp != null
-                    && ((lastReportedTone == null && !toEnd)
-                        || (lastReportedTone != null && toEnd)))
+                // The current thread has potentially waited.
+                if (!isRunning)
                 {
-                    //now notify our listener
-                    if (mediaStream != null)
-                    {
-                        mediaStream.fireDTMFEvent(temp, toEnd);
-                        if(toEnd)
-                            lastReportedTone = null;
-                        else
-                            lastReportedTone = temp;
-                        toEnd = false;
-                    }
+                    break;
+                }
+
+                if (pkt == null)
+                {
+                    continue;
+                }
+
+                tone = getToneFromPacket(pkt);
+
+                /*
+                 * Detect DTMF tone start by looking for new tones
+                 * It doesn't make sense to look at the 'marked' flag as those
+                 * packets may be re-sent multiple times if they also contain
+                 * the 'end' bit.
+                 */
+                if (lastReportedTone == null
+                    && pkt.getTimestamp() != lastReportedStart)
+                {
+                    logger.info("Delivering DTMF tone start: " +
+                        tone.getValue());
+                    // now notify our listener
+                    mediaStream.fireDTMFEvent(tone, false);
+                    lastReportedStart = pkt.getTimestamp();
+                    lastReportedTone = tone;
+                }
+
+                /*
+                 * Detect DTMF tone end via the explicit 'end' flag.
+                 * End packets are repeated for redundancy. To filter out
+                 * duplicates, we track them by their timestamp.
+                 * Start and end may be present in the same packet, typically
+                 * for durations below 120 ms.
+                 */
+                if (pkt.isEnd() && pkt.getTimestamp() != lastReportedEnd
+                    && tone == lastReportedTone) {
+                    logger.info("Delivering DTMF tone end: " + tone.getValue());
+                    // now notify our listener
+                    mediaStream.fireDTMFEvent(tone, true);
+                    lastReportedEnd = pkt.getTimestamp();
+                    lastReportedTone = null;
                 }
             }
         }
@@ -579,13 +624,7 @@ public class DtmfTransformEngine
          */
         public void addTonePacket(DtmfRawPacket p)
         {
-            synchronized(this)
-            {
-                this.lastReceivedTone = getToneFromPacket(p);
-                this.toEnd = p.isEnd();
-
-                notifyAll();
-            }
+            queue.offer(p);
         }
 
         /**
@@ -594,13 +633,8 @@ public class DtmfTransformEngine
          */
         public void stop()
         {
-            synchronized(this)
-            {
-                this.lastReceivedTone = null;
-                isRunning = false;
-
-                notifyAll();
-            }
+            isRunning = false;
+            queue.clear();
         }
 
         /**
