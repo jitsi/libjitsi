@@ -18,6 +18,8 @@ package org.jitsi.util.function;
 import net.sf.fmj.media.rtp.*;
 import org.jitsi.service.neomedia.*;
 
+import java.util.function.*;
+
 /**
  * A <tt>Function</tt> that produces <tt>RawPacket</tt>s from
  * <tt>RTCPCompoundPacket</tt>s.
@@ -25,7 +27,7 @@ import org.jitsi.service.neomedia.*;
  * @author George Politis
  */
 public class RTCPGenerator
-    extends AbstractFunction<RTCPCompoundPacket, RawPacket>
+    implements Function<RTCPCompoundPacket, RawPacket>
 {
     @Override
     public RawPacket apply(RTCPCompoundPacket in)

@@ -15,11 +15,13 @@
  */
 package org.jitsi.util.function;
 
+import java.util.function.*;
+
 /**
  * @author George Politis
  */
 public class SeqNumTranslation
-    extends AbstractFunction<Integer, Integer>
+    implements Function<Integer, Integer>
 {
     /**
      * The delta to apply to the sequence number that is specified as an

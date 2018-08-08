@@ -18,11 +18,13 @@ package org.jitsi.util.function;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.service.neomedia.*;
 
+import java.util.function.*;
+
 /**
  * @author George Politis
  */
 public class SeqNumPacketTranslation<T extends ByteArrayBuffer>
-    extends AbstractFunction<T, T>
+    implements Function<T, T>
 {
     /**
      * The {@link SeqNumTranslation} to apply to the sequence number of the

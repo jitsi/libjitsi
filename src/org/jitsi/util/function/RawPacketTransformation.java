@@ -17,11 +17,13 @@ package org.jitsi.util.function;
 
 import org.jitsi.service.neomedia.*;
 
+import java.util.function.*;
+
 /**
  * @author George Politis
  */
 public abstract class RawPacketTransformation
-    extends AbstractFunction<RawPacket, RawPacket>
+    implements Function<RawPacket, RawPacket>
 {
     /**
      * An identity {@link RawPacketTransformation} that returns the original

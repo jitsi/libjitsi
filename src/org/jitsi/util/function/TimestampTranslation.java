@@ -15,11 +15,13 @@
  */
 package org.jitsi.util.function;
 
+import java.util.function.*;
+
 /**
  * @author George Politis
  */
 public class TimestampTranslation
-    extends AbstractFunction<Long, Long>
+    implements Function<Long, Long>
 {
     /**
      * The delta to apply to the timestamp that is specified as an argument in

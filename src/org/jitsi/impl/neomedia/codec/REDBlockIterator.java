@@ -16,9 +16,9 @@
 package org.jitsi.impl.neomedia.codec;
 
 import java.util.*;
+import java.util.function.*;
 
 import org.jitsi.util.*;
-import org.jitsi.util.function.*;
 
 /**
  * An <tt>Iterator</tt> that iterates RED blocks (primary and non-primary).
@@ -77,7 +77,7 @@ public class REDBlockIterator
      * otherwise.
      */
     public static REDBlock matchFirst(
-            Predicate<REDBlock>  predicate,
+            Predicate<REDBlock> predicate,
             byte[] buffer, int offset, int length)
     {
         if (isMultiBlock(buffer, offset, length))
