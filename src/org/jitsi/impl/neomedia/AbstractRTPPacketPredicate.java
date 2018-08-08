@@ -17,7 +17,8 @@ package org.jitsi.impl.neomedia;
 
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
-import org.jitsi.util.function.*;
+
+import java.util.function.*;
 
 /**
  * @author George Politis

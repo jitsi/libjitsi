@@ -20,7 +20,6 @@ import java.util.function.*;
 
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
-import org.jitsi.util.function.Predicate;
 
 /**
  * Extends the <tt>PacketTransformer</tt> interface with methods which allow

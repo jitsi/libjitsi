@@ -21,11 +21,13 @@ import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 
+import java.util.function.*;
+
 /**
  * @author George Politis
  */
 public class TimestampPacketTranslation<T extends ByteArrayBuffer>
-extends AbstractFunction<T, T>
+    implements Function<T, T>
 {
     /**
      * The {@link TimestampTranslation} to apply to the timestamp of the
