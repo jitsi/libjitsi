@@ -213,7 +213,7 @@ public class FailSafeTransactionImpl
 
         // once done, rename the partial file to the final copy
         if (!ptoF.renameTo(toF))
-            throw new IOException("Failed to rename " + ptoF.getName() + " to"
+            throw new IOException("Failed to rename " + ptoF.getName() + " to "
                                   + toF.getName());
     }
 }
