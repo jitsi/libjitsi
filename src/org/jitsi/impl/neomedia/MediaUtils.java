@@ -283,7 +283,11 @@ public class MediaUtils
                 logger.debug("H264 codec not found", t);
             }
         }
-        if (h264Enabled)
+
+        // register h264 media formats if codec is present or there is
+        // a property that forces enabling the formats (in case of videobridge)
+        if (h264Enabled
+            || cfg.getBoolean(MediaService.ENABLE_H264_FORMAT_PNAME, false))
         {
             Map<String, String> h264FormatParams = new HashMap<>();
             String packetizationMode
