@@ -23,6 +23,7 @@ package org.jitsi.util.concurrent;
  *
  * @author Lyubomir Marinov
  * @author George Politis
+ * @author Boris Grozev
  */
 public abstract class PeriodicRunnableWithObject<T>
     extends PeriodicRunnable
@@ -39,15 +40,31 @@ public abstract class PeriodicRunnableWithObject<T>
      * @param o the {@code Object} associated with the new instance
      * @param period the interval/period in milliseconds at which
      * {@link #run()} is to be invoked
+     * @param invokeImmediately whether to invoke the runnable immediately or
+     * wait for one {@code period} before the first invocation.
      */
-    protected PeriodicRunnableWithObject(T o, long period)
+    protected PeriodicRunnableWithObject(
+        T o, long period, boolean invokeImmediately)
     {
-        super(period);
+        super(period, invokeImmediately);
 
         if (o == null)
             throw new NullPointerException("o");
 
         this.o = o;
+    }
+
+    /**
+     * Initializes a new {@code PeriodicRunnableWithObject} instance
+     * associated with a specific {@code Object}.
+     *
+     * @param o the {@code Object} associated with the new instance
+     * @param period the interval/period in milliseconds at which
+     * {@link #run()} is to be invoked
+     */
+    protected PeriodicRunnableWithObject(T o, long period)
+    {
+        this(o, period, false);
     }
 
     /**
