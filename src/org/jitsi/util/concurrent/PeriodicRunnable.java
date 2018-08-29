@@ -34,7 +34,7 @@ public abstract class PeriodicRunnable
      * The interval/period in milliseconds at which {@link #run} is to be
      * invoked.
      */
-    private final long _period;
+    private long _period;
 
     /**
      * Initializes a new {@code PeriodicRunnable} instance which is to have
@@ -87,6 +87,16 @@ public abstract class PeriodicRunnable
     public final long getPeriod()
     {
         return _period;
+    }
+
+    /**
+     * Sets the period in milliseconds at which {@link #run} is to be invoked.
+     * Note that the change may not take effect immediately.
+     * @param period the period to set.
+     */
+    public void setPeriod(long period)
+    {
+        _period = period;
     }
 
     /**
