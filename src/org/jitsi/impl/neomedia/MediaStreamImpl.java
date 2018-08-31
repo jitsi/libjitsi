@@ -3727,11 +3727,12 @@ public class MediaStreamImpl
     {
         try
         {
-            if (pkt == null)
+            if (pkt == null || pkt.getBuffer() == null)
             {
                 // It's a waste of time to invoke the method with a null pkt so
                 // disallow it.
-                throw new NullPointerException("pkt");
+                throw new NullPointerException(
+                    pkt == null ? "pkt" : "pkt.getBuffer()");
             }
 
             AbstractRTPConnector rtpConnector = getRTPConnector();
