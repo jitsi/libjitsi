@@ -424,8 +424,10 @@ public class RtxTransformer
     private RawPacketCache getCache()
     {
         MediaStreamImpl stream = this.mediaStream;
-        return stream != null
-            ? stream.getCachingTransformer().getOutgoingRawPacketCache() : null;
+        CachingTransformer cachingTransformer
+            = stream != null ? stream.getCachingTransformer() : null;
+        return cachingTransformer != null
+            ? cachingTransformer.getOutgoingRawPacketCache() : null;
     }
 
     /**
