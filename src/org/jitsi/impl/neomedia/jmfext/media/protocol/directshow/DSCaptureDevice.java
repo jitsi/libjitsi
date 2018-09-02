@@ -61,7 +61,7 @@ public class DSCaptureDevice
      * This pointer is hold and will be released by <tt>DSManager</tt>
      * singleton.
      */
-    private final long ptr;
+    private long ptr;
 
     /**
      * Constructor.
@@ -213,6 +213,11 @@ public class DSCaptureDevice
     public int stop()
     {
         return stop(ptr);
+    }
+
+    public void setNativePointer(long ptr)
+    {
+        this.ptr = ptr;
     }
 
     private native int stop(long ptr);
