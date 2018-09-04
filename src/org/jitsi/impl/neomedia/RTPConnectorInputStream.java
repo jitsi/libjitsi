@@ -352,7 +352,7 @@ public abstract class RTPConnectorInputStream<T>
     public synchronized void close()
     {
         closed = true;
-        if(socket != null)
+        if (socket != null)
         {
             /*
              * The classes DatagramSocket and Socket implement the interface
@@ -744,6 +744,17 @@ public abstract class RTPConnectorInputStream<T>
             try
             {
                 receive(p);
+            }
+            catch (SocketTimeoutException ste)
+            {
+                // We need to handle these, because some of our implementations
+                // of DatagramSocket#receive are unable to throw a SocketClosed
+                // exception.
+                if (logger.isDebugEnabled())
+                {
+                    logger.debug("Socket timeout, closed=" + closed);
+                }
+                continue;
             }
             catch (IOException e)
             {
