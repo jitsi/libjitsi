@@ -557,14 +557,8 @@ public abstract class RTPConnectorInputStream<T>
             if ((socket != null) && !closed && (transferHandler != null))
             {
                 receiveThread
-                    = new Thread()
-                    {
-                        @Override
-                        public void run()
-                        {
-                            RTPConnectorInputStream.this.runInReceiveThread();
-                        }
-                    };
+                    = new Thread(
+                        RTPConnectorInputStream.this::runInReceiveThread);
                 receiveThread.setDaemon(true);
                 receiveThread.setName(
                         RTPConnectorInputStream.class.getName()
