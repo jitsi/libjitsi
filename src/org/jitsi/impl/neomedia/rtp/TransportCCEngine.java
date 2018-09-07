@@ -170,7 +170,7 @@ public class TransportCCEngine
     /**
      * Ctor.
      *
-     * @param diagnosicContext the {@link DiagnosticContext} of this instance.
+     * @param diagnosticContext the {@link DiagnosticContext} of this instance.
      */
     public TransportCCEngine(@NotNull DiagnosticContext diagnosticContext)
     {
