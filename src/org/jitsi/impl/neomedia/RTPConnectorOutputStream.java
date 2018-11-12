@@ -19,11 +19,9 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.locks.*;
 
 import javax.media.rtp.*;
 
-import net.sf.fmj.media.util.*;
 import org.ice4j.util.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
@@ -47,6 +45,15 @@ public abstract class RTPConnectorOutputStream
      */
     private static final Logger logger
         = Logger.getLogger(RTPConnectorOutputStream.class);
+
+    /**
+     * Shared ExecutorService to process items put into {@link Queue}.
+     * By default configure it with twice as many threads as CPU cores available
+     * because operations executed in pool currently does blocking I/O.
+     */
+    private static final ExecutorService sharedExecutor
+        = Executors.newWorkStealingPool(
+            2 * Runtime.getRuntime().availableProcessors());
 
     /**
      * The maximum number of packets to be sent to be kept in the queue of
@@ -206,12 +213,6 @@ public abstract class RTPConnectorOutputStream
      * number of its targets.
      */
     private long numberOfPackets = 0;
-
-    /**
-     * The number of packets dropped because a packet was inserted while
-     * {@link #queue} was full.
-     */
-    private int numDroppedPackets = 0;
 
     /**
      * The {@code PacketLoggingService} instance (to be) utilized by this
@@ -726,30 +727,21 @@ public abstract class RTPConnectorOutputStream
     private class Queue
     {
         /**
-         * The {@link java.util.Queue} which holds {@link Buffer}s to be
-         * processed by {@link #sendThread}.
+         * Queue implementation which holds {@link Buffer}s which need to
+         * be split into packets and then sent
          */
-        final ArrayBlockingQueue<Buffer> queue
-            = new ArrayBlockingQueue<>(PACKET_QUEUE_CAPACITY);
-
-        /**
-         * A pool of {@link
-         * org.jitsi.impl.neomedia.RTPConnectorOutputStream.Queue.Buffer}
-         * instances.
-         */
-        final ArrayBlockingQueue<Buffer> pool
-            = new ArrayBlockingQueue<>(15);
+        private final BufferQueue bufferQueue;
 
         /**
          * The maximum number of {@link Buffer}s to be processed by {@link
-         * #sendThread} per {@link #perNanos} nanoseconds.
+         * #bufferQueue} per {@link #perNanos} nanoseconds.
          */
         int maxBuffers = -1;
 
         /**
          * The time interval in nanoseconds during which no more than {@link
          * #maxBuffers} {@link Buffer}s are to be processed by {@link
-         * #sendThread}.
+         * #bufferQueue}.
          */
         long perNanos = -1;
 
@@ -766,208 +758,16 @@ public abstract class RTPConnectorOutputStream
         long intervalStartTimeNanos = 0;
 
         /**
-         * The {@link Thread} which is to read {@link Buffer}s from this
-         * {@link Queue} and send them to this {@link
-         * RTPConnectorOutputStream}'s targets.
-         */
-        final Thread sendThread;
-
-        /**
-         * The instance optionally used to gather and print statistics about
-         * this queue.
-         */
-        QueueStatistics queueStats = null;
-
-        /**
          * Initializes a new {@link Queue} instance and starts its send thread.
          */
         private Queue()
         {
-            if (logger.isTraceEnabled())
-            {
-                queueStats = new QueueStatistics(
-                    getClass().getSimpleName() + "-" + hashCode());
-            }
-
-            sendThread
-                = new Thread()
-            {
-                @Override
-                public void run()
-                {
-                    runInSendThread();
-                }
-            };
-            sendThread.setDaemon(true);
-            sendThread.setName(Queue.class.getName() + ".sendThread");
-
-            RTPConnectorInputStream.setThreadPriority(
-                    sendThread,
-                    MediaThread.getNetworkPriority());
-
-            sendThread.start();
-        }
-
-        /**
-         * Adds the given buffer (and its context) to this queue.
-         * @param buf
-         * @param off
-         * @param len
-         * @param context
-         */
-        private void write(byte[] buf, int off, int len, Object context)
-        {
-            if (closed)
-                return;
-
-            Buffer buffer = getBuffer(len);
-            System.arraycopy(buf, off, buffer.buf, 0, len);
-            buffer.len = len;
-            buffer.context = context;
-
-            long now = System.currentTimeMillis();
-            if (queue.size() >= PACKET_QUEUE_CAPACITY)
-            {
-                // Drop from the head of the queue.
-                Buffer b = queue.poll();
-                if (b != null)
-                {
-                    if (queueStats != null)
-                    {
-                        queueStats.remove(now);
-                    }
-                    pool.offer(b);
-                    numDroppedPackets++;
-                    if (logDroppedPacket(numDroppedPackets))
-                    {
-                        logger.warn(
-                                "Packets dropped (hashCode=" + hashCode() + "): "
-                                        + numDroppedPackets);
-                    }
-                }
-            }
-
-            if (queue.offer(buffer) && queueStats != null)
-            {
-                queueStats.add(now);
-            }
-        }
-
-        /**
-         * Reads {@link Buffer}s from {@link #queue}, "packetizes" them through
-         * {@link RTPConnectorOutputStream#packetize(byte[], int, int, Object)}
-         * and sends the resulting packets to this
-         * {@link RTPConnectorOutputStream}'s targets.
-         *
-         * If a pacing policy is configured, makes sure that it is respected.
-         * Note that this pacing is done on the basis of the number of
-         * {@link Buffer}s read from the queue, which technically could be
-         * different than the number of {@link RawPacket}s sent. This is done
-         * in order to keep the implementation simpler, and because in the
-         * majority of the cases (and in all current cases where pacing is
-         * enabled) the numbers do match.
-         */
-        private void runInSendThread()
-        {
-            if (!Thread.currentThread().equals(sendThread))
-            {
-                logger.warn(
-                        "runInSendThread executing in the wrong thread: "
-                                + Thread.currentThread().getName(),
-                        new Throwable());
-                return;
-            }
-
-            try
-            {
-                while (!closed)
-                {
-                    Buffer buffer;
-                    try
-                    {
-                        buffer = queue.poll(500, TimeUnit.MILLISECONDS);
-                    }
-                    catch (InterruptedException iex)
-                    {
-                        continue;
-                    }
-
-                    // The current thread has potentially waited.
-                    if (closed)
-                    {
-                        break;
-                    }
-
-                    if (buffer == null)
-                    {
-                        continue;
-                    }
-
-                    if (queueStats != null)
-                    {
-                        queueStats.remove(System.currentTimeMillis());
-                    }
-
-                    RawPacket[] pkts;
-                    try
-                    {
-                        // We will sooner or later process the Buffer. Since this
-
-                        // may take a non-negligible amount of time, do it
-                        // before
-                        // taking pacing into account.
-                        pkts
-                            = packetize(
-                                buffer.buf, 0, buffer.len,
-                                buffer.context);
-                    }
-                    catch (Exception e)
-                    {
-                        // The sending thread must not die because of a failure
-                        // in the conversion to RawPacket[] or any of the
-                        // transformations (because of e.g. parsing errors).
-                        logger.error("Failed to handle an outgoing packet: ", e);
-                        continue;
-                    }
-                    finally
-                    {
-                        pool.offer(buffer);
-                    }
-
-                    if (perNanos > 0 && maxBuffers > 0)
-                    {
-                        long time = System.nanoTime();
-                        long nanosRemainingTime = time - intervalStartTimeNanos;
-
-                        if (nanosRemainingTime >= perNanos)
-                        {
-                            intervalStartTimeNanos = time;
-                            buffersProcessedInCurrentInterval = 0;
-                        }
-                        else if (buffersProcessedInCurrentInterval >= maxBuffers)
-                        {
-                            LockSupport.parkNanos(nanosRemainingTime);
-                        }
-                    }
-
-                    try
-                    {
-                        RTPConnectorOutputStream.this.write(pkts);
-                    }
-                    catch (Exception e)
-                    {
-                        logger.error("Failed to send a packet: ", e);
-                        continue;
-                    }
-
-                    buffersProcessedInCurrentInterval++;
-
-                }
-            }
-            finally
-            {
-                queue.clear();
-            }
+            bufferQueue = new BufferQueue(
+                PACKET_QUEUE_CAPACITY,
+                false,
+                logger.isTraceEnabled(),
+                Queue.class.getName() + ".sendQueue",
+                new Handler());
         }
 
         public void setMaxPacketsPerMillis(int maxPackets, long perMillis)
@@ -988,19 +788,9 @@ public abstract class RTPConnectorOutputStream
             }
         }
 
-        /**
-         * @return a free {@link Buffer} instance with a byte array with a
-         * length of at least {@code len}.
-         */
-        private Buffer getBuffer(int len)
+        public void write(byte[] buf, int off, int len, Object context)
         {
-            Buffer buffer = pool.poll();
-            if (buffer == null)
-                buffer = new Buffer();
-            if (buffer.buf == null || buffer.buf.length < len)
-                buffer.buf = new byte[len];
-
-            return buffer;
+            bufferQueue.add(buf, off, len, context);
         }
 
         private class Buffer
@@ -1009,6 +799,159 @@ public abstract class RTPConnectorOutputStream
             int len;
             Object context;
             private Buffer() {}
+        }
+
+        /**
+         * Reads {@link Buffer}s from {@link #queue}, "packetizes" them through
+         * {@link RTPConnectorOutputStream#packetize(byte[], int, int, Object)}
+         * and sends the resulting packets to this
+         * {@link RTPConnectorOutputStream}'s targets.
+         *
+         * If a pacing policy is configured, makes sure that it is respected.
+         * Note that this pacing is done on the basis of the number of
+         * {@link Buffer}s read from the queue, which technically could be
+         * different than the number of {@link RawPacket}s sent. This is done
+         * in order to keep the implementation simpler, and because in the
+         * majority of the cases (and in all current cases where pacing is
+         * enabled) the numbers do match.
+         */
+        private final class Handler implements PacketQueue.PacketHandler<Buffer> {
+            @Override
+            public boolean handlePacket(Buffer buffer)
+            {
+                RawPacket[] pkts;
+                try
+                {
+                    // We will sooner or later process the Buffer. Since this
+
+                    // may take a non-negligible amount of time, do it
+                    // before
+                    // taking pacing into account.
+                    pkts
+                        = packetize(
+                            buffer.buf, 0, buffer.len,
+                            buffer.context);
+                }
+                catch (Exception e)
+                {
+                    // The sending thread must not die because of a failure
+                    // in the conversion to RawPacket[] or any of the
+                    // transformations (because of e.g. parsing errors).
+                    logger.error("Failed to handle an outgoing packet: ", e);
+                    return false;
+                }
+
+                try
+                {
+                    return RTPConnectorOutputStream.this.write(pkts);
+                }
+                catch (Exception e)
+                {
+                    logger.error("Failed to send a packet: ", e);
+                    return false;
+                }
+            }
+        }
+
+        /**
+         * An implementation of <tt>PacketQueue</tt> to work with {@link Buffer}
+         * objects
+         */
+        private final class BufferQueue extends PacketQueue<Buffer> {
+            /**
+             * A pool of {@link
+             * org.jitsi.impl.neomedia.RTPConnectorOutputStream.Queue.Buffer}
+             * instances.
+             */
+            private final ArrayBlockingQueue<Buffer> pool
+                = new ArrayBlockingQueue<>(15);
+
+            /**
+             * {@inheritDoc}
+             */
+            BufferQueue(
+                int capacity,
+                boolean copy,
+                boolean enableStatistics,
+                String id,
+                PacketQueue.PacketHandler<Buffer> handler)
+            {
+                super(capacity, copy, enableStatistics, id, handler,
+                    sharedExecutor);
+            }
+
+            /**
+             * {@inheritDoc}
+             */
+            @Override
+            public byte[] getBuffer(Buffer buffer)
+            {
+                return buffer == null ? null : buffer.buf;
+            }
+
+            /**
+             * {@inheritDoc}
+             */
+            @Override
+            public int getOffset(Buffer buffer)
+            {
+                return 0;
+            }
+
+            /**
+             * {@inheritDoc}
+             */
+            @Override
+            public int getLength(Buffer buffer)
+            {
+                return buffer == null ? 0 : buffer.len;
+            }
+
+            /**
+             * {@inheritDoc}
+             */
+            @Override
+            public Object getContext(Buffer buffer)
+            {
+                return buffer == null ? 0 : buffer.context;
+            }
+
+            /**
+             * {@inheritDoc}
+             */
+            @Override
+            protected Buffer createPacket(byte[] buf, int off, int len, Object context)
+            {
+                Buffer buffer = pool.poll();
+                if (buffer == null)
+                {
+                    buffer = new Buffer();
+                }
+
+                if (buffer.buf == null || buffer.buf.length < len)
+                {
+                    buffer.buf = new byte[len];
+                }
+                System.arraycopy(buf, off, buffer.buf, 0, len);
+                buffer.len = len;
+                buffer.context = context;
+
+                return buffer;
+            }
+
+            /**
+             * {@inheritDoc}
+             */
+            @Override
+            protected void releasePacket(Buffer buffer)
+            {
+                if (buffer != null)
+                {
+                    buffer.context = null;
+                    buffer.len = 0;
+                    pool.offer(buffer);
+                }
+            }
         }
     }
 }
