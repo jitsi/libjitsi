@@ -49,7 +49,7 @@ public class TimeSeriesLogger
     /**
      * Ctor.
      */
-    public TimeSeriesLogger(Logger logger)
+    private TimeSeriesLogger(Logger logger)
     {
         this.logger = logger;
     }
@@ -95,7 +95,7 @@ public class TimeSeriesLogger
      *
      * @param point the point to trace.
      */
-    public void trace(HashMap<String, Object> point)
+    public void trace(Map<String, Object> point)
     {
         logger.trace(new JSONObject(point).toJSONString());
     }
@@ -105,7 +105,7 @@ public class TimeSeriesLogger
      *
      * @param point the point to log.
      */
-    public void warn(HashMap<String, Object> point)
+    public void warn(Map<String, Object> point)
     {
         logger.warn(new JSONObject(point).toJSONString());
     }
@@ -115,7 +115,7 @@ public class TimeSeriesLogger
      *
      * @param point the point to log.
      */
-    public void info(HashMap<String, Object> point)
+    public void info(Map<String, Object> point)
     {
         logger.info(new JSONObject(point).toJSONString());
     }

@@ -69,7 +69,7 @@ public class DiagnosticContext
                 instant.getEpochSecond() + "." + instant.getNano());
     }
 
-    public class TimeSeriesPoint
+    public static class TimeSeriesPoint
         extends HashMap<String, Object>
     {
         TimeSeriesPoint(Map<String, Object> m)
