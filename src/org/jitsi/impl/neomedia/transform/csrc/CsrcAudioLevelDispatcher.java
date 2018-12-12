@@ -29,6 +29,7 @@ import org.jitsi.impl.neomedia.*;
  *
  * @author Emil Ivov
  * @author Lyubomir Marinov
+ * @author Yura Yaroshevich
  */
 public class CsrcAudioLevelDispatcher
 {
