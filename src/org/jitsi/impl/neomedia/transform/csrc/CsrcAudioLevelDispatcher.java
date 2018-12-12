@@ -18,6 +18,7 @@ package org.jitsi.impl.neomedia.transform.csrc;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 
+import org.ice4j.util.*;
 import org.jitsi.impl.neomedia.*;
 
 /**
@@ -36,7 +37,9 @@ public class CsrcAudioLevelDispatcher
      * audio level updates to <tt>AudioMediaStreamImpl</tt>
      */
     private static final ExecutorService threadPool
-        = ForkJoinPool.commonPool();
+        = ExecutorFactory.createFixedThreadPool(
+            Runtime.getRuntime().availableProcessors(),
+            CsrcAudioLevelDispatcher.class.getName() + "-");
 
     /**
      * The levels added to this instance (by the <tt>reverseTransform</tt>
