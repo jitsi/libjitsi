@@ -58,6 +58,13 @@ public class CsrcAudioLevelDispatcher
         = new AtomicReference<>();
 
     /**
+     * A cached instance of {@link #deliverAudioLevelsToMediaStream()} runnable
+     * to reduce allocations.
+     */
+    private final Runnable deliverRunnable
+        = () -> deliverAudioLevelsToMediaStream();
+
+    /**
      * Initializes a new <tt>CsrcAudioLevelDispatcher</tt> to dispatch events
      * to a specific <tt>AudioMediaStreamImpl</tt>.
      *
@@ -84,7 +91,7 @@ public class CsrcAudioLevelDispatcher
             this.levels.set(levels);
 
             // submit asynchronous delivery of audio levels update
-            threadPool.submit(this::deliverAudioLevelsToMediaStream);
+            threadPool.execute(deliverRunnable);
         }
     }
 
