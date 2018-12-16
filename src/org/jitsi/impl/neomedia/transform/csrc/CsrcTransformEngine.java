@@ -151,7 +151,7 @@ public class CsrcTransformEngine
     public void close()
     {
         if (csrcAudioLevelDispatcher != null)
-            csrcAudioLevelDispatcher.setMediaStream(null);
+            csrcAudioLevelDispatcher.close();
     }
 
     /**

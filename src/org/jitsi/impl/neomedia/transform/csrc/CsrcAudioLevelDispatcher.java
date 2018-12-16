@@ -54,8 +54,13 @@ public class CsrcAudioLevelDispatcher
      * If <tt>null</tt>, this event dispatcher is stopped. If non-<tt>null</tt>,
      * this event dispatcher is started.
      */
-    private final AtomicReference<AudioMediaStreamImpl> mediaStream
-        = new AtomicReference<>();
+    private final AudioMediaStreamImpl mediaStream;
+
+    /**
+     * Indicates that {@link CsrcAudioLevelDispatcher} should deliver updates
+     * of audio levels to {@link #mediaStream} on separate thread.
+     */
+    private final AtomicBoolean running = new AtomicBoolean(true);
 
     /**
      * A cached instance of {@link #deliverAudioLevelsToMediaStream()} runnable
@@ -73,7 +78,11 @@ public class CsrcAudioLevelDispatcher
      */
     public CsrcAudioLevelDispatcher(AudioMediaStreamImpl mediaStream)
     {
-        setMediaStream(mediaStream);
+        if (mediaStream == null)
+        {
+            throw new IllegalArgumentException("mediaStream is null");
+        }
+        this.mediaStream = mediaStream;
     }
 
     /**
@@ -86,34 +95,24 @@ public class CsrcAudioLevelDispatcher
      */
     public void addLevels(long[] levels, long rtpTime)
     {
-        if (mediaStream.get() != null)
+        if (!running.get())
         {
-            this.levels.set(levels);
-
-            // submit asynchronous delivery of audio levels update
-            threadPool.execute(deliverRunnable);
+            return;
         }
+
+        this.levels.set(levels);
+
+        // submit asynchronous delivery of audio levels update
+        threadPool.execute(deliverRunnable);
     }
 
     /**
-     * Updates associated instance of <tt>AudioMediaStreamImpl</tt> with
-     * current dispatcher
-     * @param mediaStream - new <tt>AudioMediaStreamImpl</tt> to associate
+     * Closes current {@link CsrcAudioLevelDispatcher} to prevent further
+     * audio level updates delivery to associated media stream.
      */
-    public void setMediaStream(AudioMediaStreamImpl mediaStream)
+    public void close()
     {
-        // Reset current media stream and obtain
-        AudioMediaStreamImpl oldStream
-            = this.mediaStream.getAndSet(mediaStream);
-
-        if (oldStream != mediaStream)
-        {
-            /*
-             * If the mediaStream changes, it is unlikely that the (audio)
-             * levels are associated with it.
-             */
-            this.levels.set(null);
-        }
+        running.set(false);
     }
 
     /**
@@ -121,14 +120,17 @@ public class CsrcAudioLevelDispatcher
      */
     private void deliverAudioLevelsToMediaStream()
     {
-        final AudioMediaStreamImpl stream = mediaStream.get();
+        if (!running.get())
+        {
+            return;
+        }
 
         // read and reset latest audio levels
         final long[] latestAudioLevels = levels.getAndSet(null);
 
-        if (stream != null && latestAudioLevels != null)
+        if (latestAudioLevels != null)
         {
-            stream.audioLevelsReceived(latestAudioLevels);
+            mediaStream.audioLevelsReceived(latestAudioLevels);
         }
     }
 }
