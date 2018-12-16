@@ -57,8 +57,8 @@ public class CsrcAudioLevelDispatcher
     private final AudioMediaStreamImpl mediaStream;
 
     /**
-     * Indicates that {@link CsrcAudioLevelDispatcher} should deliver updates
-     * of audio levels to {@link #mediaStream} on separate thread.
+     * Indicates that {@link CsrcAudioLevelDispatcher} should continue delivery
+     * of audio levels updates to {@link #mediaStream} on separate thread.
      */
     private final AtomicBoolean running = new AtomicBoolean(true);
 
