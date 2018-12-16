@@ -113,6 +113,7 @@ public class CsrcAudioLevelDispatcher
     public void close()
     {
         running.set(false);
+        levels.set(null);
     }
 
     /**
