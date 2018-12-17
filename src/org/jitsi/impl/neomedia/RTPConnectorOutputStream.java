@@ -853,18 +853,6 @@ public abstract class RTPConnectorOutputStream
             }
 
             @Override
-            public long maxPackets()
-            {
-                return maxBuffers;
-            }
-
-            @Override
-            public long perNanos()
-            {
-                return perNanos;
-            }
-
-            @Override
             public long maxSequentiallyProcessedPackets()
             {
                 return 20;
