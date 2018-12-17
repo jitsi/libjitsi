@@ -16,49 +16,58 @@
 package org.jitsi.impl.neomedia.transform.csrc;
 
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
 
+import org.ice4j.util.*;
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.util.*;
 
 /**
- * A simple thread that waits for new levels to be reported from incoming
- * RTP packets and then delivers them to the <tt>AudioMediaStream</tt>
- * associated with this engine. The reason we need to do this in a separate
- * thread is, of course, the time sensitive nature of incoming RTP packets.
+ * A simple dispatcher that handles new audio levels reported from incoming
+ * RTP packets and then asynchronously delivers them to associated
+ * <tt>AudioMediaStreamImpl</tt>. The asynchronous processing is necessary
+ * due to time sensitive nature of incoming RTP packets.
  *
  * @author Emil Ivov
  * @author Lyubomir Marinov
+ * @author Yura Yaroshevich
  */
 public class CsrcAudioLevelDispatcher
-    implements Runnable
 {
     /**
-     * The pool of <tt>Thread</tt>s which run
-     * <tt>CsrcAudioLevelDispatcher</tt>s.
+     * The executor service to asynchronously execute method which delivers
+     * audio level updates to <tt>AudioMediaStreamImpl</tt>
      */
     private static final ExecutorService threadPool
-        = ExecutorUtils.newCachedThreadPool(
-                true,
-                "CsrcAudioLevelDispatcher");
+        = ExecutorFactory.createFixedThreadPool(
+            Runtime.getRuntime().availableProcessors(),
+            CsrcAudioLevelDispatcher.class.getName() + "-");
 
     /**
      * The levels added to this instance (by the <tt>reverseTransform</tt>
      * method of a <tt>PacketTransformer</tt> implementation) last.
      */
-    private long[] levels;
+    private final AtomicReference<long[]> levels
+        = new AtomicReference<>();
 
     /**
      * The <tt>AudioMediaStreamImpl</tt> which listens to this event dispatcher.
      * If <tt>null</tt>, this event dispatcher is stopped. If non-<tt>null</tt>,
      * this event dispatcher is started.
      */
-    private AudioMediaStreamImpl mediaStream;
+    private final AudioMediaStreamImpl mediaStream;
 
     /**
-     * The indicator which determines whether this event dispatcher has been
-     * scheduled for execution by {@link #threadPool}.
+     * Indicates that {@link CsrcAudioLevelDispatcher} should continue delivery
+     * of audio levels updates to {@link #mediaStream} on separate thread.
      */
-    private boolean scheduled = false;
+    private final AtomicBoolean running = new AtomicBoolean(true);
+
+    /**
+     * A cached instance of {@link #deliverAudioLevelsToMediaStream()} runnable
+     * to reduce allocations.
+     */
+    private final Runnable deliverRunnable
+        = () -> deliverAudioLevelsToMediaStream();
 
     /**
      * Initializes a new <tt>CsrcAudioLevelDispatcher</tt> to dispatch events
@@ -69,7 +78,11 @@ public class CsrcAudioLevelDispatcher
      */
     public CsrcAudioLevelDispatcher(AudioMediaStreamImpl mediaStream)
     {
-        setMediaStream(mediaStream);
+        if (mediaStream == null)
+        {
+            throw new IllegalArgumentException("mediaStream is null");
+        }
+        this.mediaStream = mediaStream;
     }
 
     /**
@@ -82,91 +95,43 @@ public class CsrcAudioLevelDispatcher
      */
     public void addLevels(long[] levels, long rtpTime)
     {
-        synchronized(this)
+        if (!running.get())
         {
-            this.levels = levels;
-
-            if ((mediaStream != null) && !scheduled)
-            {
-                threadPool.execute(this);
-                scheduled = true;
-            }
-
-            notifyAll();
+            return;
         }
+
+        this.levels.set(levels);
+
+        // submit asynchronous delivery of audio levels update
+        threadPool.execute(deliverRunnable);
     }
 
     /**
-     * Waits for new levels to be reported via the <tt>addLevels()</tt> method
-     * and then delivers them to the <tt>AudioMediaStream</tt> that we are
-     * associated with.
+     * Closes current {@link CsrcAudioLevelDispatcher} to prevent further
+     * audio level updates delivery to associated media stream.
      */
-    @Override
-    public void run()
+    public void close()
     {
-        try
-        {
-            do
-            {
-                AudioMediaStreamImpl mediaStream;
-                long[] levels;
-
-                synchronized(this)
-                {
-                    // If the mediaStream is null, this instance is to stop.
-                    mediaStream = this.mediaStream;
-                    if (mediaStream == null)
-                    {
-                        scheduled = false;
-                        break;
-                    }
-
-                    if(this.levels == null)
-                    {
-                        try { wait(); } catch (InterruptedException ie) {}
-                        continue;
-                    }
-                    else
-                    {
-                        levels = this.levels;
-                        this.levels = null;
-                    }
-                }
-
-                if(levels != null)
-                    mediaStream.audioLevelsReceived(levels);
-            }
-            while (true);
-        }
-        finally
-        {
-            synchronized (this)
-            {
-                scheduled = false;
-            }
-        }
+        running.set(false);
+        levels.set(null);
     }
 
     /**
-     * Causes our run method to exit so that this thread would stop
-     * handling levels.
+     * Delivers last reported audio levels to associated {@link #mediaStream}
      */
-    public void setMediaStream(AudioMediaStreamImpl mediaStream)
+    private void deliverAudioLevelsToMediaStream()
     {
-        synchronized(this)
+        if (!running.get())
         {
-            if (this.mediaStream != mediaStream)
-            {
-                this.mediaStream = mediaStream;
+            return;
+        }
 
-                /*
-                 * If the mediaStream changes, it is unlikely that the (audio)
-                 * levels are associated with it.
-                 */
-                this.levels = null;
+        // read and reset latest audio levels
+        final long[] latestAudioLevels = levels.getAndSet(null);
 
-                notifyAll();
-            }
+        if (latestAudioLevels != null)
+        {
+            mediaStream.audioLevelsReceived(latestAudioLevels);
         }
     }
 }

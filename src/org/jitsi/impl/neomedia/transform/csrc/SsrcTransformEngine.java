@@ -140,7 +140,7 @@ public class SsrcTransformEngine
     public void close()
     {
         if (csrcAudioLevelDispatcher != null)
-            csrcAudioLevelDispatcher.setMediaStream(null);
+            csrcAudioLevelDispatcher.close();
     }
 
     /**
