@@ -16,6 +16,7 @@
 package org.jitsi.impl.neomedia.rtp.translator;
 
 import java.util.*;
+import java.util.concurrent.*;
 
 import javax.media.*;
 import javax.media.rtp.*;
@@ -41,8 +42,7 @@ import org.jitsi.util.Logger; // Disambiguation.
  * @author Boris Grozev
  */
 class OutputDataStreamImpl
-    implements OutputDataStream,
-               Runnable
+    implements OutputDataStream
 {
     /**
      * The <tt>Logger</tt> used by the <tt>OutputDataStreamImpl</tt> class and
@@ -59,6 +59,15 @@ class OutputDataStreamImpl
      */
     private static final String REMOVE_RTP_HEADER_EXTENSIONS_PNAME
         = RTPTranslatorImpl.class.getName() + ".removeRTPHeaderExtensions";
+
+    /**
+     * The {@link ExecutorService} which executes writing of
+     * {@link RTPTranslatorBuffer}s enqueued into {@link #writeQueue}
+     */
+    private static final ExecutorService writeExecutor
+        = ExecutorFactory.createFixedThreadPool(
+            Runtime.getRuntime().availableProcessors(),
+            OutputDataStreamImpl.class.getName() + "-");
 
     private static final int WRITE_Q_CAPACITY
         = RTPConnectorOutputStream.PACKET_QUEUE_CAPACITY;
@@ -96,22 +105,18 @@ class OutputDataStreamImpl
      */
     private final Object _streamsSyncRoot = new Object();
 
-    private final RTPTranslatorBuffer[] writeQ
-        = new RTPTranslatorBuffer[WRITE_Q_CAPACITY];
-
-    private int writeQHead;
-
-    private int writeQLength;
-
-    private final QueueStatistics writeQStats;
+    /**
+     * Queue which stores {@link RTPTranslatorBuffer}'s and perform asynchronous
+     * write of enqueued buffers.
+     */
+    private final RTPTranslatorBufferQueue writeQueue;
 
     /**
-     * The number of packets dropped because a packet was inserted while
-     * {@link #writeQ} was full.
+     * Pool of {@link RTPTranslatorBuffer} instances to reduce memory traffic.
      */
-    private int numDroppedPackets = 0;
+    private final ArrayBlockingQueue<RTPTranslatorBuffer> buffersPool
+        = new ArrayBlockingQueue<>(WRITE_Q_CAPACITY);
 
-    private Thread writeThread;
 
     public OutputDataStreamImpl(RTPConnectorImpl connector, boolean data)
     {
@@ -124,16 +129,31 @@ class OutputDataStreamImpl
                     REMOVE_RTP_HEADER_EXTENSIONS_PNAME,
                     false);
 
-        if (logger.isTraceEnabled())
-        {
-            writeQStats
-                = new QueueStatistics(
-                    getClass().getSimpleName() + "-" + hashCode());
-        }
-        else
-        {
-            writeQStats = null;
-        }
+        writeQueue = new RTPTranslatorBufferQueue(
+            new PacketQueue.PacketHandler<RTPTranslatorBuffer>()
+            {
+                @Override
+                public boolean handlePacket(RTPTranslatorBuffer pkt)
+                {
+                    try
+                    {
+                        doWrite(pkt.data, 0, pkt.length, pkt.format,
+                            pkt.exclusion);
+                        return true;
+                    }
+                    catch (Throwable e)
+                    {
+                        logger.error("Failed to translate RTP packet", e);
+                        return false;
+                    }
+                }
+
+                @Override
+                public long maxSequentiallyProcessedPackets()
+                {
+                    return 20;
+                }
+            });
     }
 
     /**
@@ -175,15 +195,7 @@ class OutputDataStreamImpl
     public synchronized void close()
     {
         closed = true;
-        writeThread = null;
-        notify();
-    }
-
-    private synchronized void createWriteThread()
-    {
-        writeThread = new Thread(this, getClass().getName());
-        writeThread.setDaemon(true);
-        writeThread.start();
+        writeQueue.close();
     }
 
     private int doWrite(
@@ -356,98 +368,6 @@ class OutputDataStreamImpl
                     i.remove();
             }
             _streams = newStreams;
-        }
-    }
-
-    @Override
-    public void run()
-    {
-        try
-        {
-            do
-            {
-                int writeIndex;
-                byte[] buffer;
-                StreamRTPManagerDesc exclusion;
-                Format format;
-                int length;
-
-                synchronized (this)
-                {
-                    if (closed || !Thread.currentThread().equals(writeThread))
-                        break;
-                    if (writeQLength < 1)
-                    {
-                        boolean interrupted = false;
-
-                        try
-                        {
-                            wait();
-                        }
-                        catch (InterruptedException ie)
-                        {
-                            interrupted = true;
-                        }
-                        if (interrupted)
-                            Thread.currentThread().interrupt();
-                        continue;
-                    }
-
-                    writeIndex = writeQHead;
-
-                    RTPTranslatorBuffer write = writeQ[writeIndex];
-
-                    buffer = write.data;
-                    write.data = null;
-                    exclusion = write.exclusion;
-                    write.exclusion = null;
-                    format = write.format;
-                    write.format = null;
-                    length = write.length;
-                    write.length = 0;
-
-                    writeQHead++;
-                    if (writeQHead >= writeQ.length)
-                        writeQHead = 0;
-                    writeQLength--;
-                    if (writeQStats != null)
-                    {
-                        writeQStats.remove(System.currentTimeMillis());
-                    }
-                }
-
-                try
-                {
-                    doWrite(buffer, 0, length, format, exclusion);
-                }
-                finally
-                {
-                    synchronized (this)
-                    {
-                        RTPTranslatorBuffer write = writeQ[writeIndex];
-
-                        if (write != null && write.data == null)
-                            write.data = buffer;
-                    }
-                }
-            }
-            while (true);
-        }
-        catch (Throwable t)
-        {
-            logger.error("Failed to translate RTP packet", t);
-            if (t instanceof ThreadDeath)
-                throw (ThreadDeath) t;
-        }
-        finally
-        {
-            synchronized (this)
-            {
-                if (Thread.currentThread().equals(writeThread))
-                    writeThread = null;
-                if (!closed && writeThread == null && writeQLength > 0)
-                    createWriteThread();
-            }
         }
     }
 
@@ -630,7 +550,7 @@ class OutputDataStreamImpl
         return doWrite(buf, off, len, /* format */ null, /* exclusion */ null);
     }
 
-    public synchronized void write(
+    public void write(
             byte[] buf, int off, int len,
             Format format,
             StreamRTPManagerDesc exclusion)
@@ -638,58 +558,23 @@ class OutputDataStreamImpl
         if (closed)
             return;
 
-        int writeIndex;
-
-        if (writeQLength < writeQ.length)
+        RTPTranslatorBuffer buffer = buffersPool.poll();
+        if (buffer == null)
         {
-            writeIndex = (writeQHead + writeQLength) % writeQ.length;
-        }
-        else
-        {
-            writeIndex = writeQHead;
-            writeQHead++;
-            if (writeQHead >= writeQ.length)
-                writeQHead = 0;
-            writeQLength--;
-            if (writeQStats != null)
-            {
-                writeQStats.remove(System.currentTimeMillis());
-            }
-
-            numDroppedPackets++;
-            if (RTPConnectorOutputStream.logDroppedPacket(numDroppedPackets))
-            {
-                logger.warn(
-                        "Dropped " + numDroppedPackets + " packets "
-                                + "hashCode=" + hashCode() + "): ");
-            }
+            buffer = new RTPTranslatorBuffer();
         }
 
-        RTPTranslatorBuffer write = writeQ[writeIndex];
-
-        if (write == null)
-            writeQ[writeIndex] = write = new RTPTranslatorBuffer();
-
-        byte[] data = write.data;
-
-        if (data == null || data.length < len)
-            write.data = data = new byte[len];
-        System.arraycopy(buf, off, data, 0, len);
-
-        write.exclusion = exclusion;
-        write.format = format;
-        write.length = len;
-
-        writeQLength++;
-        if (writeQStats != null)
+        if (buffer.data ==  null || buffer.data.length < len)
         {
-            writeQStats.add(System.currentTimeMillis());
+            buffer.data = new byte[len];
         }
 
-        if (writeThread == null)
-            createWriteThread();
-        else
-            notify();
+        System.arraycopy(buf, off, buffer.data, 0, len);
+        buffer.length = len;
+        buffer.exclusion = exclusion;
+        buffer.format = format;
+
+        writeQueue.add(buffer);
     }
 
     /**
@@ -721,5 +606,61 @@ class OutputDataStreamImpl
             }
         }
         return false;
+    }
+
+    /**
+     * Specialization of {@link PacketQueue} which asynchronously processes
+     * {@link RTPTranslatorBuffer} items on separate thread.
+     */
+    private final class RTPTranslatorBufferQueue
+        extends PacketQueue<RTPTranslatorBuffer> {
+
+        RTPTranslatorBufferQueue(
+            PacketHandler<RTPTranslatorBuffer> packetHandler)
+        {
+            super(WRITE_Q_CAPACITY, /*copy=*/ false, logger.isTraceEnabled(),
+                OutputDataStreamImpl.this.toString(), packetHandler,
+                writeExecutor);
+        }
+
+        @Override
+        public byte[] getBuffer(RTPTranslatorBuffer pkt)
+        {
+            throw new IllegalStateException("Not supported");
+        }
+
+        @Override
+        public int getOffset(RTPTranslatorBuffer pkt)
+        {
+            throw new IllegalStateException("Not supported");
+        }
+
+        @Override
+        public int getLength(RTPTranslatorBuffer pkt)
+        {
+            throw new IllegalStateException("Not supported");
+        }
+
+        @Override
+        public Object getContext(RTPTranslatorBuffer pkt)
+        {
+            throw new IllegalStateException("Not supported");
+        }
+
+        @Override
+        protected RTPTranslatorBuffer createPacket(
+            byte[] buf, int off, int len, Object context)
+        {
+            throw new IllegalStateException("Not supported");
+        }
+
+        @Override
+        protected void releasePacket(RTPTranslatorBuffer pkt)
+        {
+            pkt.format = null;
+            pkt.exclusion = null;
+            pkt.length = 0;
+            buffersPool.offer(pkt);
+        }
     }
 }
