@@ -537,16 +537,7 @@ public abstract class RTPConnectorOutputStream
      */
     public boolean setMaxPacketsPerMillis(int maxPackets, long perMillis)
     {
-        if (queue != null)
-        {
-            queue.setMaxPacketsPerMillis(maxPackets, perMillis);
-        }
-        else
-        {
-            logger.error("Cannot enable pacing: send thread disabled.");
-        }
-
-        return queue != null;
+        return false;
     }
 
     /**
@@ -733,31 +724,6 @@ public abstract class RTPConnectorOutputStream
         private final BufferQueue bufferQueue;
 
         /**
-         * The maximum number of {@link Buffer}s to be processed by {@link
-         * #bufferQueue} per {@link #perNanos} nanoseconds.
-         */
-        int maxBuffers = -1;
-
-        /**
-         * The time interval in nanoseconds during which no more than {@link
-         * #maxBuffers} {@link Buffer}s are to be processed by {@link
-         * #bufferQueue}.
-         */
-        long perNanos = -1;
-
-        /**
-         * The number of {@link Buffer}s already processed during the current
-         * <tt>perNanos</tt> interval.
-         */
-        long buffersProcessedInCurrentInterval = 0;
-
-        /**
-         * The time stamp in nanoseconds of the start of the current
-         * <tt>perNanos</tt> interval.
-         */
-        long intervalStartTimeNanos = 0;
-
-        /**
          * Initializes a new {@link Queue} instance and starts its send thread.
          */
         private Queue()
@@ -768,24 +734,6 @@ public abstract class RTPConnectorOutputStream
                 logger.isTraceEnabled(),
                 Queue.class.getName() + ".sendQueue",
                 new Handler());
-        }
-
-        public void setMaxPacketsPerMillis(int maxPackets, long perMillis)
-        {
-            if (maxPackets < 1)
-            {
-                // This doesn't make sense. Disable pacing.
-                this.maxBuffers = -1;
-                this.perNanos = -1;
-            }
-            else
-            {
-                if (perMillis < 1)
-                    throw new IllegalArgumentException("perMillis");
-
-                this.maxBuffers = maxPackets;
-                this.perNanos = perMillis * 1000000;
-            }
         }
 
         public void write(byte[] buf, int off, int len, Object context)
