@@ -17,6 +17,7 @@ package org.jitsi.impl.neomedia.rtp.translator;
 
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
 
 import javax.media.*;
 import javax.media.rtp.*;
@@ -72,7 +73,7 @@ class OutputDataStreamImpl
     private static final int WRITE_Q_CAPACITY
         = RTPConnectorOutputStream.PACKET_QUEUE_CAPACITY;
 
-    private boolean closed;
+    private final AtomicBoolean closed = new AtomicBoolean(false);
 
     private final RTPConnectorImpl connector;
 
@@ -192,9 +193,9 @@ class OutputDataStreamImpl
         }
     }
 
-    public synchronized void close()
+    public void close()
     {
-        closed = true;
+        closed.set(true);
         writeQueue.close();
     }
 
@@ -555,7 +556,7 @@ class OutputDataStreamImpl
             Format format,
             StreamRTPManagerDesc exclusion)
     {
-        if (closed)
+        if (closed.get())
             return;
 
         RTPTranslatorBuffer buffer = buffersPool.poll();
