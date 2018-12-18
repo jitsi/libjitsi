@@ -41,6 +41,7 @@ import org.jitsi.util.Logger; // Disambiguation.
  * @author Maryam Daneshi
  * @author George Politis
  * @author Boris Grozev
+ * @author Yura Yaroshevich
  */
 class OutputDataStreamImpl
     implements OutputDataStream
