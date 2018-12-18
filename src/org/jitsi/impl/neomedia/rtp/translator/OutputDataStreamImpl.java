@@ -66,13 +66,28 @@ class OutputDataStreamImpl
      * {@link RTPTranslatorBuffer}s enqueued into {@link #writeQueue}
      */
     private static final ExecutorService writeExecutor
-        = ExecutorFactory.createFixedThreadPool(
+        = ExecutorUtils.createForkJoinPool(
             Runtime.getRuntime().availableProcessors(),
             OutputDataStreamImpl.class.getName() + "-");
 
+    /**
+     * Maximum number of {@link RTPTranslatorBuffer} instances to store in
+     * the queue before dropping is started.
+     */
     private static final int WRITE_Q_CAPACITY
         = RTPConnectorOutputStream.PACKET_QUEUE_CAPACITY;
 
+    /**
+     * Maximum number of {@link RTPTranslatorBuffer} which are processed
+     * sequentially by {@link #writeQueue}, before releasing execution thread
+     * to give ability to other queues to process their items.
+     */
+    private static final int MAX_SEQUENTIALLY_HANDLED_BUFFERS = 20;
+
+    /**
+     * Indicates that {@link OutputDataStreamImpl} should stop writing
+     * enqueued {@link RTPTranslatorBuffer}s and accept new one.
+     */
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
     private final RTPConnectorImpl connector;
@@ -107,17 +122,47 @@ class OutputDataStreamImpl
     private final Object _streamsSyncRoot = new Object();
 
     /**
+     * Actual handler called by {@link #writeQueue} to perform writing
+     * {@link RTPTranslatorBuffer} data.
+     */
+    private final PacketQueue.PacketHandler<RTPTranslatorBuffer> handler
+        = new PacketQueue.PacketHandler<RTPTranslatorBuffer>()
+        {
+            @Override
+            public boolean handlePacket(RTPTranslatorBuffer pkt)
+            {
+                try
+                {
+                    doWrite(pkt.data, 0, pkt.length, pkt.format,
+                        pkt.exclusion);
+                    return true;
+                }
+                catch (Throwable e)
+                {
+                    logger.error("Failed to translate RTP packet", e);
+                    return false;
+                }
+            }
+
+            @Override
+            public long maxSequentiallyProcessedPackets()
+            {
+                return MAX_SEQUENTIALLY_HANDLED_BUFFERS;
+            }
+        };
+
+    /**
      * Queue which stores {@link RTPTranslatorBuffer}'s and perform asynchronous
      * write of enqueued buffers.
      */
-    private final RTPTranslatorBufferQueue writeQueue;
+    private final RTPTranslatorBufferQueue writeQueue
+        = new RTPTranslatorBufferQueue(handler);
 
     /**
      * Pool of {@link RTPTranslatorBuffer} instances to reduce memory traffic.
      */
     private final ArrayBlockingQueue<RTPTranslatorBuffer> buffersPool
         = new ArrayBlockingQueue<>(WRITE_Q_CAPACITY);
-
 
     public OutputDataStreamImpl(RTPConnectorImpl connector, boolean data)
     {
@@ -129,32 +174,6 @@ class OutputDataStreamImpl
                     LibJitsi.getConfigurationService(),
                     REMOVE_RTP_HEADER_EXTENSIONS_PNAME,
                     false);
-
-        writeQueue = new RTPTranslatorBufferQueue(
-            new PacketQueue.PacketHandler<RTPTranslatorBuffer>()
-            {
-                @Override
-                public boolean handlePacket(RTPTranslatorBuffer pkt)
-                {
-                    try
-                    {
-                        doWrite(pkt.data, 0, pkt.length, pkt.format,
-                            pkt.exclusion);
-                        return true;
-                    }
-                    catch (Throwable e)
-                    {
-                        logger.error("Failed to translate RTP packet", e);
-                        return false;
-                    }
-                }
-
-                @Override
-                public long maxSequentiallyProcessedPackets()
-                {
-                    return 20;
-                }
-            });
     }
 
     /**

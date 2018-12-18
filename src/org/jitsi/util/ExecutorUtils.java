@@ -82,4 +82,30 @@ public class ExecutorUtils
                         }
                     });
     }
+
+    /**
+     * Creates a {@link ForkJoinPool} with the given parameters.
+     *
+     * @param parallelism the parallelism level. For default value,
+     * use {@link java.lang.Runtime#availableProcessors}.
+     * @param baseName - the base/prefix to use for the names of the new threads
+     * or <tt>null</tt> to leave them with their default names
+     */
+    public static ForkJoinPool createForkJoinPool(
+        int parallelism, String baseName)
+    {
+        final ForkJoinPool.ForkJoinWorkerThreadFactory threadFactory = pool ->
+        {
+            final ForkJoinWorkerThread thread
+                = ForkJoinPool
+                    .defaultForkJoinWorkerThreadFactory
+                    .newThread(pool);
+            if (baseName != null && baseName.length() > 0)
+            {
+                thread.setName(baseName + "-" + thread.getName());
+            }
+            return thread;
+        };
+        return new ForkJoinPool(parallelism, threadFactory, null, false);
+    }
 }
