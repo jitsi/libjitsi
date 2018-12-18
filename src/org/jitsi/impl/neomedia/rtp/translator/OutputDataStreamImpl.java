@@ -68,7 +68,7 @@ class OutputDataStreamImpl
     private static final ExecutorService writeExecutor
         = ExecutorUtils.createForkJoinPool(
             Runtime.getRuntime().availableProcessors(),
-            OutputDataStreamImpl.class.getName() + "-");
+            OutputDataStreamImpl.class.getName());
 
     /**
      * Maximum number of {@link RTPTranslatorBuffer} instances to store in
