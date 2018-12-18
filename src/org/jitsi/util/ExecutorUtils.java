@@ -91,7 +91,7 @@ public class ExecutorUtils
      * @param baseName - the base/prefix to use for the names of the new threads
      * or <tt>null</tt> to leave them with their default names
      */
-    public static ForkJoinPool createForkJoinPool(
+    public static ForkJoinPool newForkJoinPool(
         int parallelism, String baseName)
     {
         final ForkJoinPool.ForkJoinWorkerThreadFactory threadFactory = pool ->

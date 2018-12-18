@@ -66,7 +66,7 @@ class OutputDataStreamImpl
      * {@link RTPTranslatorBuffer}s enqueued into {@link #writeQueue}
      */
     private static final ExecutorService writeExecutor
-        = ExecutorUtils.createForkJoinPool(
+        = ExecutorUtils.newForkJoinPool(
             Runtime.getRuntime().availableProcessors(),
             OutputDataStreamImpl.class.getName());
 
