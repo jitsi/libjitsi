@@ -187,11 +187,21 @@ public abstract class AbstractVersion
     @Override
     public boolean equals(Object version)
     {
-        //simply compare the version strings
-        return toString().equals( (version == null)
-            ? "null"
-            : version.toString());
+        if (version == null)
+        {
+            return false;
+        }
 
+        //simply compare the version strings
+        return toString().equals(version.toString());
+    }
+
+    /**
+     * @see java.lang.Object#hashCode()
+     */
+    @Override public int hashCode()
+    {
+        return toString().hashCode();
     }
 
     /**

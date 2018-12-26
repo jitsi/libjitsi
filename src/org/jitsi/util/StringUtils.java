@@ -49,16 +49,14 @@ public final class StringUtils
         if (camelCase == null)
             return null;
 
-        int camelCaseLength = camelCase.length();
-
-        if (camelCaseLength == 0)
+        if (camelCase.length() == 0)
             return camelCase;
 
         int wordEndIndex = 0;
         int wordBeginIndex = 0;
         StringBuilder display = new StringBuilder();
 
-        for (; wordEndIndex < camelCaseLength; wordEndIndex++)
+        for (; wordEndIndex < camelCase.length(); wordEndIndex++)
         {
             char ch = camelCase.charAt(wordEndIndex);
 
@@ -70,8 +68,8 @@ public final class StringUtils
                 wordBeginIndex = wordEndIndex;
             }
         }
-        if (wordEndIndex >= camelCaseLength)
-            display.append(camelCase.substring(wordBeginIndex));
+
+        display.append(camelCase.substring(wordBeginIndex));
         return display.toString();
     }
 

@@ -319,7 +319,7 @@ public class PortAudioSystem
                     if (loggerIsDebugEnabled)
                         logger.debug("Added capture device: " + name);
                 }
-                if (loggerIsDebugEnabled && (maxInputChannels > 0))
+                if (loggerIsDebugEnabled)
                 {
                     if (deviceIndex == defaultOutputDeviceIndex)
                         logger.debug("Added default playback device: " + name);

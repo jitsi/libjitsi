@@ -55,8 +55,6 @@ public class MacCoreaudioSystem
      * retrieved for the MacCoreaudio device with the specified device index as
      * an input device or <tt>false</tt> for an output device
      * @param deviceUID The device identifier.
-     * @param channelCount number of channel
-     * @param sampleFormat sample format
      * @param isEchoCancel True if the echo canceller is activated.
      *
      * @return a sample rate supported by the MacCoreaudio device with the

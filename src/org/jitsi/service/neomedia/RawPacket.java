@@ -1929,9 +1929,9 @@ public class RawPacket
          */
         public int getExtId()
         {
-            if (getLength() <= 0)
+            if (super.getLength() <= 0)
                 return -1;
-            return (buffer[getOffset()] & 0xf0) >>> 4;
+            return (buffer[super.getOffset()] & 0xf0) >>> 4;
         }
 
         /**
@@ -1944,7 +1944,7 @@ public class RawPacket
             // Therefore, the value zero in this field indicates that one byte
             // of data follows, and a value of 15 (the maximum) indicates
             // element data of 16 bytes."
-            return (buffer[getOffset()] & 0x0f) + 1;
+            return (buffer[super.getOffset()] & 0x0f) + 1;
         }
     }
 
@@ -2052,7 +2052,7 @@ public class RawPacket
             if (extLen <= 0)
             {
                 throw new IllegalStateException(
-                    "Invalid extension length. Did next() return true?");
+                    "Invalid extension length. Did hasNext() return true?");
             }
             headerExtension.setOffsetLength(nextOff, extLen);
 
@@ -2061,17 +2061,6 @@ public class RawPacket
             remainingLen -= extLen;
 
             return headerExtension;
-        }
-
-        /**
-         * {@inheritDoc}
-         * </p>
-         * This {@link Iterator} does not support removing elements.
-         */
-        @Override
-        public void remove()
-        {
-            throw new UnsupportedOperationException("remove");
         }
     }
 }

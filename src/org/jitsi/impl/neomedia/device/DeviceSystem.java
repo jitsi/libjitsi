@@ -693,13 +693,9 @@ public abstract class DeviceSystem
                     = (preInitializeDevices == null)
                         ? 0
                         : preInitializeDevices.size();
-                int postInitializeDeviceCount
-                    = (postInitializeDevices == null)
-                        ? 0
-                        : postInitializeDevices.size();
 
-                if ((preInitializeDeviceCount != 0)
-                        || (postInitializeDeviceCount != 0))
+                if (preInitializeDeviceCount != 0
+                        || postInitializeDevices.size() != 0)
                 {
                     firePropertyChange(
                             PROP_DEVICES,

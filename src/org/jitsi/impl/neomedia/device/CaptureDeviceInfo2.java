@@ -53,7 +53,7 @@ public class CaptureDeviceInfo2
      * {@link #CaptureDeviceInfo2(String, MediaLocator, Format[], String,
      * String, String)}.
      *
-     * @param captureDeiceInfo the <tt>CaptureDeviceInfo</tt> whose properties
+     * @param captureDeviceInfo the <tt>CaptureDeviceInfo</tt> whose properties
      * are to be copied into the new instance
      * @param uid the unique identifier of the hardware device (interface) which
      * is to be represented by the new instance

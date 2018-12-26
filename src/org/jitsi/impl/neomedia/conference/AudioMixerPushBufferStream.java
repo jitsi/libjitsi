@@ -1055,19 +1055,18 @@ class AudioMixerPushBufferStream
             if (logger.isTraceEnabled())
             {
                 int oldValueLength = (oldValue == null) ? 0 : oldValue.length;
-                int newValueLength = (newValue == null) ? 0 : newValue.length;
-                int difference = newValueLength - oldValueLength;
+                int difference = newValue.length - oldValueLength;
 
                 if (difference > 0)
                     logger.trace(
                             "Added " + difference
                                 + " inStream(s) and the total is "
-                                + newValueLength);
+                                + newValue.length);
                 else if (difference < 0)
                     logger.trace(
                             "Removed " + difference
                                 + " inStream(s) and the total is "
-                                + newValueLength);
+                                + newValue.length);
             }
         }
     }
