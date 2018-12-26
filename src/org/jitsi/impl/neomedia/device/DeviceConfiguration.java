@@ -239,8 +239,7 @@ public class DeviceConfiguration
 
         if (OSUtils.IS_WINDOWS)
         {
-            if (OSUtils.IS_WINDOWS32 &&
-                    (OSUtils.IS_WINDOWS_VISTA || OSUtils.IS_WINDOWS_7))
+            if (OSUtils.IS_WINDOWS32)
             {
                 /*
                  * DDRenderer will cause 32-bit Windows Vista/7 to switch its
