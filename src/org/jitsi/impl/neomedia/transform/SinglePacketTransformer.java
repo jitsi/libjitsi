@@ -70,6 +70,24 @@ public abstract class SinglePacketTransformer
     private final Predicate<ByteArrayBuffer> packetPredicate;
 
     /**
+     * A cached link to {@link #reverseTransform(RawPacket)} method to reduce
+     * calling overhead on hotpath.
+     */
+    private final Function<RawPacket, RawPacket> cachedReverseTransform
+        = (pkt) -> {
+        return this.reverseTransform(pkt);
+    };
+
+    /**
+     * A cached link to {@link #transform(RawPacket)} method to reduce
+     * calling overhead on hotpath.
+     */
+    private final Function<RawPacket, RawPacket> cachedTransform
+        = (pkt) -> {
+        return this.transform(pkt);
+    };
+
+    /**
      * Ctor.
      *
      * XXX At some point ideally we would get rid of this ctor and all the
@@ -125,7 +143,7 @@ public abstract class SinglePacketTransformer
     {
         return transformArray(
             pkts,
-            this::reverseTransform,
+            cachedReverseTransform,
             exceptionsInReverseTransform,
             "reverseTransform");
     }
@@ -148,7 +166,7 @@ public abstract class SinglePacketTransformer
     public RawPacket[] transform(RawPacket[] pkts)
     {
         return transformArray(
-            pkts, this::transform, exceptionsInTransform, "transform");
+            pkts, cachedTransform, exceptionsInTransform, "transform");
     }
 
     /**
