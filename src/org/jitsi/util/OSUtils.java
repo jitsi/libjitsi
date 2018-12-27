@@ -60,14 +60,14 @@ public class OSUtils
     /** <tt>true</tt> if OS is Windows 64-bit. */
     public static final boolean IS_WINDOWS64;
 
-    /** <tt>true</tt> if OS is Windows Vista. */
-    public static final boolean IS_WINDOWS_VISTA;
-
     /** <tt>true</tt> if OS is Windows 7. */
     public static final boolean IS_WINDOWS_7;
 
     /** <tt>true</tt> if OS is Windows 8. */
     public static final boolean IS_WINDOWS_8;
+
+    /** <tt>true</tt> if OS is Windows 10. */
+    public static final boolean IS_WINDOWS_10;
 
     /** <tt>true</tt> if OS is FreeBSD. */
     public static final boolean IS_FREEBSD;
@@ -83,9 +83,9 @@ public class OSUtils
             IS_LINUX = false;
             IS_MAC = false;
             IS_WINDOWS = false;
-            IS_WINDOWS_VISTA = false;
             IS_WINDOWS_7 = false;
             IS_WINDOWS_8 = false;
+            IS_WINDOWS_10 = false;
             IS_FREEBSD = false;
         }
         else if (osName.startsWith("Linux"))
@@ -104,9 +104,9 @@ public class OSUtils
             }
             IS_MAC = false;
             IS_WINDOWS = false;
-            IS_WINDOWS_VISTA = false;
             IS_WINDOWS_7 = false;
             IS_WINDOWS_8 = false;
+            IS_WINDOWS_10 = false;
             IS_FREEBSD = false;
         }
         else if (osName.startsWith("Mac"))
@@ -115,9 +115,9 @@ public class OSUtils
             IS_LINUX = false;
             IS_MAC = true;
             IS_WINDOWS = false;
-            IS_WINDOWS_VISTA = false;
             IS_WINDOWS_7 = false;
             IS_WINDOWS_8 = false;
+            IS_WINDOWS_10 = false;
             IS_FREEBSD = false;
         }
         else if (osName.startsWith("Windows"))
@@ -126,9 +126,9 @@ public class OSUtils
             IS_LINUX = false;
             IS_MAC = false;
             IS_WINDOWS = true;
-            IS_WINDOWS_VISTA = (osName.indexOf("Vista") != -1);
             IS_WINDOWS_7 = (osName.indexOf("7") != -1);
             IS_WINDOWS_8 = (osName.indexOf("8") != -1);
+            IS_WINDOWS_10 = (osName.indexOf("10") != -1);
             IS_FREEBSD = false;
         }
         else if (osName.startsWith("FreeBSD"))
@@ -137,9 +137,9 @@ public class OSUtils
             IS_LINUX = false;
             IS_MAC = false;
             IS_WINDOWS = false;
-            IS_WINDOWS_VISTA = false;
             IS_WINDOWS_7 = false;
             IS_WINDOWS_8 = false;
+            IS_WINDOWS_10 = false;
             IS_FREEBSD = true;
         }
         else
@@ -148,9 +148,9 @@ public class OSUtils
             IS_LINUX = false;
             IS_MAC = false;
             IS_WINDOWS = false;
-            IS_WINDOWS_VISTA = false;
             IS_WINDOWS_7 = false;
             IS_WINDOWS_8 = false;
+            IS_WINDOWS_10 = false;
             IS_FREEBSD = false;
         }
 

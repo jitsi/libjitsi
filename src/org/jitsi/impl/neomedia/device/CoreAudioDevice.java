@@ -52,9 +52,7 @@ public class CoreAudioDevice
             {
                 libname = "jnmaccoreaudio";
             }
-            else if (OSUtils.IS_WINDOWS_VISTA
-                    || OSUtils.IS_WINDOWS_7
-                    || OSUtils.IS_WINDOWS_8)
+            else if (OSUtils.IS_WINDOWS)
             {
                 libname = "jnwincoreaudio";
             }
