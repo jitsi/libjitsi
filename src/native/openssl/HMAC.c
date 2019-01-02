@@ -54,10 +54,8 @@ JNIEXPORT jlong JNICALL
 Java_org_jitsi_impl_neomedia_transform_srtp_OpenSSLHMAC_HMAC_1CTX_1create
     (JNIEnv *env, jclass clazz)
 {
-    HMAC_CTX *ctx = malloc(sizeof(HMAC_CTX));
+    HMAC_CTX *ctx = HMAC_CTX_new();
 
-    if (ctx)
-        HMAC_CTX_init(ctx);
     return (jlong) (intptr_t) ctx;
 }
 
@@ -72,8 +70,7 @@ Java_org_jitsi_impl_neomedia_transform_srtp_OpenSSLHMAC_HMAC_1CTX_1destroy
 {
     HMAC_CTX *ctx_ = (HMAC_CTX *) (intptr_t) ctx;
 
-    HMAC_CTX_cleanup(ctx_);
-    free(ctx_);
+    HMAC_CTX_free(ctx_);
 }
 
 /*

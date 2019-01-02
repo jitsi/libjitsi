@@ -29,9 +29,7 @@ JNIEXPORT jlong JNICALL
 Java_org_jitsi_impl_neomedia_transform_srtp_SRTPCipherCTROpenSSL_AES128CTR_1CTX_1create
   (JNIEnv *env, jclass clazz)
 {
-    EVP_CIPHER_CTX *ctx = malloc(sizeof(EVP_CIPHER_CTX));
-    if (ctx)
-        EVP_CIPHER_CTX_init(ctx);
+    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
 
     return (jlong) (intptr_t) ctx;
 }
@@ -47,8 +45,7 @@ Java_org_jitsi_impl_neomedia_transform_srtp_SRTPCipherCTROpenSSL_AES128CTR_1CTX_
 {
     if (ctx) {
         EVP_CIPHER_CTX *ctx_ = (EVP_CIPHER_CTX *) (intptr_t) ctx;
-        EVP_CIPHER_CTX_cleanup(ctx_);
-        free(ctx_);
+        EVP_CIPHER_CTX_free(ctx_);
     }
 }
 
@@ -62,7 +59,7 @@ Java_org_jitsi_impl_neomedia_transform_srtp_SRTPCipherCTROpenSSL_AES128CTR_1CTX_
   (JNIEnv *env, jclass clazz, jlong ctx, jbyteArray key)
 {
     unsigned char key_[16];
-    (*env)->GetByteArrayRegion(env, key, 0, 16, key_);
+    (*env)->GetByteArrayRegion(env, key, 0, 16, (jbyte *) key_);
     return EVP_CipherInit_ex((EVP_CIPHER_CTX *) (intptr_t) ctx, EVP_aes_128_ctr(), NULL, key_, NULL, 1);
 }
 
@@ -77,7 +74,7 @@ Java_org_jitsi_impl_neomedia_transform_srtp_SRTPCipherCTROpenSSL_AES128CTR_1CTX_
 {
     int ok = 0;
     unsigned char iv_[16];
-    (*env)->GetByteArrayRegion(env, iv, 0, 16, iv_);
+    (*env)->GetByteArrayRegion(env, iv, 0, 16, (jbyte *) iv_);
     jbyte *inOut_;
     inOut_ = (*env)->GetPrimitiveArrayCritical(env, inOut, NULL);
     if (!inOut)
