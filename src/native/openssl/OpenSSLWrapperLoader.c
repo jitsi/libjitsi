@@ -27,8 +27,10 @@ JNIEXPORT jboolean JNICALL
 Java_org_jitsi_impl_neomedia_transform_srtp_OpenSSLWrapperLoader_OpenSSL_1Init
   (JNIEnv *env, jclass clazz)
 {
-    OpenSSL_add_all_algorithms();
-    ERR_load_crypto_strings();
+    OPENSSL_init_crypto(
+        OPENSSL_INIT_ADD_ALL_CIPHERS |
+        OPENSSL_INIT_ADD_ALL_DIGESTS | 
+        OPENSSL_INIT_LOAD_CRYPTO_STRINGS, NULL);
 
     return JNI_TRUE;
 }
