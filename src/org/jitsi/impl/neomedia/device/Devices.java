@@ -75,7 +75,7 @@ public abstract class Devices
      * Adds a new device in the preferences (at the first active position if the
      * isSelected argument is true).
      *
-     * @param newsDeviceIdentifier The identifier of the device to add int first
+     * @param newDeviceIdentifier The identifier of the device to add int first
      * active position of the preferences.
      * @param isSelected True if the device is the selected one.
      */
@@ -351,7 +351,7 @@ public abstract class Devices
      * @param property the name of the <tt>ConfigurationService</tt> property
      * into which the user's preference with respect to the specified
      * <tt>CaptureDeviceInfo</tt> is to be saved
-     * @param selectedDevice The device selected by the user.
+     * @param device The device selected by the user.
      * @param isSelected True if the device is the selected one.
      */
     private void saveDevice(

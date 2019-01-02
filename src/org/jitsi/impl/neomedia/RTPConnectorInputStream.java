@@ -39,8 +39,8 @@ import org.jitsi.util.*;
  * @author Lyubomir Marinov
  * @author Boris Grozev
  */
-public abstract class RTPConnectorInputStream<T>
-    implements PushSourceStream
+public abstract class RTPConnectorInputStream<T extends Closeable>
+    implements PushSourceStream, Closeable
 {
     /**
      * The value of the property <tt>controls</tt> of
@@ -349,32 +349,22 @@ public abstract class RTPConnectorInputStream<T>
     /**
      * Close this stream, stops the worker thread.
      */
+    @Override
     public synchronized void close()
     {
         closed = true;
         if (socket != null)
         {
-            /*
-             * The classes DatagramSocket and Socket implement the interface
-             * Closeable since Java Runtime Environment 7.
-             */
             try
             {
                 if (socket instanceof Closeable)
                 {
-                    ((Closeable) socket).close();
-                }
-                else if (socket instanceof DatagramSocket)
-                {
-                    ((DatagramSocket) socket).close();
-                }
-                else if (socket instanceof Socket)
-                {
-                    ((Socket) socket).close();
+                    socket.close();
                 }
             }
             catch (IOException ex)
             {
+                // ignore
             }
         }
     }

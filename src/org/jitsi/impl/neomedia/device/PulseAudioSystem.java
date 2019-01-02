@@ -160,11 +160,8 @@ public class PulseAudioSystem
 
                 try
                 {
-                    if (proplist != 0)
-                    {
-                        PA.proplist_free(proplist);
-                        proplist = 0;
-                    }
+                    PA.proplist_free(proplist);
+                    proplist = 0;
 
                     Runnable stateCallback
                         = new Runnable()
@@ -269,7 +266,7 @@ public class PulseAudioSystem
             = new PulseAudioRenderer(
                     playback ? MEDIA_ROLE_PHONE : MEDIA_ROLE_EVENT);
 
-        if (renderer != null && locator != null)
+        if (locator != null)
             renderer.setLocator(locator);
 
         return renderer;
@@ -311,8 +308,6 @@ public class PulseAudioSystem
         if (sampleSpec == 0)
             throw new RuntimeException("pa_sample_spec_new");
 
-        long ret = 0;
-
         try
         {
             long proplist = PA.proplist_new();
@@ -338,28 +333,18 @@ public class PulseAudioSystem
                     throw new RuntimeException(
                             "pa_stream_new_with_proplist");
                 }
-                try
-                {
-                    ret = stream;
-                }
-                finally
-                {
-                    if (ret == 0)
-                        PA.stream_unref(stream);
-                }
+
+                return stream;
             }
             finally
             {
-                if (proplist != 0)
-                    PA.proplist_free(proplist);
+                PA.proplist_free(proplist);
             }
         }
         finally
         {
-            if (sampleSpec != 0)
-                PA.sample_spec_free(sampleSpec);
+            PA.sample_spec_free(sampleSpec);
         }
-        return ret;
     }
 
     /**

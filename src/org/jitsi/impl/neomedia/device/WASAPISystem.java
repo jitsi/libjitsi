@@ -1426,8 +1426,7 @@ public class WASAPISystem
         }
         finally
         {
-            if (iMMDevice != 0)
-                IMMDevice_Release(iMMDevice);
+            IMMDevice_Release(iMMDevice);
         }
         return ret;
     }

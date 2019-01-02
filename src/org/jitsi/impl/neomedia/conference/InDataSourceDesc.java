@@ -291,10 +291,7 @@ class InDataSourceDesc
      */
     public TranscodingDataSource getTranscodingDataSource()
     {
-        return
-            (transcodingDataSource == null)
-                ? null
-                : (TranscodingDataSource) transcodingDataSource;
+        return (TranscodingDataSource) transcodingDataSource;
     }
 
     /**

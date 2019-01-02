@@ -33,7 +33,6 @@ import org.jitsi.service.neomedia.*;
  */
 public interface MediaFormat
 {
-
     /**
      * The constant returned by {@link #getRTPPayloadType()} when the
      * <tt>MediaFormat</tt> instance describes a format without an RTP payload
@@ -190,12 +189,6 @@ public interface MediaFormat
      *
      * @param format the {@link MediaFormat} whose properties we'd like to
      * examine
-     * @param mediaType the type we expect {@link MediaFormat} to have
-     * @param encoding the encoding we are looking for.
-     * @param clockRate the clock rate that we'd like the format to have.
-     * @param channels the number of channels that expect to find in this format
-     * @param formatParameters the format parameters expected to match these of
-     * the specified <tt>format</tt>
      * @return <tt>true</tt> if the specified <tt>format</tt> has specific
      * values for its properties <tt>mediaType</tt>, <tt>encoding</tt>,
      * <tt>clockRate</tt> and <tt>channels</tt>; otherwise, <tt>false</tt>
