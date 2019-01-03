@@ -61,6 +61,16 @@ public class RawPacket
     private static final int RTCP_MIN_SIZE = 8;
 
     /**
+     * The bitmask for the RTP sequence number field.
+     */
+    public static final int SEQUENCE_NUMBER_MASK = 0xffff;
+
+    /**
+     * The bitmask for the RTP timestamp field.
+     */
+    public static final long TIMESTAMP_MASK = 0xFFFF_FFFFL;
+
+    /**
      * Byte array storing the content of this Packet
      * Note that if this instance changes, then {@link #headerExtensions} MUST
      * be reinitialized. It is best to use {@link #setBuffer(byte[])} instead of
