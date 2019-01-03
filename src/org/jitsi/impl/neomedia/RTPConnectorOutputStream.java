@@ -778,11 +778,6 @@ public abstract class RTPConnectorOutputStream
                 RawPacket[] pkts;
                 try
                 {
-                    // We will sooner or later process the Buffer. Since this
-
-                    // may take a non-negligible amount of time, do it
-                    // before
-                    // taking pacing into account.
                     pkts
                         = packetize(
                             buffer.buf, 0, buffer.len,
