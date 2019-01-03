@@ -47,13 +47,21 @@ public abstract class RTPConnectorOutputStream
         = Logger.getLogger(RTPConnectorOutputStream.class);
 
     /**
+     * Defines minimum number of threads to have in {@link ExecutorUtils}.
+     */
+    private static final int MINIMUM_NUMBER_OF_EXECUTOR_THREADS = 8;
+
+    /**
      * Shared ExecutorService to process items put into {@link Queue}.
      * By default configure it with twice as many threads as CPU cores available
      * because operations executed in pool currently does blocking I/O.
      */
     private static final ExecutorService sharedExecutor
-        = Executors.newWorkStealingPool(
-            2 * Runtime.getRuntime().availableProcessors());
+        = ExecutorUtils.newForkJoinPool(
+            Math.max(
+                MINIMUM_NUMBER_OF_EXECUTOR_THREADS,
+                2 * Runtime.getRuntime().availableProcessors()),
+            RTPConnectorOutputStream.class.getName());
 
     /**
      * The maximum number of packets to be sent to be kept in the queue of
