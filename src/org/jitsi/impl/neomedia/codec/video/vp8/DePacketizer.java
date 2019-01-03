@@ -421,6 +421,16 @@ public class DePacketizer
     public static class VP8PayloadDescriptor
     {
         /**
+         * The bitmask for the TL0PICIDX field.
+         */
+        public static final int TL0PICIDX_MASK = 0xff;
+
+        /**
+         * The bitmask for the extended picture id field.
+         */
+        public static final int EXTENDED_PICTURE_ID_MASK = 0x7fff;
+
+        /**
          * I bit from the X byte of the Payload Descriptor.
          */
         private static final byte I_BIT = (byte) 0x80;
@@ -438,6 +448,7 @@ public class DePacketizer
          * I bit from the I byte of the Payload Descriptor.
          */
         private static final byte M_BIT = (byte) 0x80;
+
         /**
          * Maximum length of a VP8 Payload Descriptor.
          */
@@ -455,6 +466,11 @@ public class DePacketizer
          * X bit from the first byte of the Payload Descriptor.
          */
         private static final byte X_BIT = (byte) 0x80;
+
+        /**
+         * N bit from the first byte of the Payload Descriptor.
+         */
+        private static final byte N_BIT = (byte) 0x20;
 
         /**
          * Gets the temporal layer index (TID), if that's set.
@@ -726,6 +742,43 @@ public class DePacketizer
         {
             return input[offset] & 0x07;
         }
+
+        /**
+         * Gets a boolean that indicates whether or not the non-reference bit is
+         * set.
+         *
+         * @param buf the byte buffer that holds the VP8 payload descriptor.
+         * @param off the offset in the byte buffer where the payload descriptor
+         * starts.
+         * @param len the length of the payload descriptor in the byte buffer.
+         *
+         * @return true if the non-reference bit is NOT set, false otherwise.
+         */
+        public static boolean isReference(byte[] buf, int off, int len)
+        {
+            return (buf[off] & N_BIT) == 0;
+        }
+
+        /**
+         * Gets the TL0PICIDX from the payload descriptor.
+         *
+         * @param buf the byte buffer that holds the VP8 payload descriptor.
+         * @param off the offset in the byte buffer where the payload descriptor
+         * starts.
+         * @param len the length of the payload descriptor in the byte buffer.
+         *
+         * @return the TL0PICIDX from the payload descriptor.
+         */
+        public static int getTL0PICIDX(byte[] buf, int off, int len)
+        {
+            int sz = getSize(buf, off, len);
+            if (sz < 1)
+            {
+                return -1;
+            }
+
+            return buf[off + sz - 2] & 0xff;
+        }
     }
 
     /**
@@ -753,6 +806,33 @@ public class DePacketizer
             // the current frame is an interframe. Defined in [RFC6386]
 
             return (input[offset] & S_BIT) == 0;
+        }
+    }
+
+
+    /**
+     * A class that represents a keyframe header structure (see RFC 6386,
+     * paragraph 9.1).
+     *
+     * @author George Politis
+     */
+    public static class VP8KeyframeHeader
+    {
+        // From RFC 6386, the keyframe header has this format.
+        //
+        // Start code byte 0     0x9d
+        // Start code byte 1     0x01
+        // Start code byte 2     0x2a
+        //
+        // 16 bits      :     (2 bits Horizontal Scale << 14) | Width (14 bits)
+        // 16 bits      :     (2 bits Vertical Scale << 14) | Height (14 bits)
+
+        /**
+         * @return the height of this instance.
+         */
+        public static int getHeight(byte[] buf, int off)
+        {
+            return (((buf[off + 6] & 0xff) << 8) | buf[off + 5] & 0xff) & 0x3fff;
         }
     }
 

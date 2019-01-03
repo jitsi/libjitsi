@@ -132,9 +132,10 @@ public class MediaStreamTrackDesc
 
         if (idx > -1)
         {
+            long nowMs = System.currentTimeMillis();
             for (int i = idx; i > -1; i--)
             {
-                long bps = rtpEncodings[i].getLastStableBitrateBps();
+                long bps = rtpEncodings[i].getLastStableBitrateBps(nowMs);
                 if (bps > 0)
                 {
                     return bps;
@@ -195,24 +196,6 @@ public class MediaStreamTrackDesc
             }
         }
 
-        return null;
-    }
-
-    /**
-     * Finds the {@link FrameDesc} that corresponds to the given timestamp
-     * for the given stream (identified by its ssrc)
-     * @param ssrc the ssrc of the stream to which this frame belongs
-     * @param timestamp the timestamp of the frame the caller is trying to find
-     * @return the {@link FrameDesc} that corresponds to the ssrc and timestamp
-     * given, or null
-     */
-    public FrameDesc findFrameDesc(long ssrc, long timestamp)
-    {
-        RTPEncodingDesc rtpEncoding = findRTPEncodingDesc(ssrc);
-        if (rtpEncoding != null)
-        {
-            return rtpEncoding.findFrameDesc(timestamp);
-        }
         return null;
     }
 
