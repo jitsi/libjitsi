@@ -15,6 +15,7 @@
  */
 package org.jitsi.impl.neomedia.transform;
 
+import java.io.*;
 import java.net.*;
 
 import org.jitsi.impl.neomedia.*;
@@ -27,7 +28,7 @@ import org.jitsi.service.neomedia.*;
  * @author Lyubomir Marinov
  * @author Boris Grozev
  */
-public abstract class TransformInputStream<T>
+public abstract class TransformInputStream<T extends Closeable>
     extends RTPConnectorInputStream<T>
 {
     /**
