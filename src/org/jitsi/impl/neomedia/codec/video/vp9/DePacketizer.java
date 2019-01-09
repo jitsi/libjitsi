@@ -57,7 +57,7 @@ public class DePacketizer
      */
     public static boolean isKeyFrame(byte[] buf, int off, int len)
     {
-        // TODO this needs to be properly implemented.
+        // TODO merge https://github.com/jitsi/libjitsi/pull/432 and remove this
         return true;
     }
 
