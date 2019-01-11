@@ -4049,6 +4049,7 @@ public class MediaStreamImpl
      */
     public boolean isKeyFrame(RawPacket pkt)
     {
+        // XXX merge with GenericAdaptiveTrackProjectionContext.isKeyframe().
         if (!RTPPacketPredicate.INSTANCE.test(pkt))
         {
             return false;
