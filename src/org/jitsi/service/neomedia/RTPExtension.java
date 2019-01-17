@@ -86,6 +86,12 @@ public class RTPExtension
     public static final String TOF_URN = "urn:ietf:params:rtp-hdrext:toffset";
 
     /**
+     * The URN which identifies the RTP Header Extension for Video Content Type.
+     */
+    public static final String VIDEO_CONTENT_TYPE_URN
+        = "http://www.webrtc.org/experiments/rtp-hdrext/video-content-type";
+
+    /**
      * The direction that this extension will be transmitted in.
      */
     private MediaDirection direction = MediaDirection.SENDRECV;
