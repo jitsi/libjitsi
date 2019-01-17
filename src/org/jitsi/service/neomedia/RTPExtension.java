@@ -56,7 +56,7 @@ public class RTPExtension
      * {@link "https://tools.ietf.org/html/draft-ietf-avtext-framemarking-03"}
      */
     public static final String FRAME_MARKING_URN
-            = "urn:ietf:params:rtp-hdrext:framemarking";
+            = "http://tools.ietf.org/html/draft-ietf-avtext-framemarking-07";
 
     /**
      * The URN which identifies the Original Header Block RTP extension defined
