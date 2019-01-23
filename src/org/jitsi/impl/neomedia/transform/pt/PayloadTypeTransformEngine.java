@@ -66,7 +66,7 @@ public class PayloadTypeTransformEngine
     {
         if (mappingOverridesCopy == null
                 || mappingOverridesCopy.isEmpty()
-                || pkt.getVersion() != RTPHeader.VERSION)
+                || pkt.isInvalid())
         {
             return pkt;
         }

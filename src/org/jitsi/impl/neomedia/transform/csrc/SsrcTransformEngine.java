@@ -213,8 +213,7 @@ public class SsrcTransformEngine
 
         if ((ssrcAudioLevelExtID > 0)
                 && ssrcAudioLevelDirection.allowsReceiving()
-                && !pkt.isInvalid()
-                && RTPHeader.VERSION == pkt.getVersion())
+                && !pkt.isInvalid())
         {
             byte level = pkt.extractSsrcAudioLevel(ssrcAudioLevelExtID);
 

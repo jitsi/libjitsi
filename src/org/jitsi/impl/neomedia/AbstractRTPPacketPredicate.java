@@ -27,13 +27,6 @@ public class AbstractRTPPacketPredicate
     implements Predicate<ByteArrayBuffer>
 {
     /**
-     * The <tt>Logger</tt> used by the <tt>AbstractRTPPacketPredicate</tt>
-     * class.
-     */
-    private static final Logger logger
-        = Logger.getLogger(AbstractRTPPacketPredicate.class);
-
-    /**
      * True if this predicate should test for RTCP, false for RTP.
      */
     private final boolean rtcp;
@@ -43,7 +36,7 @@ public class AbstractRTPPacketPredicate
      *
      * @param rtcp true if this predicate should test for RTCP, false for RTP.
      */
-    public AbstractRTPPacketPredicate(boolean rtcp)
+    AbstractRTPPacketPredicate(boolean rtcp)
     {
         this.rtcp = rtcp;
     }
@@ -54,9 +47,8 @@ public class AbstractRTPPacketPredicate
     @Override
     public boolean test(ByteArrayBuffer pkt)
     {
-        // If isHeaderValid fails, this is not a valid RTP packet either.
         if (pkt == null
-                || !RTCPUtils.isHeaderValid(
+                || RawPacket.isInvalid(
                     pkt.getBuffer(), pkt.getOffset(), pkt.getLength()))
         {
             return false;

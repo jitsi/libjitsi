@@ -288,7 +288,7 @@ public class CsrcTransformEngine
     public synchronized RawPacket transform(RawPacket pkt)
     {
         // Only transform RTP packets (and not ZRTP/DTLS, etc)
-        if (pkt == null || pkt.getVersion() != RTPHeader.VERSION)
+        if (pkt == null || pkt.isInvalid())
             return pkt;
 
         long[] csrcList = mediaStream.getLocalContributingSourceIDs();
