@@ -20,7 +20,6 @@ import java.io.*;
 import java.security.*;
 import java.util.*;
 
-import org.bouncycastle.crypto.prng.RandomGenerator;
 import org.bouncycastle.crypto.tls.*;
 import org.ice4j.ice.*;
 import org.jitsi.impl.neomedia.*;
