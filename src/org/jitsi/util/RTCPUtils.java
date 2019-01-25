@@ -25,17 +25,6 @@ import org.jitsi.service.neomedia.*;
 public class RTCPUtils
 {
     /**
-     * The values of the Version field for RTCP packets.
-     */
-    public static int VERSION = 2;
-
-    /**
-     * The size in bytes of the smallest possible RTCP packet (e.g. an empty
-     * Receiver Report).
-     */
-    public static int MIN_SIZE = 8;
-
-    /**
      * Gets the RTCP packet type.
      *
      * @param buf the byte buffer that contains the RTCP header.
@@ -46,7 +35,7 @@ public class RTCPUtils
      */
     public static int getPacketType(byte[] buf, int off, int len)
     {
-        if (!isHeaderValid(buf, off, len))
+        if (!RawPacket.isRtpRtcp(buf, off, len))
         {
             return -1;
         }
@@ -70,29 +59,6 @@ public class RTCPUtils
         return getPacketType(baf.getBuffer(), baf.getOffset(), baf.getLength());
     }
 
-
-    /**
-     * Sets the RTCP sender SSRC.
-     *
-     * @param buf the byte buffer that contains the RTCP header.
-     * @param off the offset in the byte buffer where the RTCP header starts.
-     * @param len the number of bytes in buffer which constitute the actual
-     * data.
-     * @param senderSSRC the sender SSRC to set.
-     * @return the number of bytes that were written to the byte buffer, or -1
-     * in case of an error.
-     */
-    private static int setSenderSSRC(
-        byte[] buf, int off, int len, int senderSSRC)
-    {
-        if (!isHeaderValid(buf, off, len))
-        {
-            return -1;
-        }
-
-        return RTPUtils.writeInt(buf, off + 4, senderSSRC);
-    }
-
     /**
      * Gets the RTCP packet length in bytes as specified by the length field
      * of the RTCP packet (does not verify that the buffer is actually large
@@ -106,7 +72,7 @@ public class RTCPUtils
      */
     public static int getLength(byte[] buf, int off, int len)
     {
-        // XXX Do not check with isHeaderValid.
+        // XXX Do not check with isRtpRtcp.
         if (buf == null || buf.length < off + len || len < 4)
         {
             return -1;
@@ -116,74 +82,6 @@ public class RTCPUtils
             = ((buf[off + 2] & 0xff) << 8) | (buf[off + 3] & 0xff);
 
         return (lengthInWords + 1) * 4;
-    }
-
-    /**
-     * Gets the RTCP packet version.
-     *
-     * @param buf the byte buffer that contains the RTCP header.
-     * @param off the offset in the byte buffer where the RTCP header starts.
-     * @param len the number of bytes in buffer which constitute the actual
-     * data.
-     * @return the RTCP packet version, or -1 in case of an error.
-     */
-    public static int getVersion(byte[] buf, int off, int len)
-    {
-        // XXX Do not check with isHeaderValid.
-        if (buf == null || buf.length < off + len || len < 1)
-        {
-            return -1;
-        }
-
-        return (buf[off] & 0xc0) >>> 6;
-    }
-
-    /**
-     * Checks whether the RTCP header is valid or not (note that a valid header
-     * does not necessarily imply a valid packet). It does so by checking
-     * the RTCP header version and makes sure the buffer is at least 8 bytes
-     * long.
-     *
-     * @param buf the byte buffer that contains the RTCP header.
-     * @param off the offset in the byte buffer where the RTCP header starts.
-     * @param len the number of bytes in buffer which constitute the actual
-     * data.
-     * @return true if the RTCP packet is valid, false otherwise.
-     */
-    public static boolean isHeaderValid(byte[] buf, int off, int len)
-    {
-        int version = RTCPUtils.getVersion(buf, off, len);
-        if (version != VERSION)
-        {
-            return false;
-        }
-
-        int pktLen = RTCPUtils.getLength(buf, off, len);
-        if (pktLen < MIN_SIZE)
-        {
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
-     * Sets the RTCP sender SSRC.
-     *
-     * @param baf the {@link ByteArrayBuffer} that contains the RTCP header.
-     * @param senderSSRC the sender SSRC to set.
-     * @return the number of bytes that were written to the byte buffer, or -1
-     * in case of an error.
-     */
-    public static int setSenderSSRC(ByteArrayBuffer baf, int senderSSRC)
-    {
-        if (baf == null)
-        {
-            return -1;
-        }
-
-        return setSenderSSRC(
-            baf.getBuffer(), baf.getOffset(), baf.getLength(), senderSSRC);
     }
 
     /**
@@ -259,7 +157,7 @@ public class RTCPUtils
      */
     public static boolean isRtcp(byte[] buf, int off, int len)
     {
-        if (!isHeaderValid(buf, off, len))
+        if (!RawPacket.isRtpRtcp(buf, off, len))
         {
             return false;
         }

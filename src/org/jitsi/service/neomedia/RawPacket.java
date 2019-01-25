@@ -15,6 +15,7 @@
  */
 package org.jitsi.service.neomedia;
 
+import net.sf.fmj.media.rtp.*;
 import org.jitsi.util.*;
 
 import java.util.*;
@@ -274,6 +275,34 @@ public class RawPacket
         }
 
         return RTPUtils.readUint32AsLong(buf, off + 4);
+    }
+
+    /**
+     * Checks whether the RTP/RTCP header is valid or not (note that a valid
+     * header does not necessarily imply a valid packet). It does so by checking
+     * the RTP/RTCP header version and makes sure the buffer is at least 8 bytes
+     * long for RTCP and 12 bytes long for RTP.
+     *
+     * @param buf the byte buffer that contains the RTCP header.
+     * @param off the offset in the byte buffer where the RTCP header starts.
+     * @param len the number of bytes in buffer which constitute the actual
+     * data.
+     * @return true if the RTP/RTCP packet is valid, false otherwise.
+     */
+    public static boolean isRtpRtcp(byte[] buf, int off, int len)
+    {
+        if (isInvalid(buf, off, len))
+        {
+            return false;
+        }
+
+        int version = getVersion(buf, off, len);
+        if (version != RTPHeader.VERSION)
+        {
+            return false;
+        }
+
+        return true;
     }
 
     /**
