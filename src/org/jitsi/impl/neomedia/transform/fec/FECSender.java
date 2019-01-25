@@ -100,7 +100,7 @@ class FECSender
         RawPacket pkt = null;
         for (RawPacket p : pkts)
         {
-            if (p != null && !p.isInvalid())
+            if (p != null && p.getVersion() == RTPHeader.VERSION)
             {
                 pkt = p;
                 break;

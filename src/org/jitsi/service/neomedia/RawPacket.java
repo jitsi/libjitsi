@@ -61,11 +61,6 @@ public class RawPacket
     private static final int RTCP_MIN_SIZE = 8;
 
     /**
-     * The value of the version field for RTCP packets.
-     */
-    private static final int VERSION = 2;
-
-    /**
      * The bitmask for the RTP sequence number field.
      */
     public static final int SEQUENCE_NUMBER_MASK = 0xffff;
@@ -166,6 +161,30 @@ public class RawPacket
     }
 
     /**
+     * Gets the value of the "version" field of an RTP packet.
+     * @return the value of the RTP "version" field.
+     */
+    public static int getVersion(ByteArrayBuffer baf)
+    {
+        if (baf == null)
+        {
+            return -1;
+        }
+
+        return getVersion(baf.getBuffer(), baf.getOffset(), baf.getLength());
+    }
+
+
+    /**
+     * Gets the value of the "version" field of an RTP packet.
+     * @return the value of the RTP "version" field.
+     */
+    public static int getVersion(byte[] buffer, int offset, int length)
+    {
+        return (buffer[offset] & 0xC0) >>> 6;
+    }
+
+    /**
      * Test whether the RTP Marker bit is set
      *
      * @param baf
@@ -201,7 +220,7 @@ public class RawPacket
     }
 
     /**
-     * Perform checks on the RTP/RTCP packet represented by this instance and
+     * Perform checks on the packet represented by this instance and
      * return <tt>true</tt> if it is found to be invalid. A return value of
      * <tt>false</tt> does not necessarily mean that the packet is valid.
      *
@@ -210,17 +229,9 @@ public class RawPacket
      */
     public static boolean isInvalid(byte[] buffer, int offset, int length)
     {
-        // XXX A better name for this method might be isRtpRtcp.
-
         // RTP packets are at least 12 bytes long, RTCP packets can be 8.
         if (buffer == null || buffer.length < offset + length
             || length < RTCP_MIN_SIZE)
-        {
-            return true;
-        }
-
-        int version = (buffer[offset] & 0xC0) >>> 6;
-        if (version != VERSION)
         {
             return true;
         }
@@ -1012,6 +1023,15 @@ public class RawPacket
     }
 
     /**
+     * Gets the value of the "version" field of an RTP packet.
+     * @return the value of the RTP "version" field.
+     */
+    public int getVersion()
+    {
+        return getVersion(buffer, offset, length);
+    }
+
+    /**
      * Get RTP padding size from a RTP packet
      *
      * @return RTP padding size from source RTP packet
@@ -1447,7 +1467,6 @@ public class RawPacket
     @Override
     public boolean isInvalid()
     {
-        // XXX A better name for this method might be isRtpRtcp.
         return isInvalid(buffer, offset, length);
     }
 
@@ -1835,10 +1854,18 @@ public class RawPacket
 
     /**
      * Sets the RTP version in this RTP packet.
+     *
+     * @return the number of bytes that were written, or -1 in case of an error.
      */
-    private void setVersion()
+    public boolean setVersion()
     {
+        if (isInvalid())
+        {
+            return false;
+        }
+
         buffer[offset] |= 0x80;
+        return true;
     }
 
     /**
