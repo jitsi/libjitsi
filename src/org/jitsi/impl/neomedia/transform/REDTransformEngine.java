@@ -155,7 +155,7 @@ public class REDTransformEngine
 
         for (RawPacket pkt : pkts)
         {
-            if (pkt != null && !pkt.isInvalid())
+            if (pkt != null && pkt.getVersion() == RTPHeader.VERSION)
             {
                 byte[] buf = pkt.getBuffer();
                 int len = pkt.getLength();

@@ -286,7 +286,7 @@ public class DtmfTransformEngine
     {
         if (currentTone.isEmpty()
                 || pkt == null
-                || pkt.isInvalid())
+                || pkt.getVersion() != RTPHeader.VERSION)
         {
             return pkt;
         }
