@@ -138,7 +138,7 @@ public class DiscardTransformEngine
 
             // Check RTCP packet validity. This makes sure that pktLen > 0
             // so this loop will eventually terminate.
-            if (!RTCPUtils.isHeaderValid(buf, offset, length))
+            if (!RawPacket.isRtpRtcp(buf, offset, length))
             {
                 return pkt;
             }
