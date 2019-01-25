@@ -50,6 +50,12 @@ class RTPConnectorImpl
 
     public final RTPTranslatorImpl translator;
 
+    /**
+     * The indicator which determines whether {@link #close()} has been
+     * invoked on this instance.
+     */
+    private boolean closed = false;
+
     public RTPConnectorImpl(RTPTranslatorImpl translator)
     {
         this.translator = translator;
@@ -170,6 +176,8 @@ class RTPConnectorImpl
             dataOutputStream = null;
         }
 
+        this.closed = true;
+
         for (RTPConnectorDesc connectorDesc : connectors)
             connectorDesc.connector.close();
     }
@@ -201,6 +209,11 @@ class RTPConnectorImpl
     public synchronized OutputDataStreamImpl getControlOutputStream()
         throws IOException
     {
+        if (this.closed)
+        {
+            return null;
+        }
+
         if (this.controlOutputStream == null)
         {
             this.controlOutputStream = new OutputDataStreamImpl(this, false);
@@ -247,6 +260,11 @@ class RTPConnectorImpl
     public synchronized OutputDataStreamImpl getDataOutputStream()
         throws IOException
     {
+        if (this.closed)
+        {
+            return null;
+        }
+
         if (this.dataOutputStream == null)
         {
             this.dataOutputStream = new OutputDataStreamImpl(this, true);

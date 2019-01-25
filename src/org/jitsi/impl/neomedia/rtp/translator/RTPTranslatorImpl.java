@@ -170,7 +170,7 @@ public class RTPTranslatorImpl
      * and the specified <tt>payloadType</tt> is being added by a specific
      * <tt>StreamRTPManager</tt> but effects the <tt>RTPTranslatorImpl</tt>
      * globally.
-     * 
+     *
      * @param streamRTPManager the <tt>StreamRTPManager</tt> that is requesting
      * the association of <tt>format</tt> to <tt>payloadType</tt>
      * @param format the <tt>Format</tt> which is to be associated with the
@@ -621,7 +621,7 @@ public class RTPTranslatorImpl
     /**
      * Finds the first <tt>StreamRTPManager</tt> which is related to a specific
      * receive/remote SSRC.
-     * 
+     *
      * @param receiveSSRC the receive/remote SSRC to which the returned
      * <tt>StreamRTPManager</tt> is to be related
      * @param exclusion the <tt>StreamRTPManager</tt>, if any, to be excluded

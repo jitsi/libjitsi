@@ -25,6 +25,7 @@ import javax.media.*;
 import javax.media.control.*;
 import javax.media.format.*;
 import javax.media.protocol.*;
+import javax.media.rtp.*;
 import javax.swing.*;
 
 import org.jitsi.impl.neomedia.*;
@@ -1057,13 +1058,18 @@ public class VideoMediaDeviceSession
         {
             try
             {
-                new RTCPFeedbackMessagePacket(
-                            RTCPFeedbackMessageEvent.FMT_PLI,
-                            RTCPFeedbackMessageEvent.PT_PS,
-                            localSSRC,
-                            remoteSSRC)
-                        .writeTo(rtpConnector.getControlOutputStream());
-                requested = true;
+                OutputDataStream controlOutputStream
+                    = rtpConnector.getControlOutputStream();
+                if (controlOutputStream != null)
+                {
+                    new RTCPFeedbackMessagePacket(
+                        RTCPFeedbackMessageEvent.FMT_PLI,
+                        RTCPFeedbackMessageEvent.PT_PS,
+                        localSSRC,
+                        remoteSSRC)
+                        .writeTo(controlOutputStream);
+                    requested = true;
+                }
             }
             catch (IOException ioe)
             {

@@ -831,9 +831,16 @@ public class ZRTPTransformEngine
 
         try
         {
-            zrtpConnector.getDataOutputStream().write(  packet.getBuffer(),
-                                                        packet.getOffset(),
-                                                        packet.getLength());
+            RTPConnectorOutputStream outputStream
+                = zrtpConnector.getDataOutputStream();
+
+            if (outputStream != null)
+            {
+                outputStream.write(
+                    packet.getBuffer(),
+                    packet.getOffset(),
+                    packet.getLength());
+            }
         }
         catch (IOException e)
         {
