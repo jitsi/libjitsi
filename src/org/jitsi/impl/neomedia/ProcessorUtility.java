@@ -90,26 +90,26 @@ public class ProcessorUtility
      */
     public void controllerUpdate(ControllerEvent ce)
     {
-        // If there was an error during configure or
-        // realize, the processor will be closed
-        if (ce instanceof ControllerClosedEvent)
-        {
-            if (ce instanceof ControllerErrorEvent)
-                logger.warn("ControllerErrorEvent: " + ce);
-            else
-                if (logger.isDebugEnabled())
-                    logger.debug("ControllerClosedEvent: " + ce);
-
-            setFailed(true);
-
-            // All controller events, send a notification
-            // to the waiting thread in waitForState method.
-        }
-
         Object stateLock = getStateLock();
 
         synchronized (stateLock)
         {
+            // If there was an error during configure or
+            // realize, the processor will be closed
+            if (ce instanceof ControllerClosedEvent)
+            {
+                if (ce instanceof ControllerErrorEvent)
+                    logger.warn("ControllerErrorEvent: " + ce);
+                else
+                if (logger.isDebugEnabled())
+                    logger.debug("ControllerClosedEvent: " + ce);
+
+                setFailed(true);
+
+                // All controller events, send a notification
+                // to the waiting thread in waitForState method.
+            }
+
             stateLock.notifyAll();
         }
     }
@@ -136,18 +136,26 @@ public class ProcessorUtility
 
         boolean interrupted = false;
 
-        // Wait until we get an event that confirms the
-        // success of the method, or a failure event.
-        // See StateListener inner class
-        while ((processor.getState() < state) && !failed)
+        Object stateLock = getStateLock();
+        synchronized (stateLock)
         {
-            Object stateLock = getStateLock();
-
-            synchronized (stateLock)
+            // Wait until we get an event that confirms the
+            // success of the method, or a failure event.
+            // See StateListener inner class
+            while ((processor.getState() < state) && !failed)
             {
                 try
                 {
-                    stateLock.wait();
+                    // don't wait forever, there is some other
+                    // problem where we wait on an already closed
+                    // processor and we nver leave this wait
+                    stateLock.wait(10000);
+
+                    if (processor.getState() < state)
+                    {
+                        // state not reached we consider failure
+                        setFailed(true);
+                    }
                 }
                 catch (InterruptedException ie)
                 {
