@@ -16,6 +16,8 @@
 package org.jitsi.impl.neomedia;
 
 import javax.media.*;
+import java.time.*;
+import java.time.Duration;
 import java.util.concurrent.*;
 
 import org.jitsi.util.*;
@@ -51,11 +53,11 @@ public class ProcessorUtility
     private boolean failed = false;
 
     /**
-     * The maximum amount of time we will spend in waiting between
+     * The maximum amount of time in seconds we will spend in waiting between
      * processor state changes to avoid locking threads forever.
      * Default value of 10 seconds, should be long enough.
      */
-    private static final int WAIT_TIMEOUT = 10000;
+    private static final int WAIT_TIMEOUT = 10;
 
     /**
      * Initializes a new <tt>ProcessorUtility</tt> instance.
@@ -157,10 +159,10 @@ public class ProcessorUtility
                     // don't wait forever, there is some other
                     // problem where we wait on an already closed
                     // processor and we never leave this wait
-                    long startTime = System.nanoTime();
-                    stateLock.wait(WAIT_TIMEOUT);
-                    if (System.nanoTime() - startTime
-                            > TimeUnit.MILLISECONDS.toNanos(WAIT_TIMEOUT))
+                    Instant startTime = Instant.now();
+                    stateLock.wait(WAIT_TIMEOUT*1000);
+                    if (Duration.between(startTime, Instant.now())
+                            .getSeconds() >= WAIT_TIMEOUT)
                     {
                         // timeout reached we consider failure
                         setFailed(true);
