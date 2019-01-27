@@ -16,6 +16,7 @@
 package org.jitsi.impl.neomedia;
 
 import javax.media.*;
+import java.util.concurrent.*;
 
 import org.jitsi.util.*;
 
@@ -48,6 +49,13 @@ public class ProcessorUtility
      * processor for it to enter a specific state has failed.
      */
     private boolean failed = false;
+
+    /**
+     * The maximum amount of time we will spend in waiting between
+     * processor state changes to avoid locking threads forever.
+     * Default value of 10 seconds, should be long enough.
+     */
+    private static final int WAIT_TIMEOUT = 10000;
 
     /**
      * Initializes a new <tt>ProcessorUtility</tt> instance.
@@ -148,12 +156,13 @@ public class ProcessorUtility
                 {
                     // don't wait forever, there is some other
                     // problem where we wait on an already closed
-                    // processor and we nver leave this wait
-                    stateLock.wait(10000);
-
-                    if (processor.getState() < state)
+                    // processor and we never leave this wait
+                    long startTime = System.nanoTime();
+                    stateLock.wait(WAIT_TIMEOUT);
+                    if (System.nanoTime() - startTime
+                            > TimeUnit.MILLISECONDS.toNanos(WAIT_TIMEOUT))
                     {
-                        // state not reached we consider failure
+                        // timeout reached we consider failure
                         setFailed(true);
                     }
                 }
