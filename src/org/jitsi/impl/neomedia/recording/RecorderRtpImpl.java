@@ -1224,6 +1224,12 @@ public class RecorderRtpImpl
                             + ioe);
             return;
         }
+
+        if (dataStream == null)
+        {
+            return;
+        }
+
         for (RawPacket pkt : pkts)
             dataStream.write(pkt.getBuffer(),
                              pkt.getOffset(),

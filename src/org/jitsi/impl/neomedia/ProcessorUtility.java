@@ -16,6 +16,9 @@
 package org.jitsi.impl.neomedia;
 
 import javax.media.*;
+import java.time.*;
+import java.time.Duration;
+import java.util.concurrent.*;
 
 import org.jitsi.util.*;
 
@@ -48,6 +51,13 @@ public class ProcessorUtility
      * processor for it to enter a specific state has failed.
      */
     private boolean failed = false;
+
+    /**
+     * The maximum amount of time in seconds we will spend in waiting between
+     * processor state changes to avoid locking threads forever.
+     * Default value of 10 seconds, should be long enough.
+     */
+    private static final int WAIT_TIMEOUT = 10;
 
     /**
      * Initializes a new <tt>ProcessorUtility</tt> instance.
@@ -90,26 +100,26 @@ public class ProcessorUtility
      */
     public void controllerUpdate(ControllerEvent ce)
     {
-        // If there was an error during configure or
-        // realize, the processor will be closed
-        if (ce instanceof ControllerClosedEvent)
-        {
-            if (ce instanceof ControllerErrorEvent)
-                logger.warn("ControllerErrorEvent: " + ce);
-            else
-                if (logger.isDebugEnabled())
-                    logger.debug("ControllerClosedEvent: " + ce);
-
-            setFailed(true);
-
-            // All controller events, send a notification
-            // to the waiting thread in waitForState method.
-        }
-
         Object stateLock = getStateLock();
 
         synchronized (stateLock)
         {
+            // If there was an error during configure or
+            // realize, the processor will be closed
+            if (ce instanceof ControllerClosedEvent)
+            {
+                if (ce instanceof ControllerErrorEvent)
+                    logger.warn("ControllerErrorEvent: " + ce);
+                else
+                if (logger.isDebugEnabled())
+                    logger.debug("ControllerClosedEvent: " + ce);
+
+                setFailed(true);
+
+                // All controller events, send a notification
+                // to the waiting thread in waitForState method.
+            }
+
             stateLock.notifyAll();
         }
     }
@@ -136,18 +146,27 @@ public class ProcessorUtility
 
         boolean interrupted = false;
 
-        // Wait until we get an event that confirms the
-        // success of the method, or a failure event.
-        // See StateListener inner class
-        while ((processor.getState() < state) && !failed)
+        Object stateLock = getStateLock();
+        synchronized (stateLock)
         {
-            Object stateLock = getStateLock();
-
-            synchronized (stateLock)
+            // Wait until we get an event that confirms the
+            // success of the method, or a failure event.
+            // See StateListener inner class
+            while ((processor.getState() < state) && !failed)
             {
                 try
                 {
-                    stateLock.wait();
+                    // don't wait forever, there is some other
+                    // problem where we wait on an already closed
+                    // processor and we never leave this wait
+                    Instant startTime = Instant.now();
+                    stateLock.wait(WAIT_TIMEOUT*1000);
+                    if (Duration.between(startTime, Instant.now())
+                            .getSeconds() >= WAIT_TIMEOUT)
+                    {
+                        // timeout reached we consider failure
+                        setFailed(true);
+                    }
                 }
                 catch (InterruptedException ie)
                 {
