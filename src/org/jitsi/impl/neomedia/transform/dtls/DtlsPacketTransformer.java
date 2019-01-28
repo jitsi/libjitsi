@@ -639,11 +639,37 @@ public class DtlsPacketTransformer
             throw new IllegalArgumentException("srtpProtectionProfile");
         }
 
-        byte[] keyingMaterial
-            = tlsContext.exportKeyingMaterial(
+        byte[] keyingMaterial = null;
+        if (tlsContext.getSecurityParameters().getMasterSecret() == null
+                && tlsContext.getResumableSession() != null) {
+            // BouncyCastle 1.59 clears the master secret from its session
+            // parameters immediately after connect, making them unavailable
+            // for exporting keying material. The value can still be present
+            // in the session parameters from the resumable session, which is
+            // used here.
+            final SessionParameters sessionParameters
+                = tlsContext.getResumableSession().exportSessionParameters();
+            if (sessionParameters != null
+                    && sessionParameters.getMasterSecret() != null)
+            {
+                keyingMaterial = exportKeyingMaterial(
+                        tlsContext,
+                        ExporterLabel.dtls_srtp,
+                        null,
+                        2 * (cipher_key_length + cipher_salt_length),
+                        sessionParameters.getMasterSecret()
+                );
+            }
+        }
+        else
+        {
+            // Original, BouncyCastle 1.54-compatible code.
+            keyingMaterial
+                    = tlsContext.exportKeyingMaterial(
                     ExporterLabel.dtls_srtp,
                     null,
-                    2 * (cipher_key_length + cipher_salt_length));
+                    2 * (cipher_key_length + cipher_salt_length) );
+        }
         byte[] client_write_SRTP_master_key = new byte[cipher_key_length];
         byte[] server_write_SRTP_master_key = new byte[cipher_key_length];
         byte[] client_write_SRTP_master_salt = new byte[cipher_salt_length];
@@ -1717,5 +1743,47 @@ public class DtlsPacketTransformer
         }
 
         return true;
+    }
+
+    /* Copied from TlsContext#exportKeyingMaterial and modified to work with
+     * an externally provided masterSecret value.
+     */
+    private static byte[] exportKeyingMaterial(TlsContext context, String asciiLabel, byte[] context_value, int length, byte[] masterSecret )
+    {
+        if (context_value != null && !TlsUtils.isValidUint16(context_value.length))
+        {
+            throw new IllegalArgumentException("'context_value' must have length less than 2^16 (or be null)");
+        }
+
+        SecurityParameters sp = context.getSecurityParameters();
+        byte[] cr = sp.getClientRandom(), sr = sp.getServerRandom();
+
+        int seedLength = cr.length + sr.length;
+        if (context_value != null)
+        {
+            seedLength += (2 + context_value.length);
+        }
+
+        byte[] seed = new byte[seedLength];
+        int seedPos = 0;
+
+        System.arraycopy(cr, 0, seed, seedPos, cr.length);
+        seedPos += cr.length;
+        System.arraycopy(sr, 0, seed, seedPos, sr.length);
+        seedPos += sr.length;
+        if (context_value != null)
+        {
+            TlsUtils.writeUint16(context_value.length, seed, seedPos);
+            seedPos += 2;
+            System.arraycopy(context_value, 0, seed, seedPos, context_value.length);
+            seedPos += context_value.length;
+        }
+
+        if (seedPos != seedLength)
+        {
+            throw new IllegalStateException("error in calculation of seed for export");
+        }
+
+        return TlsUtils.PRF(context, masterSecret, asciiLabel, seed, length);
     }
 }
