@@ -18,8 +18,8 @@ package org.jitsi.impl.neomedia.transform.csrc;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 
-import org.ice4j.util.*;
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.util.*;
 
 /**
  * A simple dispatcher that handles new audio levels reported from incoming
@@ -38,8 +38,8 @@ public class CsrcAudioLevelDispatcher
      * audio level updates to <tt>AudioMediaStreamImpl</tt>
      */
     private static final ExecutorService threadPool
-        = ExecutorFactory.createFixedThreadPool(
-            Runtime.getRuntime().availableProcessors(),
+        = ExecutorUtils.newCachedThreadPool(
+            true,
             CsrcAudioLevelDispatcher.class.getName() + "-");
 
     /**
