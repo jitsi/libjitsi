@@ -199,6 +199,12 @@ public class AudioMediaDeviceSession
     {
         super.processorControllerUpdate(event);
 
+        // when using translator we do not want any audio level effect
+        if (useTranslator)
+        {
+            return;
+        }
+
         if (event instanceof ConfigureCompleteEvent)
         {
             Processor processor = (Processor) event.getSourceController();
@@ -289,6 +295,11 @@ public class AudioMediaDeviceSession
     public void setLocalUserAudioLevelListener(
             SimpleAudioLevelListener listener)
     {
+        if (useTranslator)
+        {
+            return;
+        }
+
         localUserAudioLevelEffect.setAudioLevelListener(listener);
     }
 
@@ -320,6 +331,10 @@ public class AudioMediaDeviceSession
      */
     public void setStreamAudioLevelListener(SimpleAudioLevelListener listener)
     {
+        if (useTranslator)
+        {
+            return;
+        }
         streamAudioLevelEffect.setAudioLevelListener(listener);
     }
 
@@ -359,6 +374,13 @@ public class AudioMediaDeviceSession
     protected Processor createProcessor()
     {
         Processor processor = super.createProcessor();
+
+        // when using translator we do not want any audio level effect
+        if(useTranslator)
+        {
+            return processor;
+        }
+
         if (processor != null)
         {
             if (outputAudioLevelEffect != null)
