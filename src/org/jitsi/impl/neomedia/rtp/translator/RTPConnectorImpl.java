@@ -211,7 +211,7 @@ class RTPConnectorImpl
     {
         if (this.closed)
         {
-            return null;
+            throw new IllegalStateException("Connector closed.");
         }
 
         if (this.controlOutputStream == null)
@@ -262,7 +262,7 @@ class RTPConnectorImpl
     {
         if (this.closed)
         {
-            return null;
+            throw new IllegalStateException("Connector closed.");
         }
 
         if (this.dataOutputStream == null)

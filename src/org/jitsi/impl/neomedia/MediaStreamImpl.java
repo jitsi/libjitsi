@@ -608,7 +608,7 @@ public class MediaStreamImpl
             {
                 MediaDeviceSession deviceSession = getDeviceSession();
 
-                if (deviceSession == null)
+                if (deviceSession == null || rtpTranslator != null)
                 {
                     // Since there is no output MediaDevice to render the
                     // receiveStream on, the JitterBuffer of the receiveStream
@@ -4249,6 +4249,20 @@ public class MediaStreamImpl
         if (transportCCEngine != null)
         {
             transportCCEngine.addMediaStream(this);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setRTPTranslator(RTPTranslator rtpTranslator)
+    {
+        super.setRTPTranslator(rtpTranslator);
+
+        if (this.deviceSession != null)
+        {
+            this.deviceSession.setUseTranslator(rtpTranslator != null);
         }
     }
 }

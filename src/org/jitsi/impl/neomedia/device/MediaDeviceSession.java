@@ -206,6 +206,11 @@ public class MediaDeviceSession
     protected boolean outputSizeChanged = false;
 
     /**
+     * Whether this device session is used by a stream which uses a translator.
+     */
+    public boolean useTranslator = false;
+
+    /**
      * Initializes a new <tt>MediaDeviceSession</tt> instance which is to
      * represent the use of a specific <tt>MediaDevice</tt> by a
      * <tt>MediaStream</tt>.
@@ -2556,5 +2561,15 @@ public class MediaDeviceSession
         if (controls == null)
             controls = Collections.emptySet();
         return controls;
+    }
+
+    /**
+     * Updates the value of <tt>useTranslator</tt>.
+     * @param useTranslator whether this device session is used by
+     * a <tt>MediaStream</tt> that is having a translator.
+     */
+    public void setUseTranslator(boolean useTranslator)
+    {
+        this.useTranslator = useTranslator;
     }
 }
