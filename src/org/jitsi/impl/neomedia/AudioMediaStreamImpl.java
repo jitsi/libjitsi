@@ -246,6 +246,15 @@ public class AudioMediaStreamImpl
                     {
                         ssrcExtID = e.getKey();
                         ssrcDir = ext.getDirection();
+
+                        // jicofo is always setting this extension as one
+                        // if we negotiate it to be something different
+                        // let's at least print it
+                        if (ssrcExtID != 1)
+                        {
+                            logger.warn("SSRC_AUDIO_LEVEL_URN extension id " +
+                                "needs rewriting!");
+                        }
                     }
                 }
             }

@@ -237,12 +237,16 @@ public class AudioMediaDeviceImpl
     }
 
     /**
-     * Returns a <tt>List</tt> containing (at the time of writing) a single
-     * extension descriptor indicating <tt>RECVONLY</tt> support for
-     * mixer-to-client audio levels.
+     * Returns a <tt>List</tt> containing extension descriptor indicating
+     * <tt>RECVONLY</tt> support for mixer-to-client audio levels,
+     * and extension descriptor indicating <tt>SENDRECV</tt> support for
+     * client-to-mixer audio levels.
+     * We add the ssrc audio levels as first element, in order when making offer
+     * to be the first one (id 1) as some other systems have
+     * this hardcoded it as 1 (jicofo).
      *
      * @return a <tt>List</tt> containing the <tt>CSRC_AUDIO_LEVEL_URN</tt>
-     * extension descriptor.
+     * and  <tt>SSRC_AUDIO_LEVEL_URN</tt> extension descriptor.
      */
     @Override
     public List<RTPExtension> getSupportedExtensions()
@@ -251,10 +255,11 @@ public class AudioMediaDeviceImpl
         {
             rtpExtensions = new ArrayList<RTPExtension>(1);
 
+            URI ssrcAudioLevelURN;
             URI csrcAudioLevelURN;
-
             try
             {
+                ssrcAudioLevelURN = new URI(RTPExtension.SSRC_AUDIO_LEVEL_URN);
                 csrcAudioLevelURN = new URI(RTPExtension.CSRC_AUDIO_LEVEL_URN);
             }
             catch (URISyntaxException e)
@@ -263,7 +268,15 @@ public class AudioMediaDeviceImpl
                 // never changes.
                 if (logger.isInfoEnabled())
                     logger.info("Aha! Someone messed with the source!", e);
+                ssrcAudioLevelURN = null;
                 csrcAudioLevelURN = null;
+            }
+            if (ssrcAudioLevelURN != null)
+            {
+                rtpExtensions.add(
+                    new RTPExtension(
+                        ssrcAudioLevelURN,
+                        MediaDirection.SENDRECV));
             }
             if (csrcAudioLevelURN != null)
             {
