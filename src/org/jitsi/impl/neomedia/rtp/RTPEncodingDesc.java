@@ -208,16 +208,6 @@ public class RTPEncodingDesc
     }
 
     /**
-     * Gets the last stable bitrate (in bps) for this instance.
-     *
-     * @return The last stable bitrate (in bps) for this instance.
-     */
-    public long getLastStableBitrateBps(long nowMs)
-    {
-        return rateStatistics.getRate(nowMs);
-    }
-
-    /**
      * Gets the primary SSRC for this layering/encoding.
      *
      * @return the primary SSRC for this layering/encoding.
@@ -387,7 +377,7 @@ public class RTPEncodingDesc
      * @return the cumulative bitrate (in bps) of this {@link RTPEncodingDesc}
      * and its dependencies.
      */
-    private long getBitrateBps(long nowMs)
+    public long getBitrateBps(long nowMs)
     {
         RTPEncodingDesc[] encodings = track.getRTPEncodings();
         if (ArrayUtils.isNullOrEmpty(encodings))

@@ -135,7 +135,7 @@ public class MediaStreamTrackDesc
             long nowMs = System.currentTimeMillis();
             for (int i = idx; i > -1; i--)
             {
-                long bps = rtpEncodings[i].getLastStableBitrateBps(nowMs);
+                long bps = rtpEncodings[i].getBitrateBps(nowMs);
                 if (bps > 0)
                 {
                     return bps;
