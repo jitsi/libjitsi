@@ -22,8 +22,8 @@ import java.util.concurrent.*;
 import javax.media.*;
 import javax.media.protocol.*;
 
-import org.ice4j.util.*;
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.utils.*;
 import org.jitsi.util.Logger; // Disambiguation.
 
 /**
@@ -108,9 +108,7 @@ class PushSourceStreamImpl
         readQ = new ArrayBlockingQueue<>(readQCapacity);
         if (logger.isTraceEnabled())
         {
-            readQStats
-                = new QueueStatistics(
-                        getClass().getSimpleName() + "-" + hashCode());
+            readQStats = QueueStatistics.get(getClass().getSimpleName());
         }
         else
         {

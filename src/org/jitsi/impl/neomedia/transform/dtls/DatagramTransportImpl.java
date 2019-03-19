@@ -20,7 +20,6 @@ import java.util.*;
 import java.util.concurrent.*;
 
 import org.bouncycastle.crypto.tls.*;
-import org.ice4j.ice.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.codec.video.h264.*;
 import org.jitsi.service.neomedia.*;
@@ -101,8 +100,8 @@ public class DatagramTransportImpl
     {
         switch (componentID)
         {
-        case Component.RTCP:
-        case Component.RTP:
+        case DtlsTransformEngine.COMPONENT_RTCP:
+        case DtlsTransformEngine.COMPONENT_RTP:
             this.componentID = componentID;
             break;
         default:
@@ -177,10 +176,10 @@ public class DatagramTransportImpl
 
         switch (componentID)
         {
-        case Component.RTCP:
+        case DtlsTransformEngine.COMPONENT_RTCP:
             outputStream = connector.getControlOutputStream();
             break;
-        case Component.RTP:
+        case DtlsTransformEngine.COMPONENT_RTP:
             outputStream = connector.getDataOutputStream();
             break;
         default:

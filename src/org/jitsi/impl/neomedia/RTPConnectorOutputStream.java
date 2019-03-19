@@ -24,7 +24,7 @@ import java.util.concurrent.locks.*;
 import javax.media.rtp.*;
 
 import net.sf.fmj.media.util.*;
-import org.ice4j.util.*;
+import org.jitsi.utils.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
@@ -785,8 +785,7 @@ public abstract class RTPConnectorOutputStream
         {
             if (logger.isTraceEnabled())
             {
-                queueStats = new QueueStatistics(
-                    getClass().getSimpleName() + "-" + hashCode());
+                queueStats = QueueStatistics.get(getClass().getSimpleName());
             }
 
             sendThread

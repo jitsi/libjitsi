@@ -23,8 +23,8 @@ import javax.media.rtp.*;
 import net.sf.fmj.media.rtp.*;
 import net.sf.fmj.media.rtp.RTPHeader;
 
-import org.ice4j.util.*;
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.utils.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
@@ -126,9 +126,7 @@ class OutputDataStreamImpl
 
         if (logger.isTraceEnabled())
         {
-            writeQStats
-                = new QueueStatistics(
-                    getClass().getSimpleName() + "-" + hashCode());
+            writeQStats = QueueStatistics.get(getClass().getSimpleName());
         }
         else
         {
