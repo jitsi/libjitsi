@@ -25,9 +25,9 @@ import javax.media.protocol.*;
 
 import net.sf.fmj.media.util.*;
 
-import org.ice4j.socket.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
 import org.jitsi.impl.neomedia.protocol.*;
+import org.jitsi.utils.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.packetlogging.*;

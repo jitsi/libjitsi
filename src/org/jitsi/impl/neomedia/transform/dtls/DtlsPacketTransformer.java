@@ -21,7 +21,6 @@ import java.security.*;
 import java.util.*;
 
 import org.bouncycastle.crypto.tls.*;
-import org.ice4j.ice.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.impl.neomedia.transform.srtp.*;
@@ -412,7 +411,7 @@ public class DtlsPacketTransformer
         if (srtpTransformer != null)
             return srtpTransformer;
 
-        if (rtcpmux && Component.RTCP == componentID)
+        if (rtcpmux && DtlsTransformEngine.COMPONENT_RTCP == componentID)
             return initializeSRTCPTransformerFromRtp();
 
         // XXX It is our explicit policy to rely on the SrtpListener to notify
@@ -582,10 +581,10 @@ public class DtlsPacketTransformer
 
         switch (componentID)
         {
-        case Component.RTCP:
+            case DtlsTransformEngine.COMPONENT_RTCP:
             rtcp = true;
             break;
-        case Component.RTP:
+        case DtlsTransformEngine.COMPONENT_RTP:
             rtcp = false;
             break;
         default:
@@ -895,7 +894,7 @@ public class DtlsPacketTransformer
      */
     private void reverseTransformDtls(RawPacket pkt, List<RawPacket> outPkts)
     {
-        if (rtcpmux && Component.RTCP == componentID)
+        if (rtcpmux && DtlsTransformEngine.COMPONENT_RTCP == componentID)
         {
             // This should never happen.
             logger.warn(
@@ -1235,7 +1234,7 @@ public class DtlsPacketTransformer
             return;
         }
 
-        if (rtcpmux && Component.RTCP == componentID)
+        if (rtcpmux && DtlsTransformEngine.COMPONENT_RTCP == componentID)
         {
             // In the case of rtcp-mux, the RTCP transformer does not create
             // a DTLS session. The SRTP context (_srtpTransformer) will be

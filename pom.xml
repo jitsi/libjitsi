@@ -50,8 +50,12 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>ice4j</artifactId>
-      <version>2.0.0-20181005.221549-11</version>
+      <artifactId>jitsi-utils</artifactId>
+      <version>1.0-20190319.095828-1</version>
+    </dependency>
+    <dependency>
+      <groupId>org.opentelecoms.sdp</groupId>
+      <artifactId>java-sdp-nist-bridge</artifactId>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>

@@ -33,6 +33,7 @@ import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.stats.*;
 import org.jitsi.impl.neomedia.transform.rtcp.*;
+import org.jitsi.utils.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.control.*;
 import org.jitsi.service.neomedia.format.*;
@@ -76,7 +77,7 @@ public class MediaStreamStatsImpl
      * This is used to compute the correct RTT in the translator case.
      */
     private final Map<Long, Long> emission2reception
-        = Collections.synchronizedMap(new LRUCache<Long, Long>(100));
+        = Collections.synchronizedMap(new LRUCache<>(100));
 
     /**
      * Computes an Exponentially Weighted Moving Average (EWMA). Thus, the most
