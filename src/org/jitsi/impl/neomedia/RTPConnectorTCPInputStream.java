@@ -18,7 +18,6 @@ package org.jitsi.impl.neomedia;
 import java.io.*;
 import java.net.*;
 
-import org.ice4j.socket.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.packetlogging.*;
 import org.jitsi.util.*;
@@ -56,12 +55,7 @@ public class RTPConnectorTCPInputStream
     @Override
     protected void doLogPacket(DatagramPacket p)
     {
-        if(socket.getLocalAddress() == null)
-            return;
-
-        // Do not log the packet if this one has been processed (and already
-        // logged) by the ice4j stack.
-        if(socket instanceof MultiplexingSocket)
+        if (socket.getLocalAddress() == null)
             return;
 
         PacketLoggingService pktLogging = getPacketLoggingService();

@@ -18,7 +18,6 @@ package org.jitsi.impl.neomedia;
 import java.io.*;
 import java.net.*;
 
-import org.ice4j.socket.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.packetlogging.*;
 
@@ -75,11 +74,6 @@ public class RTPConnectorTCPOutputStream
     @Override
     protected void doLogPacket(RawPacket packet, InetSocketAddress target)
     {
-        // Do not log the packet if it has been processed (and already
-        // logged) by the ice4j stack.
-        if (socket instanceof MultiplexingSocket)
-            return;
-
         PacketLoggingService pktLogging = getPacketLoggingService();
 
         if (pktLogging != null)

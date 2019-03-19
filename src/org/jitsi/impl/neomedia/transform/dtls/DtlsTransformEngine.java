@@ -15,8 +15,6 @@
  */
 package org.jitsi.impl.neomedia.transform.dtls;
 
-import org.ice4j.ice.*;
-import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
 
@@ -29,6 +27,16 @@ import org.jitsi.service.neomedia.*;
 public class DtlsTransformEngine
     implements SrtpControl.TransformEngine
 {
+    /**
+     * The index of the RTP component.
+     */
+    static final int COMPONENT_RTP = 0;
+
+    /**
+     * The index of the RTCP component.
+     */
+    static final int COMPONENT_RTCP = 1;
+
     /**
      * The indicator which determines whether
      * {@link SrtpControl.TransformEngine#cleanup()} has been invoked on this
@@ -112,14 +120,13 @@ public class DtlsTransformEngine
      */
     private DtlsPacketTransformer getPacketTransformer(int componentID)
     {
-        int index = componentID - 1;
-        DtlsPacketTransformer packetTransformer = packetTransformers[index];
+        DtlsPacketTransformer packetTransformer = packetTransformers[componentID];
 
         if ((packetTransformer == null) && !disposed)
         {
             packetTransformer = createPacketTransformer(componentID);
             if (packetTransformer != null)
-                packetTransformers[index] = packetTransformer;
+                packetTransformers[componentID] = packetTransformer;
         }
         return packetTransformer;
     }
@@ -143,7 +150,7 @@ public class DtlsTransformEngine
      */
     public PacketTransformer getRTCPTransformer()
     {
-        return getPacketTransformer(Component.RTCP);
+        return getPacketTransformer(COMPONENT_RTCP);
     }
 
     /**
@@ -151,6 +158,6 @@ public class DtlsTransformEngine
      */
     public PacketTransformer getRTPTransformer()
     {
-        return getPacketTransformer(Component.RTP);
+        return getPacketTransformer(COMPONENT_RTP);
     }
 }

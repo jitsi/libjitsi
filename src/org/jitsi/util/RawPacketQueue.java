@@ -15,7 +15,7 @@
  */
 package org.jitsi.util;
 
-import org.ice4j.util.*;
+import org.jitsi.utils.*;
 import org.jitsi.service.neomedia.*;
 
 /**

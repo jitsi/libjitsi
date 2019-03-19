@@ -16,8 +16,8 @@
 package org.jitsi.impl.neomedia.transform;
 
 import org.jitsi.impl.neomedia.*;
+import org.jitsi.utils.*;
 import org.jitsi.service.neomedia.*;
-import org.jitsi.util.*;
 
 import java.util.*;
 
@@ -88,8 +88,8 @@ public class PaddingTermination
         Set<Integer> replayContext = replayContexts.get(mediaSSRC);
         if (replayContext == null)
         {
-            replayContext = Collections.newSetFromMap(
-                new LRUCache<Integer, Boolean>(SEEN_SET_SZ));
+            replayContext
+                    = Collections.newSetFromMap(new LRUCache<>(SEEN_SET_SZ));
 
             replayContexts.put(mediaSSRC, replayContext);
         }

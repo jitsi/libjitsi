@@ -15,7 +15,7 @@
  */
 package org.jitsi.impl.neomedia.rtp;
 
-import org.ice4j.util.*;
+import org.jitsi.utils.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.util.*;
