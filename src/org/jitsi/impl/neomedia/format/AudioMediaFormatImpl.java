@@ -20,8 +20,8 @@ import java.util.*;
 import javax.media.*;
 import javax.media.format.*;
 
-import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.format.*;
+import org.jitsi.utils.*;
 
 /**
  * Implements <tt>AudioMediaFormat</tt> for the JMF <tt>AudioFormat</tt>.

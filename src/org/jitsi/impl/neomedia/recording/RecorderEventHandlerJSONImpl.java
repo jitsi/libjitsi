@@ -15,9 +15,9 @@
  */
 package org.jitsi.impl.neomedia.recording;
 
-import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.recording.*;
 import org.jitsi.util.*;
+import org.jitsi.utils.*;
 import org.json.simple.*;
 
 import java.io.*;

@@ -23,6 +23,7 @@ import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
 import org.jitsi.service.neomedia.recording.*;
+import org.jitsi.utils.*;
 
 /**
  * The <tt>MediaService</tt> service is meant to be a wrapper of media libraries

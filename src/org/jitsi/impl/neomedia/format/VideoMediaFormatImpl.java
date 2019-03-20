@@ -20,8 +20,8 @@ import java.util.*;
 
 import javax.media.format.*;
 
-import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.format.*;
+import org.jitsi.utils.*;
 
 /**
  * Implements <tt>VideoMediaFormat</tt> for the JMF <tt>VideoFormat</tt>.

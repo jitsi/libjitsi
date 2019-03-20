@@ -23,6 +23,7 @@ import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
+import org.jitsi.utils.*;
 
 /**
  * Implements an example application in the fashion of JMF's AVTransmit2 example

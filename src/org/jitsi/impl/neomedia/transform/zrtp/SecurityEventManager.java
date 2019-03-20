@@ -20,10 +20,10 @@ import gnu.java.zrtp.*;
 import java.util.*;
 
 import org.jitsi.service.libjitsi.*;
-import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.event.*;
 import org.jitsi.service.resources.*;
 import org.jitsi.util.*;
+import org.jitsi.utils.*;
 
 /**
  * The user callback class for ZRTP4J.

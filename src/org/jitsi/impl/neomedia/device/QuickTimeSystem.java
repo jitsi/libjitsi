@@ -22,8 +22,8 @@ import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.codec.video.*;
 import org.jitsi.impl.neomedia.quicktime.*;
-import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
+import org.jitsi.utils.*;
 
 /**
  * Discovers and registers QuickTime/QTKit capture devices with JMF.

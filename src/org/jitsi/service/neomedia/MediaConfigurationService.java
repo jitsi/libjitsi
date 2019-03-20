@@ -17,6 +17,7 @@ package org.jitsi.service.neomedia;
 
 import java.awt.*;
 import org.jitsi.service.neomedia.codec.*;
+import org.jitsi.utils.*;
 
 /**
  * An interface that exposes the <tt>Component</tt>s used in media
@@ -50,7 +51,8 @@ public interface MediaConfigurationService
      * to use.
      * @return The <tt>Component</tt> for encodings configuration
      */
-    public Component createEncodingControls(MediaType mediaType,
+    public Component createEncodingControls(
+            MediaType mediaType,
             EncodingConfiguration encodingConfiguration);
 
     /**

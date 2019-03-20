@@ -17,6 +17,7 @@ package org.jitsi.service.neomedia;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.service.neomedia.event.*;
+import org.jitsi.utils.*;
 
 /**
  * Controls SRTP encryption in the MediaStream.

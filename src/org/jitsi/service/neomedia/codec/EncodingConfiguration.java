@@ -17,9 +17,9 @@ package org.jitsi.service.neomedia.codec;
 
 import java.util.*;
 
-import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.format.*;
 import org.jitsi.util.*;
+import org.jitsi.utils.*;
 
 /**
  * A base class that manages encoding configurations. It holds information

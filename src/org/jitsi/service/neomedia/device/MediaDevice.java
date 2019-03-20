@@ -20,6 +20,7 @@ import java.util.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.format.*;
+import org.jitsi.utils.*;
 
 /**
  * The <tt>MediaDevice</tt> class represents capture and playback devices that
