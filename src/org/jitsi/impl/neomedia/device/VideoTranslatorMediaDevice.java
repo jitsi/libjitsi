@@ -29,6 +29,7 @@ import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
 import org.jitsi.util.event.*;
+import org.jitsi.utils.*;
 
 /**
  * Implements a <tt>MediaDevice</tt> which is to be used in video conferencing

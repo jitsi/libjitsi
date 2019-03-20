@@ -26,6 +26,7 @@ import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.recording.*;
 import org.jitsi.service.neomedia.MediaException;
 import org.jitsi.util.*;
+import org.jitsi.utils.*;
 
 /**
  * The call recording implementation.

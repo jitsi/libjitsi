@@ -21,7 +21,7 @@ import javax.media.*;
 import javax.media.format.*;
 
 import org.jitsi.impl.neomedia.device.*;
-import org.jitsi.service.neomedia.*;
+import org.jitsi.utils.*;
 
 /**
  * Implements a <tt>MediaDevice</tt> which provides a fading animation from

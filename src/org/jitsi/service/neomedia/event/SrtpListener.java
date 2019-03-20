@@ -16,6 +16,7 @@
 package org.jitsi.service.neomedia.event;
 
 import org.jitsi.service.neomedia.*;
+import org.jitsi.utils.*;
 
 /**
  * The <tt>SrtpListener</tt> is meant to be used by the media stream creator, as

@@ -38,6 +38,7 @@ import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
 import org.jitsi.util.*;
 import org.jitsi.util.event.*;
+import org.jitsi.utils.*;
 
 /**
  * Represents the use of a specific <tt>MediaDevice</tt> by a

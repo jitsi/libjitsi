@@ -20,9 +20,9 @@ import javax.media.*;
 import javax.media.format.*;
 
 import org.jitsi.impl.neomedia.device.*;
-import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
+import org.jitsi.utils.*;
 
 /**
  * This class contains the method <tt>createRtpdumpMediaDevice</tt> that

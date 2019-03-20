@@ -17,7 +17,7 @@ package org.jitsi.service.neomedia.format;
 
 import java.util.*;
 
-import org.jitsi.service.neomedia.*;
+import org.jitsi.utils.*;
 
 /**
  * The <tt>MediaFormat</tt> interface represents a generic (i.e. audio/video or

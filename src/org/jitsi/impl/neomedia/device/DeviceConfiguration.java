@@ -32,6 +32,7 @@ import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.util.*;
 import org.jitsi.util.event.*;
+import org.jitsi.utils.*;
 
 /**
  * This class aims to provide a simple configuration interface for JMF. It

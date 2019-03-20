@@ -37,6 +37,7 @@ import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.version.*;
 import org.jitsi.util.*;
+import org.jitsi.utils.*;
 
 /**
  * Implements {@link DtlsControl} i.e. {@link SrtpControl} for DTLS-SRTP.

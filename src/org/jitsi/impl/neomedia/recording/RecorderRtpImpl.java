@@ -46,6 +46,7 @@ import org.jitsi.service.neomedia.recording.*;
 import org.jitsi.util.*;
 
 import com.sun.media.util.*;
+import org.jitsi.utils.*;
 
 /**
  * A <tt>Recorder</tt> implementation which attaches to an <tt>RTPTranslator</tt>.

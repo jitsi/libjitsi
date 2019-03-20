@@ -17,7 +17,7 @@ package org.jitsi.service.neomedia.format;
 
 import java.util.*;
 
-import org.jitsi.service.neomedia.*;
+import org.jitsi.utils.*;
 
 /**
  * Allows the creation of audio and video <tt>MediaFormat</tt> instances.

@@ -17,6 +17,7 @@ package org.jitsi.impl.neomedia.rtp;
 
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
+import org.jitsi.utils.*;
 
 /**
  * Represents a collection of {@link RTPEncodingDesc}s that encode the same

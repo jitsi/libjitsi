@@ -49,6 +49,7 @@ import org.jitsi.service.resources.*;
 import org.jitsi.util.*;
 import org.jitsi.util.event.*;
 import org.jitsi.util.swing.*;
+import org.jitsi.utils.*;
 import org.json.simple.*;
 
 import com.sun.media.util.*;
