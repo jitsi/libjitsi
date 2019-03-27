@@ -4,12 +4,7 @@
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <parent>
-    <groupId>org.jitsi</groupId>
-    <artifactId>jitsi-universe</artifactId>
-    <version>1.0-20160405.154511-15</version>
-  </parent>
-
+  <groupId>org.jitsi</groupId>
   <artifactId>libjitsi</artifactId>
   <version>1.0-SNAPSHOT</version>
   <packaging>bundle</packaging>
@@ -17,31 +12,42 @@
   <name>libjitsi</name>
   <url>https://github.com/jitsi/libjitsi</url>
 
+  <properties>
+    <bouncycastle.version>1.54</bouncycastle.version>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>ch.imvs</groupId>
       <artifactId>sdes4j</artifactId>
+      <version>1.1.3</version>
     </dependency>
     <dependency>
       <groupId>com.googlecode.json-simple</groupId>
       <artifactId>json-simple</artifactId>
+      <version>1.1.1</version>
     </dependency>
     <dependency>
       <groupId>net.java.dev.jna</groupId>
       <artifactId>jna</artifactId>
+      <version>4.1.0</version>
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcpkix-jdk15on</artifactId>
+      <version>${bouncycastle.version}</version>
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcprov-jdk15on</artifactId>
+      <version>${bouncycastle.version}</version>
     </dependency>
     <!-- org.jitsi -->
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>bccontrib</artifactId>
+      <version>1.0</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -67,6 +73,7 @@
     <dependency>
       <groupId>org.osgi</groupId>
       <artifactId>org.osgi.core</artifactId>
+      <version>4.3.1</version>
     </dependency>
     <!-- https://mvnrepository.com/artifact/org.jetbrains/annotations -->
     <dependency>
@@ -78,6 +85,7 @@
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
+      <version>4.11</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -123,6 +131,8 @@
       <plugin>
          <groupId>org.apache.felix</groupId>
          <artifactId>maven-bundle-plugin</artifactId>
+         <version>3.0.1</version>
+         <extensions>true</extensions>
          <configuration>
             <excludeDependencies>jitsi-lgpl-dependencies</excludeDependencies>
             <instructions>
@@ -194,9 +204,13 @@
         <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-compiler-plugin</artifactId>
+            <version>3.5.1</version>
             <configuration>
                 <source>1.8</source>
                 <target>1.8</target>
+                <compilerArgs>
+                    <arg>-Xlint:all</arg>
+                </compilerArgs>
             </configuration>
         </plugin>
     </plugins>
