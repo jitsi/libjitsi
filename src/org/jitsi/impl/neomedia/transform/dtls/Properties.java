@@ -19,7 +19,7 @@ import java.util.*;
 import java.util.concurrent.*;
 
 import org.jitsi.service.neomedia.*;
-import org.jitsi.util.event.*;
+import org.jitsi.utils.event.*;
 
 /**
  * Gathers properties of {@link DtlsControlImpl} which it shares with

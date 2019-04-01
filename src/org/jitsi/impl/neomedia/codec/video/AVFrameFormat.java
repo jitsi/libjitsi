@@ -20,7 +20,7 @@ import java.awt.*;
 import javax.media.*;
 import javax.media.format.*;
 
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Implements a <tt>VideoFormat</tt> for a <tt>Buffer</tt> carrying

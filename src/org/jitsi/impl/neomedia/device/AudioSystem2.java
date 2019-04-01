@@ -19,7 +19,7 @@ import java.lang.ref.*;
 import java.util.*;
 import java.util.regex.*;
 
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  *

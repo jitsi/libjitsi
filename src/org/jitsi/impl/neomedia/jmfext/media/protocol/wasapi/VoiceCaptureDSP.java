@@ -17,7 +17,7 @@ package org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi;
 
 import static org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi.WASAPI.*;
 
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Defines the native interface of Voice Capture DSP as used by

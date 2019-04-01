@@ -16,6 +16,8 @@
 package org.jitsi.impl.neomedia.device;
 
 import org.jitsi.util.*;
+import org.jitsi.utils.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * JNI link to the MacOsX / Windows CoreAudio library.

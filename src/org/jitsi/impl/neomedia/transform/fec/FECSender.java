@@ -18,7 +18,7 @@ package org.jitsi.impl.neomedia.transform.fec;
 import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
-import org.jitsi.util.Logger;
+import org.jitsi.utils.logging.Logger;
 
 /**
  * <tt>PacketTransformer</tt> which adds ulpfec packets. Works for a

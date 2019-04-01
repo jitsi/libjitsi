@@ -29,6 +29,7 @@ import org.jitsi.impl.neomedia.conference.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 import org.jitsi.utils.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Extends <tt>MediaDeviceImpl</tt> with audio-specific functionality.

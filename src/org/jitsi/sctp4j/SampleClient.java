@@ -15,7 +15,7 @@
  */
 package org.jitsi.sctp4j;
 
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Sample SCTP client that uses UDP socket for transfers.

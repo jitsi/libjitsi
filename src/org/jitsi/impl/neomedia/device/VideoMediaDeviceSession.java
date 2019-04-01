@@ -45,6 +45,7 @@ import org.jitsi.util.*;
 import org.jitsi.util.event.*;
 import org.jitsi.util.swing.*;
 import org.jitsi.utils.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Extends <tt>MediaDeviceSession</tt> to add video-specific functionality.

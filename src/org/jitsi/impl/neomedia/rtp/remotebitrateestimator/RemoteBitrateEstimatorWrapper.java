@@ -23,7 +23,8 @@ import org.jitsi.service.neomedia.rtp.*;
 import org.jetbrains.annotations.*;
 
 import java.util.*;
-import org.jitsi.util.*;
+
+import org.jitsi.utils.logging.*;
 
 /**
  * This is the receive-side remote bitrate estimator. If REMB support has not

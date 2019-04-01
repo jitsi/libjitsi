@@ -20,6 +20,8 @@ import org.jitsi.service.neomedia.*;
 /**
  * Utility class that contains static methods for RTCP header manipulation.
  *
+ * @deprecated
+ *
  * @author George Politis
  */
 public class RTCPUtils

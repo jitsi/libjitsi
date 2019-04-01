@@ -24,7 +24,7 @@ import net.sf.fmj.media.*;
 
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.control.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Implements an FMJ <tt>Codec</tt> which uses libswscale to scale images and

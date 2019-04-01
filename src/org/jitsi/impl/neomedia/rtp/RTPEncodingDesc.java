@@ -18,8 +18,8 @@ package org.jitsi.impl.neomedia.rtp;
 import org.jitsi.utils.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.codec.*;
-import org.jitsi.util.*;
-import org.jitsi.util.Logger;
+import org.jitsi.utils.logging.Logger;
+import org.jitsi.utils.stats.*;
 
 import java.util.*;
 import java.util.concurrent.atomic.*;

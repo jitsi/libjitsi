@@ -19,7 +19,7 @@ import java.io.*;
 import java.util.*;
 
 import org.bouncycastle.crypto.tls.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Implements {@link TlsClient} for the purposes of supporting DTLS-SRTP.

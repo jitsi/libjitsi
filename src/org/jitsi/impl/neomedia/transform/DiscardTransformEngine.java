@@ -19,6 +19,7 @@ import net.sf.fmj.media.rtp.*;
 import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 import javax.media.*;
 import java.util.*;

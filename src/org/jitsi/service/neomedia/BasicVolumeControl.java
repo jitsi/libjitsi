@@ -25,7 +25,7 @@ import javax.media.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.event.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Provides a basic implementation of <tt>VolumeControl</tt> which stores the

@@ -19,8 +19,8 @@ import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
-import org.jitsi.util.*;
 import org.jitsi.util.concurrent.*;
+import org.jitsi.utils.logging.*;
 
 import java.util.*;
 import java.util.concurrent.*;

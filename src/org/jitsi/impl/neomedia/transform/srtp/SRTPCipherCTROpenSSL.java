@@ -15,7 +15,7 @@
  */
 package org.jitsi.impl.neomedia.transform.srtp;
 
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * @see SRTPCipherCTR

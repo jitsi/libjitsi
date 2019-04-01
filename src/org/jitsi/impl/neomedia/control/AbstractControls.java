@@ -17,7 +17,7 @@ package org.jitsi.impl.neomedia.control;
 
 import javax.media.*;
 
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Provides an abstract implementation of <tt>Controls</tt> which facilitates

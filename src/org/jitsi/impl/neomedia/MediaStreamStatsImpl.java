@@ -38,8 +38,8 @@ import org.jitsi.service.neomedia.control.*;
 import org.jitsi.service.neomedia.format.*;
 import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.service.neomedia.stats.*;
-import org.jitsi.util.*;
 import org.jitsi.utils.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Class used to compute stats concerning a MediaStream.
@@ -1524,7 +1524,7 @@ public class MediaStreamStatsImpl
         if (sr != null)
         {
             long emisionTime = TimeUtils.toNtpShortFormat(
-                TimeUtils.constuctNtp(sr.ntptimestampmsw, sr.ntptimestamplsw));
+                TimeUtils.constructNtp(sr.ntptimestampmsw, sr.ntptimestamplsw));
 
             long arrivalTime = TimeUtils.toNtpShortFormat(
                 TimeUtils.toNtpTime(System.currentTimeMillis()));

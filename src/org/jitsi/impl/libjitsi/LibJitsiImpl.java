@@ -19,7 +19,7 @@ import java.util.*;
 import java.util.concurrent.locks.*;
 
 import org.jitsi.service.libjitsi.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Represents an implementation of the <tt>libjitsi</tt> library which is

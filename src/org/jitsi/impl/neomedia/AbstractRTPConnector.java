@@ -21,7 +21,7 @@ import java.net.*;
 import javax.media.rtp.*;
 
 import org.jitsi.service.neomedia.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Provides a base/default implementation of <tt>RTPConnector</tt> which has

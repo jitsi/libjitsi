@@ -19,7 +19,7 @@ import java.net.*;
 
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Represents a default implementation of <tt>StreamConnector</tt> which is

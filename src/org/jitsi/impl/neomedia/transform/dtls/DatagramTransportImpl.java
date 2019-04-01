@@ -23,7 +23,7 @@ import org.bouncycastle.crypto.tls.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.codec.video.h264.*;
 import org.jitsi.service.neomedia.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Implements {@link DatagramTransport} in order to integrate the Bouncy Castle

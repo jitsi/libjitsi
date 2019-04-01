@@ -17,7 +17,7 @@ package org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi;
 
 import java.util.*;
 
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Implements the Java counterpart of an <tt>IMMNotificationClient</tt> instance

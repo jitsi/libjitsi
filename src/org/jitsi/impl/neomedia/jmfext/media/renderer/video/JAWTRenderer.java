@@ -27,6 +27,7 @@ import org.jitsi.impl.neomedia.codec.video.*;
 import org.jitsi.impl.neomedia.jmfext.media.renderer.*;
 import org.jitsi.util.*;
 import org.jitsi.util.swing.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Implements a <tt>VideoRenderer</tt> which uses JAWT to perform native

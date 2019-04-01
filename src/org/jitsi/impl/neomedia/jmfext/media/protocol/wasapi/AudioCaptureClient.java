@@ -26,7 +26,7 @@ import javax.media.protocol.*;
 
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.jmfext.media.renderer.audio.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Abstracts the initialization of an <tt>IAudioCaptureClient</tt> instance from

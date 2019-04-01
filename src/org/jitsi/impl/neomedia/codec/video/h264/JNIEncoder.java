@@ -31,7 +31,7 @@ import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.control.*;
 import org.jitsi.service.neomedia.event.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Implements an FMJ H.264 encoder using FFmpeg (and x264).

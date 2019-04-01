@@ -21,7 +21,8 @@ import java.util.*;
 import java.util.concurrent.*;
 
 import org.jitsi.service.neomedia.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.concurrent.*;
+import org.jitsi.utils.logging.*;
 import org.json.simple.*;
 
 /**
@@ -939,7 +940,7 @@ public class DominantSpeakerIdentification
      * @author Lyubomir Marinov
      */
     private class PropertyChangeNotifier
-        extends org.jitsi.util.event.PropertyChangeNotifier
+        extends org.jitsi.utils.event.PropertyChangeNotifier
     {
         /**
          * {@inheritDoc}

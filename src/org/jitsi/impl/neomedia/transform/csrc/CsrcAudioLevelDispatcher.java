@@ -19,7 +19,7 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.concurrent.*;
 
 /**
  * A simple dispatcher that handles new audio levels reported from incoming

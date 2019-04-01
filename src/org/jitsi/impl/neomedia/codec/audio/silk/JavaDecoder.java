@@ -22,7 +22,7 @@ import javax.media.format.*;
 
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.service.neomedia.control.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 
 /**

@@ -22,7 +22,7 @@ import javax.crypto.spec.*;
 
 import org.bouncycastle.crypto.*;
 import org.bouncycastle.crypto.params.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Adapts the <tt>javax.crypto.Cipher</tt> class to the

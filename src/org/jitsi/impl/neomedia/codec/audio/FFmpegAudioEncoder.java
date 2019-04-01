@@ -19,7 +19,7 @@ import javax.media.*;
 import javax.media.format.*;
 
 import org.jitsi.impl.neomedia.codec.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Implements an audio <tt>Codec</tt> using the FFmpeg library.

@@ -16,6 +16,7 @@
 package org.jitsi.impl.neomedia.imgstreaming;
 
 import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * This class uses native code to capture desktop screen.

@@ -17,7 +17,7 @@ package org.jitsi.sctp4j;
 
 import java.io.*;
 
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * SCTP socket implemented using "usrsctp" lib.

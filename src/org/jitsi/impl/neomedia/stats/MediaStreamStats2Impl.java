@@ -2,7 +2,7 @@ package org.jitsi.impl.neomedia.stats;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.service.neomedia.stats.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 import java.util.*;
 import java.util.concurrent.*;

@@ -18,7 +18,7 @@ package org.jitsi.service.neomedia;
 import java.io.*;
 import java.net.*;
 
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Represents a default implementation of <tt>StreamConnector</tt> which is

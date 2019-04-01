@@ -18,6 +18,7 @@ package org.jitsi.impl.neomedia.jmfext.media.renderer.audio;
 import java.beans.*;
 import java.io.*;
 import java.lang.reflect.*;
+import java.util.*;
 
 import javax.media.*;
 import javax.media.format.*;
@@ -504,7 +505,7 @@ public class PulseAudioRenderer
                  */
                 String locatorDev = getLocatorDev();
 
-                if (!StringUtils.isEquals(dev, locatorDev))
+                if (!Objects.equals(dev, locatorDev))
                 {
                     /*
                      * PulseAudio has the capability to move a stream to a
@@ -515,7 +516,7 @@ public class PulseAudioRenderer
                      */
                     String streamDev = PA.stream_get_device_name(stream);
 
-                    if (!StringUtils.isEquals(streamDev, locatorDev))
+                    if (!Objects.equals(streamDev, locatorDev))
                     {
                         /*
                          * The close method will stop this Renderer if it is

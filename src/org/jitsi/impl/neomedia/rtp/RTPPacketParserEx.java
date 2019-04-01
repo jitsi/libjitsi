@@ -17,7 +17,7 @@ package org.jitsi.impl.neomedia.rtp;
 
 import net.sf.fmj.media.rtp.util.*;
 import org.jitsi.service.neomedia.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Extends the FMJ <tt>RTPPacketParser</tt> with additional functionality.

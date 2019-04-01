@@ -18,7 +18,7 @@ package org.jitsi.impl.neomedia.codec;
 import java.util.*;
 import java.util.function.*;
 
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * An <tt>Iterator</tt> that iterates RED blocks (primary and non-primary).

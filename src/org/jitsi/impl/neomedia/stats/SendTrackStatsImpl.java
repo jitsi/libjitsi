@@ -15,9 +15,9 @@
  */
 package org.jitsi.impl.neomedia.stats;
 
-import org.jitsi.utils.*;
 import org.jitsi.service.neomedia.stats.*;
 import org.jitsi.util.*;
+import org.jitsi.utils.stats.*;
 
 /**
  * Media stream statistics implementation per send SSRC.

@@ -21,7 +21,7 @@ import javax.media.rtp.*;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.service.neomedia.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * TransformConnector implements the RTPConnector interface. RTPConnector

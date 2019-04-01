@@ -18,6 +18,7 @@ package org.jitsi.impl.neomedia.transform;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Implements a <tt>TransformEngine</tt> which replaces the timestamps in

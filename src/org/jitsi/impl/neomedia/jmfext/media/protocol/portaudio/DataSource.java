@@ -22,7 +22,7 @@ import javax.media.control.*;
 
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Implements <tt>DataSource</tt> and <tt>CaptureDevice</tt> for PortAudio.

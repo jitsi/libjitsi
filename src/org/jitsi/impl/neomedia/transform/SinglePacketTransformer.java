@@ -19,7 +19,7 @@ import java.util.concurrent.atomic.*;
 import java.util.function.*;
 
 import org.jitsi.service.neomedia.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Extends the <tt>PacketTransformer</tt> interface with methods which allow

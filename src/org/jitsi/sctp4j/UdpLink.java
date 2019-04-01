@@ -15,7 +15,7 @@
  */
 package org.jitsi.sctp4j;
 
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 import java.net.*;
 import java.io.*;

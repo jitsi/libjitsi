@@ -43,7 +43,7 @@ import org.jitsi.bccontrib.params.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * SRTPCryptoContext class is the core class of SRTP implementation. There can

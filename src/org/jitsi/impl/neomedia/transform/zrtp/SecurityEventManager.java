@@ -22,8 +22,8 @@ import java.util.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.event.*;
 import org.jitsi.service.resources.*;
-import org.jitsi.util.*;
 import org.jitsi.utils.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * The user callback class for ZRTP4J.
