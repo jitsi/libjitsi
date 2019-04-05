@@ -23,7 +23,7 @@ import javax.media.format.*;
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.codec.video.*;
 import org.jitsi.service.neomedia.codec.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Implements a VP8 decoder.

@@ -19,7 +19,7 @@ import java.util.*;
 
 import net.sf.fmj.media.rtp.*;
 
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Collects the (last) RTCP (SR, RR, and XR) reports sent and received by a

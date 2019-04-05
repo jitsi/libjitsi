@@ -20,7 +20,7 @@ import javax.media.format.*;
 
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.service.neomedia.codec.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Packetizes VP8 encoded frames in accord with

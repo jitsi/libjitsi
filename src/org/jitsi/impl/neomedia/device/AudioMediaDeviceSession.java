@@ -23,7 +23,7 @@ import org.jitsi.impl.neomedia.audiolevel.*;
 import org.jitsi.impl.neomedia.jmfext.media.renderer.audio.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.event.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Extends <tt>MediaDeviceSession</tt> to add audio-specific functionality.

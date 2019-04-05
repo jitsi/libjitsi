@@ -20,7 +20,7 @@ import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.format.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.*;
 import org.junit.*;
 import org.powermock.api.easymock.*;
 

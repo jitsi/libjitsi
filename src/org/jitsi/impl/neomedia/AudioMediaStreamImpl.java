@@ -34,8 +34,8 @@ import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.event.*;
-import org.jitsi.util.*;
-import org.jitsi.util.event.*;
+import org.jitsi.utils.event.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Extends <tt>MediaStreamImpl</tt> in order to provide an implementation of

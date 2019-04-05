@@ -29,7 +29,7 @@ import org.jitsi.impl.neomedia.control.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
 import org.jitsi.impl.neomedia.quicktime.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Implements a <tt>PushBufferDataSource</tt> and <tt>CaptureDevice</tt> using

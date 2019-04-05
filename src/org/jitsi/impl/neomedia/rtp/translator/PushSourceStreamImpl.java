@@ -23,8 +23,8 @@ import javax.media.*;
 import javax.media.protocol.*;
 
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.utils.*;
-import org.jitsi.util.Logger; // Disambiguation.
+import org.jitsi.utils.logging.Logger; // Disambiguation.
+import org.jitsi.utils.stats.*;
 
 /**
  * Implements <tt>PushSourceStream</tt> for an <tt>RTPTranslatorImpl</tt>. Reads

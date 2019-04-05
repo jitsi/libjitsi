@@ -24,7 +24,7 @@ import javax.media.format.*;
 
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Implements <tt>CaptureDevice</tt> and <tt>DataSource</tt> using Windows Audio

@@ -31,7 +31,7 @@ import org.jitsi.utils.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.packetlogging.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  *

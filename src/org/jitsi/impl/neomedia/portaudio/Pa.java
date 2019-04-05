@@ -20,6 +20,8 @@ import java.lang.reflect.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.util.*;
+import org.jitsi.utils.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Provides the interface to the native PortAudio library.

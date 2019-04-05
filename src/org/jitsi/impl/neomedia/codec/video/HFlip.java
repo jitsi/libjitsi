@@ -20,7 +20,7 @@ import java.awt.*;
 import javax.media.*;
 
 import org.jitsi.impl.neomedia.codec.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Implements a video <tt>Effect</tt> which horizontally flips

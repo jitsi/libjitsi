@@ -23,7 +23,7 @@ import javax.media.format.*;
 import org.jitsi.impl.neomedia.codec.audio.speex.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.service.audionotifier.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Implementation of SCAudioClip using PortAudio.

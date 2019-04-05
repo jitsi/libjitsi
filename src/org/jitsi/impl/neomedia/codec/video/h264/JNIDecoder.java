@@ -29,7 +29,7 @@ import org.jitsi.impl.neomedia.codec.video.*;
 import org.jitsi.impl.neomedia.format.*;
 import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.control.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Decodes H.264 NAL units and returns the resulting frames as FFmpeg

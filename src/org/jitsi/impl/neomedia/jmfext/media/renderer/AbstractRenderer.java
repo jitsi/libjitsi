@@ -18,7 +18,7 @@ package org.jitsi.impl.neomedia.jmfext.media.renderer;
 import javax.media.*;
 
 import org.jitsi.impl.neomedia.control.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Provides an abstract base implementation of <tt>Renderer</tt> in order to

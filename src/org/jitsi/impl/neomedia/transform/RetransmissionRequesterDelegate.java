@@ -22,7 +22,9 @@ import org.jetbrains.annotations.*;
 import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
-import org.jitsi.util.concurrent.*;
+import org.jitsi.utils.*;
+import org.jitsi.utils.concurrent.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Detects lost RTP packets for a particular <tt>RtpChannel</tt> and requests

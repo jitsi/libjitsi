@@ -16,7 +16,7 @@
 package org.jitsi.impl.neomedia.transform.fec;
 
 import org.jitsi.service.neomedia.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 import java.util.*;
 

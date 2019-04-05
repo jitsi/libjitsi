@@ -22,6 +22,7 @@ import javax.media.*;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Utility class that handles registration of FMJ packages and plugins.

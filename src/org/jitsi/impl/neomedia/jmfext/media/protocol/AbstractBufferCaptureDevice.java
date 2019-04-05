@@ -28,7 +28,7 @@ import javax.media.protocol.*;
 import net.sf.fmj.media.util.*;
 
 import org.jitsi.impl.neomedia.control.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Facilitates the implementations of the <tt>CaptureDevice</tt> and

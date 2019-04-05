@@ -26,7 +26,7 @@ import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.jmfext.media.renderer.audio.*;
 import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.control.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Implements an Opus decoder.

@@ -24,7 +24,7 @@ import net.sf.fmj.media.*;
 
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.service.neomedia.codec.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Depacketizes H.263+ RTP packets in in accord with RFC 4529 "RTP Payload

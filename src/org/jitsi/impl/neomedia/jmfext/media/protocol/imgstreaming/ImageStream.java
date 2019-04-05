@@ -27,7 +27,7 @@ import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.codec.video.*;
 import org.jitsi.impl.neomedia.imgstreaming.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * The stream used by JMF for our image streaming.

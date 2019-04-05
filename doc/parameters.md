@@ -16,12 +16,6 @@ Indicates whether the detection of video CaptureDevices is to be disabled. The d
 
 The prefix of the property names the values of which specify the dynamic payload type preferences.
 
-# ActiveSpeakerDetector
-
-##### org.jitsi.impl.neomedia.ActiveSpeakerDetectorImpl.implClassName=*String*
-
-Specifies the class name of the algorithm implementation for the detection/identification of the active/dominant speaker in a multipoint conference to be used by ActiveSpeakerDetectorImpl. The default value is null. If the specified value is null or the initialization of an instance of the specified class fails, ActiveSpeakerDetectorImpl falls back to a list of well-known algorithm implementations.
-
 # JNIEncoder
 
 ##### net.java.sip.communicator.impl.neomedia.codec.video.h264.defaultProfile=*String*

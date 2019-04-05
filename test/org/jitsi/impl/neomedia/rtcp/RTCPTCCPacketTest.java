@@ -16,8 +16,8 @@
 package org.jitsi.impl.neomedia.rtcp;
 
 import org.jitsi.service.neomedia.*;
+import org.jitsi.utils.logging.*;
 import org.junit.*;
-import org.jitsi.util.*;
 
 import static org.junit.Assert.*;
 

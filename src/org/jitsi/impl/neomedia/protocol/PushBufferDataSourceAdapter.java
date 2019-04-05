@@ -25,7 +25,7 @@ import javax.media.protocol.*;
 import net.sf.fmj.media.util.*;
 
 import org.jitsi.impl.neomedia.jmfext.media.renderer.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Implements <tt>PushBufferDataSource</tt> for a specific

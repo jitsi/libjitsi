@@ -26,7 +26,6 @@ import javax.media.protocol.*;
 import javax.media.rtp.*;
 import javax.media.rtp.event.*;
 
-import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.audiolevel.*;
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.device.*;
@@ -43,10 +42,11 @@ import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.control.*;
 import org.jitsi.service.neomedia.event.*;
 import org.jitsi.service.neomedia.recording.*;
-import org.jitsi.util.*;
 
 import com.sun.media.util.*;
 import org.jitsi.utils.*;
+import org.jitsi.utils.dsi.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * A <tt>Recorder</tt> implementation which attaches to an <tt>RTPTranslator</tt>.
@@ -324,7 +324,7 @@ public class RecorderRtpImpl
 
         if (performActiveSpeakerDetection)
         {
-            activeSpeakerDetector = new ActiveSpeakerDetectorImpl();
+            activeSpeakerDetector = new DominantSpeakerIdentification();
             activeSpeakerDetector.addActiveSpeakerChangedListener(this);
         }
 

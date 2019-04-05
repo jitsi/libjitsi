@@ -26,6 +26,7 @@ import org.jitsi.util.*;
 import com.sun.jna.*;
 import com.sun.jna.ptr.*;
 import com.sun.jna.win32.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Default FileAccessService implementation.

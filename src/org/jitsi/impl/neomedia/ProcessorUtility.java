@@ -18,9 +18,8 @@ package org.jitsi.impl.neomedia;
 import javax.media.*;
 import java.time.*;
 import java.time.Duration;
-import java.util.concurrent.*;
 
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * A utility class that provides utility functions when working with processors.

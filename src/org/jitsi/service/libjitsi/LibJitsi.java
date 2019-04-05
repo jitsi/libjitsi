@@ -23,7 +23,7 @@ import org.jitsi.service.fileaccess.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.packetlogging.*;
 import org.jitsi.service.resources.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Represents the entry point of the <tt>libjitsi</tt> library.

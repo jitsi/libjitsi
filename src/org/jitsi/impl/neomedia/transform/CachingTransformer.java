@@ -18,8 +18,8 @@ package org.jitsi.impl.neomedia.transform;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.service.neomedia.*;
-import org.jitsi.util.*;
-import org.jitsi.util.concurrent.*;
+import org.jitsi.utils.concurrent.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Implements a cache of outgoing RTP packets.
@@ -30,7 +30,7 @@ import org.jitsi.util.concurrent.*;
 public class CachingTransformer
     extends SinglePacketTransformerAdapter
     implements TransformEngine,
-               RecurringRunnable
+        RecurringRunnable
 {
     /**
      * The <tt>Logger</tt> used by the <tt>CachingTransformer</tt> class and

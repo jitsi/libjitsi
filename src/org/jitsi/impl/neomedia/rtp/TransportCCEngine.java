@@ -24,6 +24,7 @@ import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.rtp.*;
 import org.jetbrains.annotations.*;
 import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 import java.io.*;
 import java.util.*;

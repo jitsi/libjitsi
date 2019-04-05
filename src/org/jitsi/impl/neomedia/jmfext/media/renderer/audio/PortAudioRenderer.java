@@ -27,7 +27,7 @@ import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.portaudio.*;
 import org.jitsi.impl.neomedia.portaudio.*;
 import org.jitsi.service.neomedia.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Implements an audio <tt>Renderer</tt> which uses Pa.

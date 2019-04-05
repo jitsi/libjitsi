@@ -26,6 +26,8 @@ import org.jitsi.service.fileaccess.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.util.*;
 import org.jitsi.util.xml.*;
+import org.jitsi.utils.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * A straightforward implementation of the <tt>ConfigurationService</tt> using

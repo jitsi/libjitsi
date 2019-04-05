@@ -32,6 +32,7 @@ import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
 import org.jitsi.util.*;
 import org.jitsi.utils.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Implements static utility methods used by media classes.

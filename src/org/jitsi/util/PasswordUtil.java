@@ -15,6 +15,8 @@
  */
 package org.jitsi.util;
 
+import org.jitsi.utils.*;
+
 /**
  * The utility class which can be used to clear passwords values from
  * 'sun.java.command' system property.
@@ -36,7 +38,7 @@ public class PasswordUtil
      * @return <tt>cmdLine</tt> string with password argument values shadowed by
      *         'X'
      */
-    static public String replacePassword(String cmdLine, String passwordArg)
+    public static String replacePassword(String cmdLine, String passwordArg)
     {
         int passwordIdx = cmdLine.indexOf(passwordArg+"=");
         if (passwordIdx != -1)
@@ -67,7 +69,7 @@ public class PasswordUtil
      * @return <tt>cmdLine</tt> string with password arguments values shadowed
      *         by 'X'
      */
-    static public String replacePasswords(String string, String[] passwordArgs)
+    public static String replacePasswords(String string, String[] passwordArgs)
     {
         for (String passArg : passwordArgs)
         {

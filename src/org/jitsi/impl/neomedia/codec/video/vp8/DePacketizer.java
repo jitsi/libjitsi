@@ -19,6 +19,8 @@ import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
+
 import javax.media.*;
 import javax.media.format.*;
 import java.util.*;

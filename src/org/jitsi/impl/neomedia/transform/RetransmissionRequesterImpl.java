@@ -19,8 +19,9 @@ import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.format.*;
-import org.jitsi.util.*;
-import org.jitsi.util.concurrent.*;
+import org.jitsi.utils.*;
+import org.jitsi.utils.concurrent.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Creates classes to handle both the detection of loss and the creation

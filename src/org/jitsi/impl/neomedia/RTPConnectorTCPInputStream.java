@@ -20,7 +20,7 @@ import java.net.*;
 
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.packetlogging.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * RTPConnectorInputStream implementation for TCP protocol.

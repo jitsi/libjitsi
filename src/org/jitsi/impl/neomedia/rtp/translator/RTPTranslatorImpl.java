@@ -31,6 +31,7 @@ import net.sf.fmj.media.rtp.RTPHeader;
 import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Implements <tt>RTPTranslator</tt> which represents an RTP translator which

@@ -25,7 +25,7 @@ import javax.media.protocol.*;
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.codec.video.*;
 import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Implements a <tt>PushBufferStream</tt> using DirectShow.

@@ -19,9 +19,8 @@ import static javax.xml.XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI;
 import static javax.xml.XMLConstants.W3C_XML_SCHEMA_NS_URI;
 import static javax.xml.XMLConstants.XMLNS_ATTRIBUTE_NS_URI;
 import static javax.xml.XMLConstants.XML_NS_URI;
-import static org.jitsi.util.StringUtils.fromString;
-import static org.jitsi.util.StringUtils.isEquals;
-import static org.jitsi.util.StringUtils.isNullOrEmpty;
+import static org.jitsi.utils.StringUtils.fromString;
+import static org.jitsi.utils.StringUtils.isNullOrEmpty;
 
 import java.io.*;
 import java.util.*;
@@ -33,6 +32,7 @@ import javax.xml.transform.dom.*;
 import javax.xml.transform.stream.*;
 
 import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 import org.w3c.dom.*;
 
 /**
@@ -636,7 +636,7 @@ public class XMLUtils
                 if (xmlnsAttribute != null)
                     return ((Attr) xmlnsAttribute).getValue();
             }
-            else if (isEquals(prefix, parentPrefix))
+            else if (Objects.equals(prefix, parentPrefix))
             {
                 if (!isNullOrEmpty(parentNamespaceUri))
                     return normalizeNamespace(parentNamespaceUri);

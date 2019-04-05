@@ -22,7 +22,7 @@ import javax.media.control.*;
 import javax.media.protocol.*;
 
 import org.jitsi.impl.neomedia.control.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Provides a base implementation of <tt>SourceStream</tt> in order to

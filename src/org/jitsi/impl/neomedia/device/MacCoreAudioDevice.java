@@ -15,7 +15,7 @@
  */
 package org.jitsi.impl.neomedia.device;
 
-import org.jitsi.util.*;
+import org.jitsi.utils.*;
 
 /**
  * Extension for the JNI link to the MacOsX CoreAudio library.

@@ -15,8 +15,8 @@
  */
 package org.jitsi.impl.neomedia.rtp.remotebitrateestimator;
 
-import org.jitsi.util.*;
 import org.jetbrains.annotations.*;
+import org.jitsi.utils.logging.*;
 
 import java.util.*;
 

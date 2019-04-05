@@ -20,6 +20,7 @@ import java.util.*;
 import java.util.concurrent.*;
 
 import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Class encapsulates native SCTP counterpart.

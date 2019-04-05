@@ -22,7 +22,7 @@ import javax.media.protocol.*;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.protocol.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Describes additional information about a specific input <tt>DataSource</tt>

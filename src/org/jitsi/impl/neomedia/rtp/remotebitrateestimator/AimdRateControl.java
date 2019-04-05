@@ -16,8 +16,8 @@
 package org.jitsi.impl.neomedia.rtp.remotebitrateestimator;
 
 import org.jitsi.service.neomedia.rtp.*;
-import org.jitsi.util.*;
 import org.jetbrains.annotations.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * A rate control implementation based on additive increases of bitrate when no

@@ -22,6 +22,7 @@ import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.event.*;
 import org.jitsi.service.neomedia.rtp.*;
 import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Extends {@link RTCPPacketParser} to allow the parsing of additional RTCP

@@ -24,7 +24,7 @@ import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.control.*;
 import org.jitsi.impl.neomedia.jmfext.media.renderer.audio.*;
 import org.jitsi.impl.neomedia.portaudio.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Creates PortAudio capture devices by enumerating all host devices that have

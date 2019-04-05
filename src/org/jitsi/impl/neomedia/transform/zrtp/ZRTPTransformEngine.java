@@ -28,7 +28,7 @@ import org.jitsi.impl.neomedia.transform.srtp.*;
 import org.jitsi.service.fileaccess.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * JMF extension/connector to support GNU ZRTP4J.

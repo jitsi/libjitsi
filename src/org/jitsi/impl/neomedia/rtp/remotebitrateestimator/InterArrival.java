@@ -16,8 +16,8 @@
 package org.jitsi.impl.neomedia.rtp.remotebitrateestimator;
 
 import org.jitsi.impl.neomedia.rtp.TimestampUtils;
-import org.jitsi.util.*;
 import org.jetbrains.annotations.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Helper class to compute the inter-arrival time delta and the size delta

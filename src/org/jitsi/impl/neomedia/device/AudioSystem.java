@@ -27,8 +27,8 @@ import org.jitsi.impl.neomedia.jmfext.media.renderer.audio.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.resources.*;
-import org.jitsi.util.*;
 import org.jitsi.utils.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Represents a <tt>DeviceSystem</tt> which provides support for the devices to
