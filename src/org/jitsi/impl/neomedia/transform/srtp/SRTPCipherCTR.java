@@ -25,7 +25,7 @@ package org.jitsi.impl.neomedia.transform.srtp;
  * SRTP Counter Mode AES Encryption algorithm is defined in RFC3711, section
  * 4.1.1.
  */
-abstract class SRTPCipherCTR
+public abstract class SRTPCipherCTR
 {
     protected static final int BLKLEN = 16;
 
