@@ -36,8 +36,6 @@ package org.jitsi.impl.neomedia.transform.srtp;
 
 import java.util.*;
 
-import javax.media.*;
-
 import org.bouncycastle.crypto.params.*;
 import org.jitsi.bccontrib.params.*;
 import org.jitsi.service.configuration.*;
@@ -234,7 +232,7 @@ public class SRTPCryptoContext
      * performed or <tt>pkt</tt> was successfully authenticated; otherwise,
      * <tt>false</tt>
      */
-    private boolean authenticatePacket(RawPacket pkt)
+    private boolean authenticatePacket(ByteArrayBuffer pkt)
     {
         if (policy.getAuthType() != SRTPPolicy.NULL_AUTHENTICATION)
         {
@@ -471,10 +469,10 @@ public class SRTPCryptoContext
      *
      * @param pkt the RTP packet to be encrypted/decrypted
      */
-    public void processPacketAESCM(RawPacket pkt)
+    public void processPacketAESCM(ByteArrayBuffer pkt)
     {
-        int ssrc = pkt.getSSRC();
-        int seqNo = pkt.getSequenceNumber();
+        int ssrc = RawPacket.getSSRC(pkt);
+        int seqNo = RawPacket.getSequenceNumber(pkt);
         long index = (((long) guessedROC) << 16) | seqNo;
 
         // byte[] iv = new byte[16];
@@ -507,8 +505,8 @@ public class SRTPCryptoContext
 
         ivStore[14] = ivStore[15] = 0;
 
-        int payloadOffset = pkt.getHeaderLength();
-        int payloadLength = pkt.getPayloadLength();
+        int payloadOffset = RawPacket.getHeaderLength(pkt.getBuffer(), pkt.getOffset(), pkt.getLength());
+        int payloadLength = pkt.getLength() - payloadOffset;
 
         cipherCtr.process(
                 pkt.getBuffer(), pkt.getOffset() + payloadOffset, payloadLength,
@@ -520,7 +518,7 @@ public class SRTPCryptoContext
      *
      * @param pkt the RTP packet to be encrypted/decrypted
      */
-    public void processPacketAESF8(RawPacket pkt)
+    public void processPacketAESF8(ByteArrayBuffer pkt)
     {
         // 11 bytes of the RTP header are the 11 bytes of the iv
         // the first byte of the RTP header is not used.
@@ -535,8 +533,8 @@ public class SRTPCryptoContext
         ivStore[14] = (byte) (roc >> 8);
         ivStore[15] = (byte) roc;
 
-        int payloadOffset = pkt.getHeaderLength();
-        int payloadLength = pkt.getPayloadLength();
+        int payloadOffset = RawPacket.getHeaderLength(pkt.getBuffer(), pkt.getOffset(), pkt.getLength());
+        int payloadLength = pkt.getLength() - payloadOffset;
 
         cipherF8.process(
                 pkt.getBuffer(), pkt.getOffset() + payloadOffset, payloadLength,
@@ -555,23 +553,25 @@ public class SRTPCryptoContext
      * (RTPManager managed transportation) instead.
      *
      * @param pkt the RTP packet that is just received
+     * @param skipDecryption if {@code true}, the decryption of the packet will not be performed (so as not to waste
+     * resources when it is not needed). The packet will still be authenticated and the ROC updated.
      * @return <tt>true</tt> if the packet can be accepted; <tt>false</tt> if
      * the packet failed authentication or failed replay check
      */
-    synchronized public boolean reverseTransformPacket(RawPacket pkt)
+    synchronized public boolean reverseTransformPacket(ByteArrayBuffer pkt, boolean skipDecryption)
     {
+        int seqNo = RawPacket.getSequenceNumber(pkt);
+
         if (logger.isDebugEnabled())
         {
             logger.debug(
                     "Reverse transform for SSRC " + this.ssrc
-                        + " SeqNo=" + pkt.getSequenceNumber()
+                        + " SeqNo=" + seqNo
                         + " s_l=" + s_l
                         + " seqNumSet=" + seqNumSet
                         + " guessedROC=" + guessedROC
                         + " roc=" + roc);
         }
-
-        int seqNo = pkt.getSequenceNumber();
 
         // Whether s_l was initialized while processing this packet.
         boolean seqNumWasJustSet = false;
@@ -593,14 +593,7 @@ public class SRTPCryptoContext
             // Authenticate the packet.
             if (authenticatePacket(pkt))
             {
-                // If a RawPacket is flagged with Buffer.FLAG_DISCARD, then it
-                // should have been discarded earlier. Anyway, at least skip its
-                // decrypting. We flag a RawPacket with Buffer.FLAG_SILENCE when
-                // we want to ignore its payload. In the context of SRTP, we
-                // want to skip its decrypting.
-                if ((pkt.getFlags()
-                            & (Buffer.FLAG_DISCARD | Buffer.FLAG_SILENCE))
-                        == 0)
+                if (!skipDecryption)
                 {
                     switch (policy.getEncType())
                     {
@@ -657,9 +650,9 @@ public class SRTPCryptoContext
      *
      * @param pkt the RTP packet that is going to be sent out
      */
-    synchronized public boolean transformPacket(RawPacket pkt)
+    synchronized public boolean transformPacket(ByteArrayBuffer pkt)
     {
-        int seqNo = pkt.getSequenceNumber();
+        int seqNo = RawPacket.getSequenceNumber(pkt);
 
         if (!seqNumSet)
         {

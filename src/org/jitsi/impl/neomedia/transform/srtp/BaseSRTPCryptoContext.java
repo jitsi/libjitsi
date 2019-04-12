@@ -65,7 +65,7 @@ import org.jitsi.service.neomedia.*;
  * @author Bing SU (nova.su@gmail.com)
  * @author Lyubomir Marinov
  */
-class BaseSRTPCryptoContext
+public class BaseSRTPCryptoContext
 {
     /**
      * The replay check windows size.
@@ -271,7 +271,7 @@ class BaseSRTPCryptoContext
      * @param pkt the RTP packet to be authenticated
      * @param rocIn Roll-Over-Counter
      */
-    synchronized protected void authenticatePacketHMAC(RawPacket pkt, int rocIn)
+    synchronized protected void authenticatePacketHMAC(ByteArrayBuffer pkt, int rocIn)
     {
         mac.update(pkt.getBuffer(), pkt.getOffset(), pkt.getLength());
         rbStore[0] = (byte) (rocIn >> 24);
