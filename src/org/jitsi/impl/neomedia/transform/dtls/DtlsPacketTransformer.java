@@ -1015,7 +1015,7 @@ public class DtlsPacketTransformer
                 {
                     dtlsTransport
                         = dtlsClientProtocol.connect(
-                                tlsClient, 
+                                tlsClient,
                                 datagramTransport);
                     break;
                 }
@@ -1149,7 +1149,7 @@ public class DtlsPacketTransformer
      * @param connector the <tt>RTPConnector</tt> which is to use or uses this
      * <tt>PacketTransformer</tt>
      */
-    private void setConnector(AbstractRTPConnector connector)
+    private synchronized void setConnector(AbstractRTPConnector connector)
     {
         if (this.connector != connector)
         {
