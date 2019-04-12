@@ -1409,6 +1409,14 @@ public class RawPacket
     }
 
     /**
+     * Get RTP SSRC from a RTP packet
+     */
+    public static int getSSRC(ByteArrayBuffer baf)
+    {
+        return getSSRC(baf.getBuffer(), baf.getOffset(), baf.getLength());
+    }
+
+    /**
      * Returns a {@code long} representation of the SSRC of this RTP packet.
      * @return a {@code long} representation of the SSRC of this RTP packet.
      */
