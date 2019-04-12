@@ -27,7 +27,7 @@ public class ByteArrayBufferImpl
     /**
      * The byte array represented by this {@link ByteArrayBufferImpl}.
      */
-    private byte[] buffer;
+    protected byte[] buffer;
 
     /**
      * The offset in the byte buffer where the actual data starts.
@@ -155,5 +155,79 @@ public class ByteArrayBufferImpl
     public boolean isInvalid()
     {
         return false;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void readRegionToBuff(int off, int len, byte[] outBuff)
+    {
+        int startOffset = this.offset + off;
+        if (off < 0 || len <= 0 || startOffset + len > this.buffer.length)
+        {
+            return;
+        }
+
+        if (outBuff.length < len)
+        {
+            return;
+        }
+
+        System.arraycopy(this.buffer, startOffset, outBuff, 0, len);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void grow(int howMuch)
+    {
+        if (howMuch < 0)
+            throw new IllegalArgumentException("howMuch");
+
+        int newLength = length + howMuch;
+
+        if (newLength > buffer.length - offset)
+        {
+            byte[] newBuffer = new byte[newLength];
+
+            System.arraycopy(buffer, offset, newBuffer, 0, length);
+            offset = 0;
+            buffer = newBuffer;
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void append(byte[] data, int len)
+    {
+        if (data == null || len == 0)
+        {
+            return;
+        }
+
+        // Ensure the internal buffer is long enough to accommodate data. (The
+        // method grow will re-allocate the internal buffer if it's too short.)
+        grow(len);
+        // Append data.
+        System.arraycopy(data, 0, buffer, length + offset, len);
+        length += len;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void shrink(int len)
+    {
+        if (len <= 0)
+        {
+            return;
+        }
+
+        length = Math.max(0, length - len);
     }
 }
