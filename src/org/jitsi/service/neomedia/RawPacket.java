@@ -1370,8 +1370,19 @@ public class RawPacket
      */
     public int getSRTCPIndex(int authTagLen)
     {
-        int offset = getLength() - (4 + authTagLen);
-        return readInt(offset);
+        return getSRTCPIndex(this, authTagLen);
+    }
+
+    /**
+     * Get SRTCP sequence number from a SRTCP packet
+     *
+     * @param authTagLen authentication tag length
+     * @return SRTCP sequence num from source packet
+     */
+    public static int getSRTCPIndex(ByteArrayBuffer baf, int authTagLen)
+    {
+        int authTagOffset = baf.getLength() - (4 + authTagLen);
+        return RTPUtils.readInt(baf.getBuffer(), baf.getOffset() + authTagOffset);
     }
 
     /**
@@ -1960,7 +1971,7 @@ public class RawPacket
     {
         HeaderExtension()
         {
-            super(buffer, 0, 0);
+            super(RawPacket.this.buffer, 0, 0);
         }
 
         /**

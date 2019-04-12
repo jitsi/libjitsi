@@ -66,4 +66,33 @@ public interface ByteArrayBuffer
      * instance is found to be invalid, <tt>false</tt> otherwise.
      */
     boolean isInvalid();
+
+    /**
+     * Copies {@code len} bytes from the given offset in this buffer to the given {@code outBuf}
+     * @param off the offset relative to the beginning of this buffer's data from where to start copying.
+     * @param len the number of bytes to copy.
+     * @param outBuf the array to copy to
+     */
+    void readRegionToBuff(int off, int len, byte[] outBuf);
+
+    /**
+     * Increases the size of this buffer by {@code howMuch}. This may result in a new {@code byte[]} to be allocated
+     * if the existing one is not large enough.
+     * @param howMuch
+     */
+    void grow(int howMuch);
+
+    /**
+     * Appends {@code len} bytes from {@code data} to the end of this buffer. This grows the buffer and as a result
+     * a new {@code byte[]} may be allocated.
+     * @param data
+     * @param len
+     */
+    void append(byte[] data, int len);
+
+    /**
+     * Shrinks the length of this buffer by {@code len}
+     * @param len
+     */
+    void shrink(int len);
 }
