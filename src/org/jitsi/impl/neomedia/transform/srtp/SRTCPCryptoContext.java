@@ -20,6 +20,7 @@ import java.util.*;
 import org.bouncycastle.crypto.params.*;
 import org.jitsi.bccontrib.params.*;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.utils.*;
 
 /**
  * SRTPCryptoContext class is the core class of SRTP implementation. There can

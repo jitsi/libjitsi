@@ -16,6 +16,7 @@
 package org.jitsi.impl.neomedia.transform;
 
 import org.jitsi.service.neomedia.*;
+import org.jitsi.utils.*;
 
 import java.util.function.*;
 

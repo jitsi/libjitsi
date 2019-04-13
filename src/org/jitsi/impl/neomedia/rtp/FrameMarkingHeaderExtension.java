@@ -15,7 +15,7 @@
  */
 package org.jitsi.impl.neomedia.rtp;
 
-import org.jitsi.service.neomedia.*;
+import org.jitsi.utils.*;
 
 /**
  * Provides utility functions for the frame marking RTP header extension
