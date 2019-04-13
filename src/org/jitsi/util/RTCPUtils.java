@@ -16,6 +16,7 @@
 package org.jitsi.util;
 
 import org.jitsi.service.neomedia.*;
+import org.jitsi.utils.*;
 
 /**
  * Utility class that contains static methods for RTCP header manipulation.

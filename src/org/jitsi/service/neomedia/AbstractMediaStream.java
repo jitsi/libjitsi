@@ -22,6 +22,7 @@ import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.rtp.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.format.*;
+import org.jitsi.utils.*;
 
 /**
  * Abstract base implementation of <tt>MediaStream</tt> to ease the

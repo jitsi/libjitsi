@@ -25,6 +25,7 @@ import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
 import org.jitsi.service.neomedia.stats.*;
+import org.jitsi.utils.*;
 
 /**
  * The <tt>MediaStream</tt> class represents a (generally) bidirectional RTP
