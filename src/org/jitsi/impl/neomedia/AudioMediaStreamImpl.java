@@ -16,6 +16,7 @@
 package org.jitsi.impl.neomedia;
 
 import java.beans.*;
+import java.io.*;
 import java.util.*;
 
 import javax.media.*;
@@ -174,6 +175,25 @@ public class AudioMediaStreamImpl
         }
         else
             audioSystemChangeNotifier = null;
+    }
+
+    /**
+     * Gets the time in milliseconds of the last input activity related to this
+     * <tt>AudioMediaStream</tt>.
+     *
+     * @return the time in milliseconds of the last input activity related to
+     * this <tt>AudioMediaStream</tt>
+     * @throws IOException only in case we create input stream and it fails,
+     * as we always pass false to skip creating, should never be thrown.
+     */
+    public long getLastInputActivityTime()
+        throws IOException
+    {
+        RTPConnectorInputStream in = getRTPConnector().getDataInputStream(false);
+        if (in != null)
+            return in.getLastActivityTime();
+        else
+            return -1;
     }
 
     /**

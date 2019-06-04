@@ -27,6 +27,7 @@ import net.sf.fmj.media.util.*;
 
 import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
 import org.jitsi.impl.neomedia.protocol.*;
+import org.jitsi.util.concurrent.*;
 import org.jitsi.utils.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
@@ -64,7 +65,7 @@ public abstract class RTPConnectorInputStream<T extends Closeable>
 
     /**
      * Sets a specific priority on a specific <tt>Thread</tt>.
-     * 
+     *
      * @param thread the <tt>Thread</tt> to set the specified <tt>priority</tt>
      * on
      * @param priority the priority to set on the specified <tt>thread</tt>
@@ -183,6 +184,13 @@ public abstract class RTPConnectorInputStream<T extends Closeable>
     private SourceTransferHandler transferHandler;
 
     /**
+     * The time in milliseconds of the last activity related to this
+     * <tt>RTPConnectorInputStream</tt>.
+     */
+    private final MonotonicAtomicLong lastActivityTime
+        = new MonotonicAtomicLong();
+
+    /**
      * Initializes a new <tt>RTPConnectorInputStream</tt> which is to receive
      * packet data from a specific UDP socket.
      *
@@ -227,6 +235,7 @@ public abstract class RTPConnectorInputStream<T extends Closeable>
                     public boolean accept(DatagramPacket p)
                     {
                         numberOfPackets++;
+                        lastActivityTime.increase(System.currentTimeMillis());
                         if (RTPConnectorOutputStream.logPacket(numberOfPackets))
                         {
                             PacketLoggingService pktLogging
@@ -266,6 +275,18 @@ public abstract class RTPConnectorInputStream<T extends Closeable>
             };
 
         maybeStartReceiveThread();
+    }
+
+    /**
+     * Gets the time in milliseconds of the last activity related to this
+     * <tt>RTPConnectorInputStream</tt>.
+     *
+     * @return the time in milliseconds of the last activity related to this
+     * <tt>RTPConnectorInputStream</tt>
+     */
+    public long getLastActivityTime()
+    {
+        return lastActivityTime.get();
     }
 
     /**
