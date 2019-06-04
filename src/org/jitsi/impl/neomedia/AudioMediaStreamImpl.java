@@ -179,7 +179,7 @@ public class AudioMediaStreamImpl
 
     /**
      * Gets the time in milliseconds of the last input activity related to this
-     * <tt>AudioMediaStream</tt>.
+     * <tt>AudioMediaStream</tt>. We detect either RTP or RTCP activity.
      *
      * @return the time in milliseconds of the last input activity related to
      * this <tt>AudioMediaStream</tt>
@@ -189,11 +189,23 @@ public class AudioMediaStreamImpl
     public long getLastInputActivityTime()
         throws IOException
     {
-        RTPConnectorInputStream in = getRTPConnector().getDataInputStream(false);
-        if (in != null)
-            return in.getLastActivityTime();
-        else
-            return -1;
+        RTPConnectorInputStream inData
+            = getRTPConnector().getDataInputStream(false);
+        long inDataActivity = -1;
+        if (inData != null)
+        {
+            inDataActivity = inData.getLastActivityTime();
+        }
+
+        RTPConnectorInputStream inControl
+            = getRTPConnector().getControlInputStream(false);
+        long inControlActivity = -1;
+        if (inControl != null)
+        {
+            inControlActivity = inControl.getLastActivityTime();
+        }
+
+        return Math.max(inControlActivity, inDataActivity);
     }
 
     /**
