@@ -29,7 +29,6 @@ import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 import org.jitsi.utils.*;
-import org.jitsi.utils.event.*;
 import org.jitsi.utils.logging.*;
 
 /**
@@ -39,7 +38,8 @@ import org.jitsi.utils.logging.*;
  * @author Lyubomir Marinov
  */
 public class DtlsPacketTransformer
-    implements PacketTransformer
+    implements PacketTransformer,
+               PropertyChangeListener
 {
     /**
      * The interval in milliseconds between successive tries to await successful
@@ -208,17 +208,6 @@ public class DtlsPacketTransformer
      */
     private MediaType mediaType;
 
-    private final PropertyChangeListener propertyChangeListener
-        = new WeakReferencePropertyChangeListener(
-                new PropertyChangeListener()
-                {
-                    @Override
-                    public void propertyChange(PropertyChangeEvent ev)
-                    {
-                        DtlsPacketTransformer.this.propertyChange(ev);
-                    }
-                });
-
     /**
      * The {@code Queue} of SRTP {@code RawPacket}s which were received from the
      * remote while {@link #_srtpTransformer} was unavailable i.e. {@code null}.
@@ -285,7 +274,7 @@ public class DtlsPacketTransformer
 
         // Track the DTLS properties which control the conditional behaviors of
         // DtlsPacketTransformer.
-        getProperties().addPropertyChangeListener(propertyChangeListener);
+        getProperties().addPropertyChangeListener(this);
         propertyChange(/* propertyName */ (String) null);
     }
 
@@ -295,7 +284,7 @@ public class DtlsPacketTransformer
     @Override
     public synchronized void close()
     {
-        getProperties().removePropertyChangeListener(propertyChangeListener);
+        getProperties().removePropertyChangeListener(this);
 
         // SrtpControl.start(MediaType) starts its associated TransformEngine.
         // We will use that mediaType to signal the normal stop then as well
@@ -810,7 +799,7 @@ public class DtlsPacketTransformer
         }
     }
 
-    private void propertyChange(PropertyChangeEvent ev)
+    public void propertyChange(PropertyChangeEvent ev)
     {
         propertyChange(ev.getPropertyName());
     }
