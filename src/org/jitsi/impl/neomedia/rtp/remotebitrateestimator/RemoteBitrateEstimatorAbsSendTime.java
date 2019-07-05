@@ -367,6 +367,14 @@ public class RemoteBitrateEstimatorAbsSendTime
     @Override
     public synchronized void onRttUpdate(long avgRttMs, long maxRttMs)
     {
+        if (timeSeriesLogger.isTraceEnabled())
+        {
+            timeSeriesLogger.trace(diagnosticContext
+                .makeTimeSeriesPoint("new_rtt", System.currentTimeMillis())
+                .addField("avg_ms", avgRttMs)
+                .addField("max_ms", maxRttMs));
+        }
+
         remoteRate.setRtt(avgRttMs);
     }
 
