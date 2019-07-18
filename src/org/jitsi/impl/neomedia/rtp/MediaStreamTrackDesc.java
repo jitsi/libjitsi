@@ -17,6 +17,7 @@ package org.jitsi.impl.neomedia.rtp;
 
 import org.jitsi.service.neomedia.*;
 import org.jitsi.utils.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Represents a collection of {@link RTPEncodingDesc}s that encode the same
@@ -27,6 +28,13 @@ import org.jitsi.utils.*;
  */
 public class MediaStreamTrackDesc
 {
+    /**
+     * The {@link Logger} used by the {@link MediaStreamTrackDesc} class
+     * to print debug information.
+     */
+    private static final Logger logger
+        = Logger.getLogger(MediaStreamTrackDesc.class);
+
     /**
      * The {@link RTPEncodingDesc}s that this {@link MediaStreamTrackDesc}
      * possesses, ordered by their subjective quality from low to high.
@@ -158,6 +166,9 @@ public class MediaStreamTrackDesc
     {
         if (ArrayUtils.isNullOrEmpty(rtpEncodings))
         {
+            logger.warn("Empty encodings array, can't match pkt with " +
+                mediaStreamTrackReceiver
+                    .getStream().packetToString(pkt));
             return null;
         }
 
@@ -169,7 +180,28 @@ public class MediaStreamTrackDesc
             }
         }
 
+        logger.warn("Failed to match an encoding for pkt with " +
+            mediaStreamTrackReceiver
+                .getStream().packetToString(pkt) +
+                " to an encoding. Available encodings " + this);
+
         return null;
+    }
+
+    @Override
+    public String toString()
+    {
+        StringBuilder sb = new StringBuilder();
+
+        if (!ArrayUtils.isNullOrEmpty(rtpEncodings))
+        {
+            for (RTPEncodingDesc encoding : rtpEncodings)
+            {
+                sb.append(" ").append(encoding);
+            }
+        }
+
+        return sb.toString();
     }
 
     /**

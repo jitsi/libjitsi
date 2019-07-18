@@ -19,6 +19,7 @@ import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.utils.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * Contains the {@link MediaStreamTrackDesc}s for a {@link MediaStream}. It
@@ -35,6 +36,13 @@ public class MediaStreamTrackReceiver
     extends SinglePacketTransformerAdapter
     implements TransformEngine
 {
+    /**
+     * The {@link Logger} used by the {@link SinglePacketTransformerAdapter} class
+     * to print debug information.
+     */
+    private static final Logger logger
+        = Logger.getLogger(MediaStreamTrackReceiver.class);
+
     /**
      * An empty array of {@link MediaStreamTrackDesc}.
      */
@@ -78,6 +86,8 @@ public class MediaStreamTrackReceiver
         MediaStreamTrackDesc[] localTracks = tracks;
         if (ArrayUtils.isNullOrEmpty(localTracks))
         {
+            logger.warn("Empty tracks array, can't match pkt with "
+                + stream.packetToString(pkt));
             return null;
         }
 

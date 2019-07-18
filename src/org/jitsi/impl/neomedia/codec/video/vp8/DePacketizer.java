@@ -781,6 +781,26 @@ public class DePacketizer
 
             return buf[off + sz - 2] & 0xff;
         }
+
+        /**
+         * Provides a string description of the VP8 descriptor that can be used
+         * for debugging purposes.
+         *
+         * @param buf
+         * @param off
+         * @param len
+         * @return
+         */
+        public static String toString(byte[] buf, int off, int len)
+        {
+            return "VP8PayloadDescriptor" +
+                "[size=" + getSize(buf, off, len) +
+                ", tid=" + getTemporalLayerIndex(buf, off, len) +
+                ", tl0picidx=" + getTL0PICIDX(buf, off, len) +
+                ", pid=" + getPictureId(buf, off) +
+                ", isExtended=" + hasExtendedPictureId(buf, off, len) +
+                "]";
+        }
     }
 
     /**
