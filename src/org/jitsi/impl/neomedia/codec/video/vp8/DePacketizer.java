@@ -799,6 +799,8 @@ public class DePacketizer
                 ", tl0picidx=" + getTL0PICIDX(buf, off, len) +
                 ", pid=" + getPictureId(buf, off) +
                 ", isExtended=" + hasExtendedPictureId(buf, off, len) +
+                ", hex=" +
+                RTPUtils.toHexString(buf, off, Math.min(len, MAX_LENGTH)) +
                 "]";
         }
     }
