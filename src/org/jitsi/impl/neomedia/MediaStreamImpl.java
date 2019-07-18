@@ -30,6 +30,7 @@ import javax.media.rtp.event.*;
 import javax.media.rtp.rtcp.*;
 
 import org.jitsi.impl.neomedia.codec.*;
+import org.jitsi.impl.neomedia.codec.video.vp8.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.format.*;
 import org.jitsi.impl.neomedia.protocol.*;
@@ -4032,6 +4033,29 @@ public class MediaStreamImpl
         else
         {
             return RawPacket.isPacketMarked(pkt);
+        }
+    }
+
+
+    public String packetToString(RawPacket pkt)
+    {
+        if (pkt == null)
+        {
+            return "null";
+        }
+
+        if (pkt.getPayloadType() == getDynamicRTPPayloadType(Constants.VP8))
+        {
+            byte[] buf = pkt.getBuffer();
+            int off = pkt.getPayloadOffset(), len = pkt.getPayloadLength();
+
+            return pkt + ", "
+                + DePacketizer.VP8PayloadDescriptor.toString(buf, off, len);
+        }
+        else
+        {
+            return pkt.toString();
+
         }
     }
 
