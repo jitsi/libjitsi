@@ -28,7 +28,7 @@ import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.util.*;
 import org.jitsi.utils.logging.Logger; // Disambiguation.
-import org.jitsi.utils.stats.*;
+import org.jitsi.utils.queue.*;
 
 /**
  * Implements <tt>OutputDataStream</tt> for an <tt>RTPTranslatorImpl</tt>. The
@@ -126,7 +126,7 @@ class OutputDataStreamImpl
 
         if (logger.isTraceEnabled())
         {
-            writeQStats = QueueStatistics.get(getClass().getSimpleName());
+            writeQStats = new QueueStatistics();
         }
         else
         {
