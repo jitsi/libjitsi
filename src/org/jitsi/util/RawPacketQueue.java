@@ -15,7 +15,7 @@
  */
 package org.jitsi.util;
 
-import org.jitsi.utils.*;
+import org.jitsi.utils.queue.*;
 import org.jitsi.service.neomedia.*;
 
 /**

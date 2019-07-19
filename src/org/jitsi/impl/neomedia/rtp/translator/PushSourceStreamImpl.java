@@ -24,7 +24,7 @@ import javax.media.protocol.*;
 
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.utils.logging.Logger; // Disambiguation.
-import org.jitsi.utils.stats.*;
+import org.jitsi.utils.queue.*;
 
 /**
  * Implements <tt>PushSourceStream</tt> for an <tt>RTPTranslatorImpl</tt>. Reads
@@ -108,7 +108,7 @@ class PushSourceStreamImpl
         readQ = new ArrayBlockingQueue<>(readQCapacity);
         if (logger.isTraceEnabled())
         {
-            readQStats = QueueStatistics.get(getClass().getSimpleName());
+            readQStats = new QueueStatistics();
         }
         else
         {
