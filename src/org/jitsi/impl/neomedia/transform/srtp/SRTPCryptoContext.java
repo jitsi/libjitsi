@@ -506,11 +506,14 @@ public class SRTPCryptoContext
 
         ivStore[14] = ivStore[15] = 0;
 
-        int payloadOffset = RawPacket.getHeaderLength(pkt.getBuffer(), pkt.getOffset(), pkt.getLength());
-        int payloadLength = pkt.getLength() - payloadOffset;
+        int rtpHeaderLength
+                = RawPacket.getHeaderLength(
+                        pkt.getBuffer(), pkt.getOffset(), pkt.getLength());
 
         cipherCtr.process(
-                pkt.getBuffer(), pkt.getOffset() + payloadOffset, payloadLength,
+                pkt.getBuffer(),
+                pkt.getOffset() + rtpHeaderLength,
+                pkt.getLength() - rtpHeaderLength,
                 ivStore);
     }
 
@@ -534,11 +537,14 @@ public class SRTPCryptoContext
         ivStore[14] = (byte) (roc >> 8);
         ivStore[15] = (byte) roc;
 
-        int payloadOffset = RawPacket.getHeaderLength(pkt.getBuffer(), pkt.getOffset(), pkt.getLength());
-        int payloadLength = pkt.getLength() - payloadOffset;
+        int rtpHeaderLength
+                = RawPacket.getHeaderLength(
+                        pkt.getBuffer(), pkt.getOffset(), pkt.getLength());
 
         cipherF8.process(
-                pkt.getBuffer(), pkt.getOffset() + payloadOffset, payloadLength,
+                pkt.getBuffer(),
+                pkt.getOffset() + rtpHeaderLength,
+                pkt.getLength() - rtpHeaderLength,
                 ivStore);
     }
 
