@@ -800,7 +800,7 @@ public class DePacketizer
                 ", pid=" + getPictureId(buf, off) +
                 ", isExtended=" + hasExtendedPictureId(buf, off, len) +
                 ", hex=" +
-                RTPUtils.toHexString(buf, off, Math.min(len, MAX_LENGTH)) +
+                RTPUtils.toHexString(buf, off, Math.min(len, MAX_LENGTH), false) +
                 "]";
         }
     }

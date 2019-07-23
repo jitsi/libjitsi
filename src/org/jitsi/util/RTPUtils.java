@@ -346,7 +346,7 @@ public class RTPUtils
      */
     public static String toHexString(byte[] buf)
     {
-        return toHexString(buf, 0, buf.length);
+        return toHexString(buf, 0, buf.length, true);
     }
 
     /**
@@ -357,6 +357,20 @@ public class RTPUtils
      * @return
      */
     public static String toHexString(byte[] buf, int off, int len)
+    {
+        return toHexString(buf, off, len, true);
+    }
+
+    /**
+     * Return a string containing the hex string version of the given byte
+     * @param buf
+     * @param off
+     * @param len
+     * @param format a boolean that indicates whether or not to format the hex
+     * string.
+     * @return
+     */
+    public static String toHexString(byte[] buf, int off, int len, boolean format)
     {
         if (buf == null)
         {
@@ -369,15 +383,18 @@ public class RTPUtils
 
             for (int i = 0; i < len; i++)
             {
-                if (i % 16 == 0)
+                if (format)
                 {
-                    hexStringBuilder.append("\n")
-                        .append(toHexString((byte)i))
-                        .append("  ");
-                }
-                else if (i % 8 == 0)
-                {
-                    hexStringBuilder.append(" ");
+                    if (i % 16 == 0)
+                    {
+                        hexStringBuilder.append("\n")
+                            .append(toHexString((byte) i))
+                            .append("  ");
+                    }
+                    else if (i % 8 == 0)
+                    {
+                        hexStringBuilder.append(" ");
+                    }
                 }
                 byte b = buf[off + i];
 
