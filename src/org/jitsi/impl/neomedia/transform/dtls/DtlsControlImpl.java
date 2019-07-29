@@ -35,10 +35,10 @@ import org.bouncycastle.operator.bc.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
-import org.jitsi.service.version.*;
 import org.jitsi.util.*;
 import org.jitsi.utils.*;
 import org.jitsi.utils.logging.*;
+import org.jitsi.utils.version.*;
 
 /**
  * Implements {@link DtlsControl} i.e. {@link SrtpControl} for DTLS-SRTP.
@@ -421,10 +421,9 @@ public class DtlsControlImpl
     private static X500Name generateCN()
     {
         X500NameBuilder builder = new X500NameBuilder(BCStyle.INSTANCE);
-        String applicationName
-            = System.getProperty(Version.PNAME_APPLICATION_NAME);
-        String applicationVersion
-            = System.getProperty(Version.PNAME_APPLICATION_VERSION);
+        // TODO: Get the versions from a VersionService
+        String applicationName = "libjitsi";
+        String applicationVersion = null;
         StringBuilder cn = new StringBuilder();
 
         if (!StringUtils.isNullOrEmpty(applicationName, true))
