@@ -57,7 +57,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-utils</artifactId>
-      <version>1.0-0-g49ed569</version>
+      <version>1.0-1-gaca0e20</version>
     </dependency>
     <dependency>
       <groupId>org.opentelecoms.sdp</groupId>
