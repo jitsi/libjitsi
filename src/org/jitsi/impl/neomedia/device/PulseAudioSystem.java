@@ -24,7 +24,7 @@ import javax.media.format.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.jmfext.media.renderer.audio.*;
 import org.jitsi.impl.neomedia.pulseaudio.*;
-import org.jitsi.service.version.*;
+import org.jitsi.utils.version.*;
 
 /**
  * Implements an <tt>AudioSystem</tt> using the native PulseAudio API/library.
@@ -526,8 +526,9 @@ public class PulseAudioSystem
         // XXX For the sake of simplicity while working on libjitsi, get the
         // version information in the form of System property values instead of
         // going through the VersionService.
-        String name = System.getProperty(Version.PNAME_APPLICATION_NAME);
-        String version = System.getProperty(Version.PNAME_APPLICATION_VERSION);
+        // TODO: use the VersionService
+        String name = "libjitsi";
+        String version = null;
 
         if (name != null)
             PA.proplist_sets(proplist, PA.PROP_APPLICATION_NAME, name);
