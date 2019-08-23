@@ -15,7 +15,7 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.opus;
 
-import org.jitsi.util.*;
+import org.jitsi.utils.*;
 
 /**
  * Defines the API of the native opus library to be utilized by the libjitsi

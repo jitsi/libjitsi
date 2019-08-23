@@ -15,7 +15,7 @@
  */
 package org.jitsi.impl.neomedia.jmfext.media.protocol.video4linux2;
 
-import org.jitsi.util.*;
+import org.jitsi.utils.*;
 
 /**
  * Provides the interface to the native Video for Linux Two API Specification

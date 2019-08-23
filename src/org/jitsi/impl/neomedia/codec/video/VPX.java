@@ -15,7 +15,7 @@
  */
 package org.jitsi.impl.neomedia.codec.video;
 
-import org.jitsi.util.*;
+import org.jitsi.utils.*;
 
 /**
  * A wrapper for the libvpx native library.

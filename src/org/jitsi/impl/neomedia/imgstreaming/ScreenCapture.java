@@ -15,7 +15,7 @@
  */
 package org.jitsi.impl.neomedia.imgstreaming;
 
-import org.jitsi.util.*;
+import org.jitsi.utils.*;
 import org.jitsi.utils.logging.*;
 
 /**

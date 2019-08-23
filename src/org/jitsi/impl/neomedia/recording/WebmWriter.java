@@ -16,7 +16,7 @@
 package org.jitsi.impl.neomedia.recording;
 
 import java.io.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.*;
 
 public class WebmWriter
 {

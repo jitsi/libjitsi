@@ -15,7 +15,7 @@
  */
 package org.jitsi.impl.neomedia.jmfext.media.protocol.directshow;
 
-import org.jitsi.util.*;
+import org.jitsi.utils.*;
 
 /**
  * DirectShow capture device manager.

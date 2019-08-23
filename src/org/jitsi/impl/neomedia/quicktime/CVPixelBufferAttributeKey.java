@@ -15,7 +15,7 @@
  */
 package org.jitsi.impl.neomedia.quicktime;
 
-import org.jitsi.util.*;
+import org.jitsi.utils.*;
 
 /**
  * @author Lyubomir Marinov

@@ -15,7 +15,7 @@
  */
 package org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi;
 
-import org.jitsi.util.*;
+import org.jitsi.utils.*;
 import org.jitsi.utils.logging.*;
 
 /**
