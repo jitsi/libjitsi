@@ -15,7 +15,7 @@
  */
 package org.jitsi.impl.neomedia.pulseaudio;
 
-import org.jitsi.util.*;
+import org.jitsi.utils.*;
 
 /**
  * Declares the functions, structures and constants of the native

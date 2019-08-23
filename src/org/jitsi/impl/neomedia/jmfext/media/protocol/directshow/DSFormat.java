@@ -16,7 +16,7 @@
 package org.jitsi.impl.neomedia.jmfext.media.protocol.directshow;
 
 import javax.media.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.*;
 
 /**
  * DirectShow video format.

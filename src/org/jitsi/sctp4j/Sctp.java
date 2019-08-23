@@ -19,7 +19,7 @@ import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
 
-import org.jitsi.util.*;
+import org.jitsi.utils.*;
 import org.jitsi.utils.logging.*;
 
 /**

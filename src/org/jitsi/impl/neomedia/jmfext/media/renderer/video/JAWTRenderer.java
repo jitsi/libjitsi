@@ -25,7 +25,8 @@ import javax.swing.*;
 
 import org.jitsi.impl.neomedia.codec.video.*;
 import org.jitsi.impl.neomedia.jmfext.media.renderer.*;
-import org.jitsi.util.*;
+import org.jitsi.util.OSUtils;
+import org.jitsi.utils.*;
 import org.jitsi.util.swing.*;
 import org.jitsi.utils.logging.*;
 

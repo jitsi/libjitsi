@@ -15,7 +15,7 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.speex;
 
-import org.jitsi.util.*;
+import org.jitsi.utils.*;
 
 /**
  * Provides the interface to the native Speex library.
