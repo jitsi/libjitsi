@@ -58,18 +58,6 @@ Specifies whether {@code DtlsControlImpl is to tear down the media session if th
 
 Indicates whether unencrypted packets sent or received through DtlsPacketTransformer are to be dropped. The default value is false.
 
-# AES
-
-##### org.jitsi.impl.neomedia.transform.srtp.AES.factoryClassName=*String*
-
-Specifies the name of the class to instantiate as a BlockCipherFactory implementation to be used by the class AES to initialize BlockCiphers.
-
-# SRTPCryptoContext
-
-##### org.jitsi.impl.neomedia.transform.srtp.SRTPCryptoContext.checkReplay=*boolean*
-
-Indicates whether protection against replay attacks is to be activated. The default value is true.
-
 # FECReceiver
 
 ##### org.jitsi.impl.neomedia.transform.fec.AbstractFECReceiver.FEC\_BUFF\_SIZE=*int*

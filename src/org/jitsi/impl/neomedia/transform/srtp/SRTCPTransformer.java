@@ -19,6 +19,7 @@ import java.util.*;
 
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
+import org.jitsi.srtp.*;
 
 /**
  * SRTCPTransformer implements PacketTransformer.
@@ -30,21 +31,21 @@ import org.jitsi.service.neomedia.*;
 public class SRTCPTransformer
     extends SinglePacketTransformer
 {
-    private SRTPContextFactory forwardFactory;
-    private SRTPContextFactory reverseFactory;
+    private SrtpContextFactory forwardFactory;
+    private SrtpContextFactory reverseFactory;
 
     /**
-     * All the known SSRC's corresponding SRTCPCryptoContexts
+     * All the known SSRC's corresponding SrtcpCryptoContexts
      */
-    private final Map<Integer,SRTCPCryptoContext> contexts;
+    private final Map<Integer,SrtcpCryptoContext> contexts;
 
     /**
      * Constructs an <tt>SRTCPTransformer</tt>, sharing its
-     * <tt>SRTPContextFactory</tt> instances with a given
+     * <tt>SrtpContextFactory</tt> instances with a given
      * <tt>SRTPTransformer</tt>.
      *
      * @param srtpTransformer the <tt>SRTPTransformer</tt> with which this
-     * <tt>SRTCPTransformer</tt> will share its <tt>SRTPContextFactory</tt>
+     * <tt>SRTCPTransformer</tt> will share its <tt>SrtpContextFactory</tt>
      * instances.
      */
     public SRTCPTransformer(SRTPTransformer srtpTransformer)
@@ -59,7 +60,7 @@ public class SRTCPTransformer
      * @param factory The associated context factory for both
      *            transform directions.
      */
-    public SRTCPTransformer(SRTPContextFactory factory)
+    public SRTCPTransformer(SrtpContextFactory factory)
     {
         this(factory, factory);
     }
@@ -73,12 +74,12 @@ public class SRTCPTransformer
      *            transformations.
      */
     public SRTCPTransformer(
-            SRTPContextFactory forwardFactory,
-            SRTPContextFactory reverseFactory)
+            SrtpContextFactory forwardFactory,
+            SrtpContextFactory reverseFactory)
     {
         this.forwardFactory = forwardFactory;
         this.reverseFactory = reverseFactory;
-        this.contexts = new HashMap<Integer,SRTCPCryptoContext>();
+        this.contexts = new HashMap<Integer,SrtcpCryptoContext>();
     }
 
     /**
@@ -89,7 +90,7 @@ public class SRTCPTransformer
      *            transformations, <tt>false</tt> for the reverse transformation
      *            factory.
      */
-    public void updateFactory(SRTPContextFactory factory, boolean forward)
+    public void updateFactory(SrtpContextFactory factory, boolean forward)
     {
         synchronized (contexts)
         {
@@ -129,10 +130,10 @@ public class SRTCPTransformer
             if (reverseFactory != forwardFactory)
                 reverseFactory.close();
 
-            for (Iterator<SRTCPCryptoContext> i = contexts.values().iterator();
+            for (Iterator<SrtcpCryptoContext> i = contexts.values().iterator();
                     i.hasNext();)
             {
-                SRTCPCryptoContext context = i.next();
+                SrtcpCryptoContext context = i.next();
 
                 i.remove();
                 if (context != null)
@@ -141,25 +142,20 @@ public class SRTCPTransformer
         }
     }
 
-    private SRTCPCryptoContext getContext(
+    private SrtcpCryptoContext getContext(
             RawPacket pkt,
-            SRTPContextFactory engine)
+            SrtpContextFactory engine)
     {
         int ssrc = (int) pkt.getRTCPSSRC();
-        SRTCPCryptoContext context = null;
+        SrtcpCryptoContext context = null;
 
         synchronized (contexts)
         {
             context = contexts.get(ssrc);
             if (context == null && engine != null)
             {
-                context = engine.getDefaultContextControl();
-                if (context != null)
-                {
-                    context = context.deriveContext(ssrc);
-                    context.deriveSrtcpKeys();
-                    contexts.put(ssrc, context);
-                }
+                context = engine.deriveControlContext(ssrc);
+                contexts.put(ssrc, context);
             }
         }
 
@@ -175,7 +171,7 @@ public class SRTCPTransformer
     @Override
     public RawPacket reverseTransform(RawPacket pkt)
     {
-        SRTCPCryptoContext context = getContext(pkt, reverseFactory);
+        SrtcpCryptoContext context = getContext(pkt, reverseFactory);
 
         return
             ((context != null) && context.reverseTransformPacket(pkt))
@@ -192,7 +188,7 @@ public class SRTCPTransformer
     @Override
     public RawPacket transform(RawPacket pkt)
     {
-        SRTCPCryptoContext context = getContext(pkt, forwardFactory);
+        SrtcpCryptoContext context = getContext(pkt, forwardFactory);
 
         if(context != null)
         {
