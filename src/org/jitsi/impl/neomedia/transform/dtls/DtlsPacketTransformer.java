@@ -24,6 +24,7 @@ import org.bouncycastle.crypto.tls.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.impl.neomedia.transform.srtp.*;
+import org.jitsi.srtp.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
@@ -594,8 +595,8 @@ public class DtlsPacketTransformer
         case SRTPProtectionProfile.SRTP_AES128_CM_HMAC_SHA1_32:
             cipher_key_length = 128 / 8;
             cipher_salt_length = 112 / 8;
-            cipher = SRTPPolicy.AESCM_ENCRYPTION;
-            auth_function = SRTPPolicy.HMACSHA1_AUTHENTICATION;
+            cipher = SrtpPolicy.AESCM_ENCRYPTION;
+            auth_function = SrtpPolicy.HMACSHA1_AUTHENTICATION;
             auth_key_length = 160 / 8;
             RTCP_auth_tag_length = 80 / 8;
             RTP_auth_tag_length = 32 / 8;
@@ -603,16 +604,16 @@ public class DtlsPacketTransformer
         case SRTPProtectionProfile.SRTP_AES128_CM_HMAC_SHA1_80:
             cipher_key_length = 128 / 8;
             cipher_salt_length = 112 / 8;
-            cipher = SRTPPolicy.AESCM_ENCRYPTION;
-            auth_function = SRTPPolicy.HMACSHA1_AUTHENTICATION;
+            cipher = SrtpPolicy.AESCM_ENCRYPTION;
+            auth_function = SrtpPolicy.HMACSHA1_AUTHENTICATION;
             auth_key_length = 160 / 8;
             RTCP_auth_tag_length = RTP_auth_tag_length = 80 / 8;
             break;
         case SRTPProtectionProfile.SRTP_NULL_HMAC_SHA1_32:
             cipher_key_length = 0;
             cipher_salt_length = 0;
-            cipher = SRTPPolicy.NULL_ENCRYPTION;
-            auth_function = SRTPPolicy.HMACSHA1_AUTHENTICATION;
+            cipher = SrtpPolicy.NULL_ENCRYPTION;
+            auth_function = SrtpPolicy.HMACSHA1_AUTHENTICATION;
             auth_key_length = 160 / 8;
             RTCP_auth_tag_length = 80 / 8;
             RTP_auth_tag_length = 32 / 8;
@@ -620,8 +621,8 @@ public class DtlsPacketTransformer
         case SRTPProtectionProfile.SRTP_NULL_HMAC_SHA1_80:
             cipher_key_length = 0;
             cipher_salt_length = 0;
-            cipher = SRTPPolicy.NULL_ENCRYPTION;
-            auth_function = SRTPPolicy.HMACSHA1_AUTHENTICATION;
+            cipher = SrtpPolicy.NULL_ENCRYPTION;
+            auth_function = SrtpPolicy.HMACSHA1_AUTHENTICATION;
             auth_key_length = 160 / 8;
             RTCP_auth_tag_length = RTP_auth_tag_length = 80 / 8;
             break;
@@ -685,48 +686,48 @@ public class DtlsPacketTransformer
             keyingMaterialOffset += keyingMaterialValue.length;
         }
 
-        SRTPPolicy srtcpPolicy
-            = new SRTPPolicy(
+        SrtpPolicy srtcpPolicy
+            = new SrtpPolicy(
                     cipher,
                     cipher_key_length,
                     auth_function,
                     auth_key_length,
                     RTCP_auth_tag_length,
                     cipher_salt_length);
-        SRTPPolicy srtpPolicy
-            = new SRTPPolicy(
+        SrtpPolicy srtpPolicy
+            = new SrtpPolicy(
                     cipher,
                     cipher_key_length,
                     auth_function,
                     auth_key_length,
                     RTP_auth_tag_length,
                     cipher_salt_length);
-        SRTPContextFactory clientSRTPContextFactory
-            = new SRTPContextFactory(
+        SrtpContextFactory clientSrtpContextFactory
+            = new SrtpContextFactory(
                     /* sender */ tlsContext instanceof TlsClientContext,
                     client_write_SRTP_master_key,
                     client_write_SRTP_master_salt,
                     srtpPolicy,
                     srtcpPolicy);
-        SRTPContextFactory serverSRTPContextFactory
-            = new SRTPContextFactory(
+        SrtpContextFactory serverSrtpContextFactory
+            = new SrtpContextFactory(
                     /* sender */ tlsContext instanceof TlsServerContext,
                     server_write_SRTP_master_key,
                     server_write_SRTP_master_salt,
                     srtpPolicy,
                     srtcpPolicy);
-        SRTPContextFactory forwardSRTPContextFactory;
-        SRTPContextFactory reverseSRTPContextFactory;
+        SrtpContextFactory forwardSrtpContextFactory;
+        SrtpContextFactory reverseSrtpContextFactory;
 
         if (tlsContext instanceof TlsClientContext)
         {
-            forwardSRTPContextFactory = clientSRTPContextFactory;
-            reverseSRTPContextFactory = serverSRTPContextFactory;
+            forwardSrtpContextFactory = clientSrtpContextFactory;
+            reverseSrtpContextFactory = serverSrtpContextFactory;
         }
         else if (tlsContext instanceof TlsServerContext)
         {
-            forwardSRTPContextFactory = serverSRTPContextFactory;
-            reverseSRTPContextFactory = clientSRTPContextFactory;
+            forwardSrtpContextFactory = serverSrtpContextFactory;
+            reverseSrtpContextFactory = clientSrtpContextFactory;
         }
         else
         {
@@ -739,15 +740,15 @@ public class DtlsPacketTransformer
         {
             srtpTransformer
                 = new SRTCPTransformer(
-                        forwardSRTPContextFactory,
-                        reverseSRTPContextFactory);
+                        forwardSrtpContextFactory,
+                        reverseSrtpContextFactory);
         }
         else
         {
             srtpTransformer
                 = new SRTPTransformer(
-                        forwardSRTPContextFactory,
-                        reverseSRTPContextFactory);
+                        forwardSrtpContextFactory,
+                        reverseSrtpContextFactory);
         }
         return srtpTransformer;
     }

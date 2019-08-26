@@ -60,6 +60,11 @@
       <version>1.0-3-g1156312</version>
     </dependency>
     <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>jitsi-srtp</artifactId>
+      <version>1.0-14-g15dd616</version>
+    </dependency>
+    <dependency>
       <groupId>org.opentelecoms.sdp</groupId>
       <artifactId>java-sdp-nist-bridge</artifactId>
       <version>1.1</version>
@@ -165,7 +170,6 @@
                    darwin/libjnspeex.jnilib;
                    darwin/libjnvpx.jnilib;osname=Mac OS X;processor=x86-64,
                    linux-x86/libjnawtrenderer.so;
-                   linux-x86/libjnopenssl.so;
                    linux-x86/libjnopus.so;
                    linux-x86/libjnportaudio.so;
                    linux-x86/libjnpulseaudio.so;
@@ -174,7 +178,6 @@
                    linux-x86/libjnspeex.so;
                    linux-x86/libjnvideo4linux2.so;osname=Linux;processor=x86,
                    linux-x86-64/libjnawtrenderer.so;
-                   linux-x86-64/libjnopenssl.so;
                    linux-x86-64/libjnopus.so;
                    linux-x86-64/libjnportaudio.so;
                    linux-x86-64/libjnpulseaudio.so;

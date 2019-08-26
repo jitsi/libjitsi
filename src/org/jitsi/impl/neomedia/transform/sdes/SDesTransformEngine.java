@@ -17,6 +17,7 @@ package org.jitsi.impl.neomedia.transform.sdes;
 
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.impl.neomedia.transform.srtp.*;
+import org.jitsi.srtp.*;
 import org.jitsi.service.neomedia.*;
 
 import ch.imvs.sdes4j.srtp.*;
@@ -33,8 +34,8 @@ public class SDesTransformEngine
     private SRTCPTransformer srtcpTransformer;
     private SrtpCryptoAttribute inAttribute;
     private SrtpCryptoAttribute outAttribute;
-    private SRTPContextFactory reverseCtx;
-    private SRTPContextFactory forwardCtx;
+    private SrtpContextFactory reverseCtx;
+    private SrtpContextFactory forwardCtx;
 
     /**
      * Creates a new instance of this class.
@@ -112,7 +113,7 @@ public class SDesTransformEngine
         srtcpTransformer = null;
     }
 
-    private static SRTPContextFactory getTransformEngine(
+    private static SrtpContextFactory getTransformEngine(
             SrtpCryptoAttribute attribute,
             boolean sender)
     {
@@ -127,18 +128,18 @@ public class SDesTransformEngine
         SrtpCryptoSuite cryptoSuite = attribute.getCryptoSuite();
 
         return
-            new SRTPContextFactory(
+            new SrtpContextFactory(
                     sender,
                     getKey(attribute),
                     getSalt(attribute),
-                    new SRTPPolicy(
+                    new SrtpPolicy(
                             getEncryptionCipher(cryptoSuite),
                             cryptoSuite.getEncKeyLength() / 8,
                             getHashAlgorithm(cryptoSuite),
                             cryptoSuite.getSrtpAuthKeyLength() / 8,
                             cryptoSuite.getSrtpAuthTagLength() / 8,
                             cryptoSuite.getSaltKeyLength() / 8),
-                    new SRTPPolicy(
+                    new SrtpPolicy(
                             getEncryptionCipher(cryptoSuite),
                             cryptoSuite.getEncKeyLength() / 8,
                             getHashAlgorithm(cryptoSuite),
@@ -173,9 +174,9 @@ public class SDesTransformEngine
             case SrtpCryptoSuite.ENCRYPTION_AES128_CM:
             case SrtpCryptoSuite.ENCRYPTION_AES192_CM:
             case SrtpCryptoSuite.ENCRYPTION_AES256_CM:
-                return SRTPPolicy.AESCM_ENCRYPTION;
+                return SrtpPolicy.AESCM_ENCRYPTION;
             case SrtpCryptoSuite.ENCRYPTION_AES128_F8:
-                return SRTPPolicy.AESF8_ENCRYPTION;
+                return SrtpPolicy.AESF8_ENCRYPTION;
             default:
                 throw new IllegalArgumentException("Unsupported cipher");
         }
@@ -186,7 +187,7 @@ public class SDesTransformEngine
         switch (cs.getHashAlgorithm())
         {
             case SrtpCryptoSuite.HASH_HMAC_SHA1:
-                return SRTPPolicy.HMACSHA1_AUTHENTICATION;
+                return SrtpPolicy.HMACSHA1_AUTHENTICATION;
             default:
                 throw new IllegalArgumentException("Unsupported hash");
         }
