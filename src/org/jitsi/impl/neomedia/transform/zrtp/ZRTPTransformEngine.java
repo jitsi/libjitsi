@@ -867,6 +867,7 @@ public class ZRTPTransformEngine
     {
         SrtpPolicy srtpPolicy;
         int cipher = 0, authn = 0, authKeyLen = 0;
+        org.jitsi.utils.logging2.Logger logger2 = new org.jitsi.utils.logging2.LoggerImpl(getClass().getName());
 
         if (secrets.getAuthAlgorithm() == ZrtpConstants.SupportedAuthAlgos.HS)
         {
@@ -911,7 +912,8 @@ public class ZRTPTransformEngine
                             secrets.getKeyInitiator(),
                             secrets.getSaltInitiator(),
                             srtpPolicy,
-                            srtpPolicy);
+                            srtpPolicy,
+                            logger2);
 
                 srtpOutTransformer = new SRTPTransformer(engine);
                 getRTCPTransformer().setSrtcpOut(new SRTCPTransformer(engine));
@@ -932,7 +934,8 @@ public class ZRTPTransformEngine
                             secrets.getKeyResponder(),
                             secrets.getSaltResponder(),
                             srtpPolicy,
-                            srtpPolicy);
+                            srtpPolicy,
+                            logger2);
 
                 srtpOutTransformer = new SRTPTransformer(engine);
                 getRTCPTransformer().setSrtcpOut(new SRTCPTransformer(engine));
@@ -959,7 +962,8 @@ public class ZRTPTransformEngine
                             secrets.getKeyResponder(),
                             secrets.getSaltResponder(),
                             srtpPolicy,
-                            srtpPolicy);
+                            srtpPolicy,
+                            logger2);
 
                 srtpInTransformer = new SRTPTransformer(engine);
                 getRTCPTransformer().setSrtcpIn(new SRTCPTransformer(engine));
@@ -981,7 +985,8 @@ public class ZRTPTransformEngine
                             secrets.getKeyInitiator(),
                             secrets.getSaltInitiator(),
                             srtpPolicy,
-                            srtpPolicy);
+                            srtpPolicy,
+                            logger2);
 
                 srtpInTransformer = new SRTPTransformer(engine);
                 getRTCPTransformer().setSrtcpIn(new SRTCPTransformer(engine));

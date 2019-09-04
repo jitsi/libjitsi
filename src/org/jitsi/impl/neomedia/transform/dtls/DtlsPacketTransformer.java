@@ -702,20 +702,23 @@ public class DtlsPacketTransformer
                     auth_key_length,
                     RTP_auth_tag_length,
                     cipher_salt_length);
+        org.jitsi.utils.logging2.Logger logger2 = new org.jitsi.utils.logging2.LoggerImpl(getClass().getName());
         SrtpContextFactory clientSrtpContextFactory
             = new SrtpContextFactory(
                     /* sender */ tlsContext instanceof TlsClientContext,
                     client_write_SRTP_master_key,
                     client_write_SRTP_master_salt,
                     srtpPolicy,
-                    srtcpPolicy);
+                    srtcpPolicy,
+                    logger2);
         SrtpContextFactory serverSrtpContextFactory
             = new SrtpContextFactory(
                     /* sender */ tlsContext instanceof TlsServerContext,
                     server_write_SRTP_master_key,
                     server_write_SRTP_master_salt,
                     srtpPolicy,
-                    srtcpPolicy);
+                    srtcpPolicy,
+                    logger2);
         SrtpContextFactory forwardSrtpContextFactory;
         SrtpContextFactory reverseSrtpContextFactory;
 

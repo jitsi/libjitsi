@@ -57,12 +57,12 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-utils</artifactId>
-      <version>1.0-3-g1156312</version>
+      <version>1.0-5-g7b044d4</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-srtp</artifactId>
-      <version>1.0-14-g15dd616</version>
+      <version>1.0-15-g5848a60</version>
     </dependency>
     <dependency>
       <groupId>org.opentelecoms.sdp</groupId>
