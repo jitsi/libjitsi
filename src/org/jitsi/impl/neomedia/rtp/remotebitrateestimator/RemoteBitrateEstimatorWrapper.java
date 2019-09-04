@@ -63,7 +63,7 @@ public class RemoteBitrateEstimatorWrapper
     /**
      * Disable AST RBE by default.
      */
-    private static final boolean ENABLE_AST_RBE_DEFAULT = false;
+    private static final boolean ENABLE_AST_RBE_DEFAULT = true;
 
     /**
      * Determines whether or not to activate the abs-send-time remote bitrate
