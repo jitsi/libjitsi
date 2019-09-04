@@ -127,6 +127,8 @@ public class SDesTransformEngine
 
         SrtpCryptoSuite cryptoSuite = attribute.getCryptoSuite();
 
+        org.jitsi.utils.logging2.Logger logger2 = new org.jitsi.utils.logging2.LoggerImpl(SDesTransformEngine.class.getName());
+
         return
             new SrtpContextFactory(
                     sender,
@@ -145,7 +147,8 @@ public class SDesTransformEngine
                             getHashAlgorithm(cryptoSuite),
                             cryptoSuite.getSrtcpAuthKeyLength() / 8,
                             cryptoSuite.getSrtcpAuthTagLength() / 8,
-                            cryptoSuite.getSaltKeyLength() / 8));
+                            cryptoSuite.getSaltKeyLength() / 8),
+                logger2);
     }
 
     private static byte[] getKey(SrtpCryptoAttribute attribute)
