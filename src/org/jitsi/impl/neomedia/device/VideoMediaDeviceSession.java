@@ -41,7 +41,6 @@ import org.jitsi.service.neomedia.control.KeyFrameControl;
 import org.jitsi.service.neomedia.event.*;
 import org.jitsi.service.neomedia.format.*;
 import org.jitsi.service.resources.*;
-import org.jitsi.util.*;
 import org.jitsi.util.event.*;
 import org.jitsi.util.swing.*;
 import org.jitsi.utils.*;

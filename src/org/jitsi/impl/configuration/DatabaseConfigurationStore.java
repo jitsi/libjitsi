@@ -15,10 +15,10 @@
  */
 package org.jitsi.impl.configuration;
 
+import org.jitsi.utils.xml.*;
+
 import java.io.*;
 import java.util.*;
-
-import org.jitsi.util.xml.*;
 
 /**
  *
@@ -75,7 +75,7 @@ public abstract class DatabaseConfigurationStore
      */
     public void reloadConfiguration(File file)
         throws IOException,
-               XMLException
+            XMLException
     {
         properties.clear();
 

@@ -4,7 +4,7 @@ import static org.junit.Assert.*;
 import java.util.Arrays;
 import javax.xml.bind.DatatypeConverter;
 import org.bouncycastle.crypto.engines.AESFastEngine;
-import org.jitsi.util.OSUtils;
+import org.jitsi.utils.*;
 import org.junit.Test;
 
 public class SRTPCipherCTRTest

@@ -15,12 +15,6 @@
  */
 package org.jitsi.impl.neomedia;
 
-import java.util.*;
-
-import javax.media.*;
-import javax.media.format.*;
-import javax.sdp.*;
-
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.format.*;
@@ -30,9 +24,13 @@ import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
-import org.jitsi.util.*;
 import org.jitsi.utils.*;
 import org.jitsi.utils.logging.*;
+
+import javax.media.*;
+import javax.media.format.*;
+import javax.sdp.*;
+import java.util.*;
 
 /**
  * Implements static utility methods used by media classes.

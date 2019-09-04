@@ -46,7 +46,6 @@ import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
 import org.jitsi.service.neomedia.recording.*;
 import org.jitsi.service.resources.*;
-import org.jitsi.util.*;
 import org.jitsi.util.swing.*;
 import org.jitsi.utils.*;
 import org.jitsi.utils.event.*;

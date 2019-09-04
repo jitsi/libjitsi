@@ -42,8 +42,8 @@ import org.jitsi.service.neomedia.control.KeyFrameControl;
 import org.jitsi.service.neomedia.device.*;
 import org.jitsi.service.neomedia.format.*;
 import org.jitsi.service.neomedia.rtp.*;
-import org.jitsi.util.*;
 import org.jitsi.util.event.*;
+import org.jitsi.utils.*;
 import org.jitsi.utils.concurrent.*;
 import org.jitsi.utils.logging.*;
 

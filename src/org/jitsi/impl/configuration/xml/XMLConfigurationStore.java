@@ -21,8 +21,8 @@ import java.util.*;
 import javax.xml.parsers.*;
 
 import org.jitsi.impl.configuration.*;
-import org.jitsi.util.xml.*;
 import org.jitsi.utils.logging.*;
+import org.jitsi.utils.xml.*;
 import org.w3c.dom.*;
 import org.xml.sax.*;
 
@@ -185,7 +185,7 @@ public class XMLConfigurationStore
      */
     private Map<String, Object> loadConfiguration(File file)
         throws IOException,
-               XMLException
+            XMLException
     {
         try
         {

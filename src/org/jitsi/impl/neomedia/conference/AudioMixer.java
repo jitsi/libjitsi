@@ -15,22 +15,21 @@
  */
 package org.jitsi.impl.neomedia.conference;
 
-import java.io.*;
-import java.lang.reflect.*;
-import java.util.*;
-
-import javax.media.*;
-import javax.media.Controls;
-import javax.media.control.*;
-import javax.media.format.*;
-import javax.media.protocol.*;
-
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.control.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.protocol.*;
-import org.jitsi.util.*;
+import org.jitsi.utils.*;
 import org.jitsi.utils.logging.*;
+
+import javax.media.Controls;
+import javax.media.*;
+import javax.media.control.*;
+import javax.media.format.*;
+import javax.media.protocol.*;
+import java.io.*;
+import java.lang.reflect.*;
+import java.util.*;
 
 /**
  * Represents an audio mixer which manages the mixing of multiple audio streams

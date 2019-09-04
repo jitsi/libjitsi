@@ -15,14 +15,13 @@
  */
 package org.jitsi.impl.neomedia.codec;
 
-import java.io.*;
-import java.util.*;
+import org.jitsi.impl.neomedia.*;
+import org.jitsi.utils.*;
+import org.jitsi.utils.logging.*;
 
 import javax.media.*;
-
-import org.jitsi.impl.neomedia.*;
-import org.jitsi.util.*;
-import org.jitsi.utils.logging.*;
+import java.io.*;
+import java.util.*;
 
 /**
  * Utility class that handles registration of FMJ packages and plugins.

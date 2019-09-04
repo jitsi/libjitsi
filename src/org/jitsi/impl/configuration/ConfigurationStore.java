@@ -15,9 +15,9 @@
  */
 package org.jitsi.impl.configuration;
 
-import java.io.*;
+import org.jitsi.utils.xml.*;
 
-import org.jitsi.util.xml.*;
+import java.io.*;
 
 /**
  * Abstracts the runtime storage, the serialization and deserialization of the
@@ -81,7 +81,7 @@ public interface ConfigurationStore
      */
     public void reloadConfiguration(File file)
         throws IOException,
-               XMLException;
+            XMLException;
 
     /**
      * Removes the value association in this <tt>ConfigurationStore</tt> of the

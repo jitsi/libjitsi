@@ -15,7 +15,7 @@
  */
 package org.jitsi.impl.configuration.xml;
 
-import org.jitsi.util.xml.*;
+import org.jitsi.utils.xml.*;
 import org.w3c.dom.*;
 
 /**

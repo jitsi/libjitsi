@@ -24,10 +24,10 @@ import org.jitsi.impl.configuration.xml.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.fileaccess.*;
 import org.jitsi.service.libjitsi.*;
-import org.jitsi.util.*;
-import org.jitsi.util.xml.*;
+import org.jitsi.util.PasswordUtil;
 import org.jitsi.utils.*;
 import org.jitsi.utils.logging.*;
+import org.jitsi.utils.xml.*;
 
 /**
  * A straightforward implementation of the <tt>ConfigurationService</tt> using

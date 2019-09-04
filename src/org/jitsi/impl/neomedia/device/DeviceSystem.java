@@ -23,7 +23,6 @@ import javax.media.*;
 import javax.media.format.*;
 
 import org.jitsi.impl.neomedia.*;
-import org.jitsi.util.*;
 import org.jitsi.utils.*;
 import org.jitsi.utils.event.*;
 import org.jitsi.utils.logging.*;

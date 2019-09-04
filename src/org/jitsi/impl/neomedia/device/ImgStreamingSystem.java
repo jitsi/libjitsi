@@ -15,17 +15,15 @@
  */
 package org.jitsi.impl.neomedia.device;
 
-import java.awt.*;
-
-import javax.media.*;
-import javax.media.format.*;
-
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.impl.neomedia.codec.video.*;
 import org.jitsi.service.neomedia.device.*;
-import org.jitsi.util.*;
 import org.jitsi.utils.*;
+
+import javax.media.*;
+import javax.media.format.*;
+import java.awt.*;
 
 /**
  * Add ImageStreaming capture device.

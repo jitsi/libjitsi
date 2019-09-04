@@ -21,11 +21,11 @@ import java.util.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.fileaccess.*;
 import org.jitsi.service.libjitsi.*;
-import org.jitsi.util.*;
 
 import com.sun.jna.*;
 import com.sun.jna.ptr.*;
 import com.sun.jna.win32.*;
+import org.jitsi.utils.*;
 import org.jitsi.utils.logging.*;
 
 /**

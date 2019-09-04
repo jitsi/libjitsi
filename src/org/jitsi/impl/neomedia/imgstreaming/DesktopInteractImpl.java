@@ -15,11 +15,11 @@
  */
 package org.jitsi.impl.neomedia.imgstreaming;
 
+import org.jitsi.utils.*;
+import org.jitsi.utils.logging.*;
+
 import java.awt.*;
 import java.awt.image.*;
-
-import org.jitsi.util.*;
-import org.jitsi.utils.logging.*;
 
 /**
  * Capture desktop screen either via native code (JNI) if available or by using
