@@ -61,7 +61,8 @@ public class RemoteBitrateEstimatorWrapper
         cfg = LibJitsi.getConfigurationService();
 
     /**
-     * Disable AST RBE by default.
+     * The AST RBE is enabled by default (the RTP timestamp based
+     * implementation probably does not work well at all).
      */
     private static final boolean ENABLE_AST_RBE_DEFAULT = true;
 
