@@ -41,39 +41,6 @@ public class RemoteBitrateEstimatorWrapper
     implements RemoteBitrateEstimator, TransformEngine
 {
     /**
-     * The {@link Logger} used by the {@link RemoteBitrateEstimatorWrapper}
-     * class to print debug information.
-     */
-    private static final Logger logger
-        = Logger.getLogger(RemoteBitrateEstimatorWrapper.class);
-
-    /**
-     * The name of the property that determines whether or not to activate the
-     * abs-send-time remote bitrate estimator.
-     */
-    public final static String ENABLE_AST_RBE_PNAME
-        = "org.jitsi.impl.neomedia.rtp.ENABLE_AST_RBE";
-
-    /**
-     * The {@link ConfigurationService} to get config values from.
-     */
-    private static final ConfigurationService
-        cfg = LibJitsi.getConfigurationService();
-
-    /**
-     * Disable AST RBE by default.
-     */
-    private static final boolean ENABLE_AST_RBE_DEFAULT = false;
-
-    /**
-     * Determines whether or not to activate the abs-send-time remote bitrate
-     * estimator.
-     */
-    private static final boolean ENABLE_AST_RBE =
-        cfg != null ? cfg.getBoolean(ENABLE_AST_RBE_PNAME,
-            ENABLE_AST_RBE_DEFAULT) : ENABLE_AST_RBE_DEFAULT;
-
-    /**
      * After this many packets without the AST header, switch to the SS RBE.
      */
     private static final long SS_THRESHOLD = 30;
@@ -205,7 +172,7 @@ public class RemoteBitrateEstimatorWrapper
 
         RawPacket.HeaderExtension ext = null;
         int astExtensionID = this.astExtensionID;
-        if (ENABLE_AST_RBE && astExtensionID != -1)
+        if (astExtensionID != -1)
         {
             ext = pkt.getHeaderExtension((byte) astExtensionID);
         }
