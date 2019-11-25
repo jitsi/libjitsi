@@ -25,6 +25,7 @@ import org.bouncycastle.crypto.params.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.util.*;
+import org.jitsi.utils.*;
 import org.jitsi.utils.logging.*;
 
 /**
