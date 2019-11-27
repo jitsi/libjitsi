@@ -1386,7 +1386,7 @@ public class ConfigurationServiceImpl
         if (!logger.isInfoEnabled())
             return;
 
-        logger.info(ConfigUtils.debugPrintSystemProperties());
+        logger.info(ConfigUtils.getSystemPropertiesDebugString());
     }
 
     /**
