@@ -1469,7 +1469,7 @@
       <linkerarg value="-m64" if="cross_64" />
 
       <linkerarg value="-Wl,-z,relro" if="is.running.debian"/>
-      <linkerarg value="-lcrypto"/>
+      <linkerarg value="-lcrypto" location="end"/>
 
       <fileset dir="${src}/native/openssl" includes="*.c"/>
 
