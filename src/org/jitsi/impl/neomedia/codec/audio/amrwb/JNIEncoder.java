@@ -202,4 +202,48 @@ public class JNIEncoder
         }
         return format;
     }
+    
+        /**
+     * Gets the <tt>Format</tt> of the media output by this <tt>Codec</tt>.
+     *
+     * @return the <tt>Format</tt> of the media output by this <tt>Codec</tt>
+     * @see net.sf.fmj.media.AbstractCodec#getOutputFormat()
+     */
+    @Override
+    @SuppressWarnings("serial") /* copied from Speex and Opus Codec */
+    public Format getOutputFormat()
+    {
+        Format f = super.getOutputFormat();
+
+        if ((f != null) && (f.getClass() == AudioFormat.class))
+        {
+            AudioFormat af = (AudioFormat) f;
+
+            f
+                = setOutputFormat(
+                        new AudioFormat(
+                                    af.getEncoding(),
+                                    af.getSampleRate(),
+                                    af.getSampleSizeInBits(),
+                                    af.getChannels(),
+                                    af.getEndian(),
+                                    af.getSigned(),
+                                    af.getFrameSizeInBits(),
+                                    af.getFrameRate(),
+                                    af.getDataType())
+                                {
+                                    @Override
+                                    public long computeDuration(long length)
+                                    {
+                                        /*
+                                           current implementation provides only single frames,
+                                           see frame type index above; therefore static 20ms
+                                        */
+                                        return 20L /* milliseconds */
+                                                   * 1000000L /* nanoseconds in a millisecond */;
+                                    }
+                                });
+        }
+        return f;
+    }
 }
