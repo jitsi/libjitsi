@@ -176,7 +176,6 @@ public class JNIEncoder
         buf.setDuration(
                 20L /* milliseconds */
                     * 1000000L /* nanoseconds in a millisecond */);
-        buf.setLength(dstLen);
         buf.setOffset(0);
 
         return BUFFER_PROCESSED_OK;
