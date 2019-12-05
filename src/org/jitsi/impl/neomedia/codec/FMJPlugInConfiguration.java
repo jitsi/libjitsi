@@ -109,8 +109,8 @@ public class FMJPlugInConfiguration
             //"org.jitsi.impl.neomedia.codec.video.h263p.Packetizer",
             // Adaptive Multi-Rate Wideband (AMR-WB)
             // "org.jitsi.impl.neomedia.codec.audio.amrwb.DePacketizer",
-            //"org.jitsi.impl.neomedia.codec.audio.amrwb.JNIDecoder",
-            //"org.jitsi.impl.neomedia.codec.audio.amrwb.JNIEncoder",
+            "org.jitsi.impl.neomedia.codec.audio.amrwb.JNIDecoder",
+            "org.jitsi.impl.neomedia.codec.audio.amrwb.JNIEncoder",
             // "org.jitsi.impl.neomedia.codec.audio.amrwb.Packetizer",
         };
 
