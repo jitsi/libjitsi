@@ -239,13 +239,35 @@ public class MediaUtils
                 opusAdvancedParams,
                 48000);
 
-        // Adaptive Multi-Rate Wideband (AMR-WB)
-        addMediaFormats(
-                MediaFormat.RTP_PAYLOAD_TYPE_UNKNOWN,
-                Constants.AMR_WB,
-                MediaType.AUDIO,
-                Constants.AMR_WB_RTP,
-                16000);
+        boolean enableFfmpeg
+            = cfg.getBoolean(MediaService.ENABLE_FFMPEG_CODECS_PNAME, false);
+
+        /* AMR-WB (Adaptive Multi-Rate Wideband) */
+        // Checks whether ffmpeg is enabled and whether AMR-WB is available in
+        // the provided binaries
+        boolean amrwbEnabled = false;
+        if (enableFfmpeg)
+        {
+            try
+            {
+                amrwbEnabled
+                    = FFmpeg.avcodec_find_encoder(FFmpeg.CODEC_ID_AMR_WB) != 0;
+            }
+            catch (Throwable t)
+            {
+                logger.debug("AMR-WB codec not found", t);
+            }
+        }
+
+        if (amrwbEnabled)
+        {
+            addMediaFormats(
+                    MediaFormat.RTP_PAYLOAD_TYPE_UNKNOWN,
+                    Constants.AMR_WB,
+                    MediaType.AUDIO,
+                    Constants.AMR_WB_RTP,
+                    16000);
+        }
 
         /*
          * We don't really support these.
@@ -270,8 +292,6 @@ public class MediaUtils
         /* H264 */
         // Checks whether ffmpeg is enabled and whether h264 is available in
         // the provided binaries
-        boolean enableFfmpeg
-            = cfg.getBoolean(MediaService.ENABLE_FFMPEG_CODECS_PNAME, false);
         boolean h264Enabled = false;
         if (enableFfmpeg)
         {
