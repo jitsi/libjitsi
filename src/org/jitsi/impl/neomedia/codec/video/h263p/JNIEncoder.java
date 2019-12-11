@@ -246,7 +246,6 @@ public class JNIEncoder
         FFmpeg.avcodeccontext_add_flags(avcontext,
                 FFmpeg.CODEC_FLAG_H263P_SLICE_STRUCT);
 
-        FFmpeg.avcodeccontext_set_me_method(avcontext, 6);
         FFmpeg.avcodeccontext_set_me_subpel_quality(avcontext, 2);
         FFmpeg.avcodeccontext_set_me_range(avcontext, 18);
         FFmpeg.avcodeccontext_set_me_cmp(avcontext, FFmpeg.FF_CMP_CHROMA);
