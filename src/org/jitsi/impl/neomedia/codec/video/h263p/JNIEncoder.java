@@ -235,8 +235,6 @@ public class JNIEncoder
         FFmpeg.avcodeccontext_set_mb_decision(avcontext,
             FFmpeg.FF_MB_DECISION_SIMPLE);
 
-        //FFmpeg.avcodeccontext_set_rc_eq(avcontext, "blurCplx^(1-qComp)");
-
         FFmpeg.avcodeccontext_add_flags(avcontext,
             FFmpeg.CODEC_FLAG_LOOP_FILTER);
         FFmpeg.avcodeccontext_add_flags(avcontext,
