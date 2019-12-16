@@ -657,7 +657,6 @@ public class JNIEncoder
                     //"crf" /* constant quality mode, constant ratefactor */, "0",
                     "intra-refresh", intraRefresh ? "1" : "0",
                     "keyint", Integer.toString(keyint),
-                    "motion-est", "hex", /* possible since FFmpeg 2.7 */
                     "partitions", "b8x8,i4x4,p8x8",
                     "preset", preset,
                     "thread_type", "slice",
