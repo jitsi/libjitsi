@@ -611,7 +611,7 @@ public class MediaStreamImpl
             {
                 MediaDeviceSession deviceSession = getDeviceSession();
 
-                if (deviceSession == null || rtpTranslator != null)
+                if (deviceSession == null)
                 {
                     // Since there is no output MediaDevice to render the
                     // receiveStream on, the JitterBuffer of the receiveStream
