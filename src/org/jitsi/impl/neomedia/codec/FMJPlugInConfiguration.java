@@ -103,10 +103,6 @@ public class FMJPlugInConfiguration
             "org.jitsi.impl.neomedia.codec.video.h264.JNIEncoder",
             "org.jitsi.impl.neomedia.codec.video.h264.Packetizer",
             "org.jitsi.impl.neomedia.codec.video.SwScale",
-            //"org.jitsi.impl.neomedia.codec.video.h263p.DePacketizer",
-            //"org.jitsi.impl.neomedia.codec.video.h263p.JNIDecoder",
-            //"org.jitsi.impl.neomedia.codec.video.h263p.JNIEncoder",
-            //"org.jitsi.impl.neomedia.codec.video.h263p.Packetizer",
             // Adaptive Multi-Rate Wideband (AMR-WB)
             // "org.jitsi.impl.neomedia.codec.audio.amrwb.DePacketizer",
             //"org.jitsi.impl.neomedia.codec.audio.amrwb.JNIDecoder",
@@ -175,14 +171,6 @@ public class FMJPlugInConfiguration
                 PlugInManager.CODEC);
         PlugInManager.removePlugIn(
                 "com.sun.media.codec.video.colorspace.RGBScaler",
-                PlugInManager.CODEC);
-
-        // Remove JMF's H263 codec.
-        PlugInManager.removePlugIn(
-                "com.sun.media.codec.video.vh263.NativeDecoder",
-                PlugInManager.CODEC);
-        PlugInManager.removePlugIn(
-                "com.ibm.media.codec.video.h263.NativeEncoder",
                 PlugInManager.CODEC);
 
         // Remove JMF's GSM codec. As working only on some OS.

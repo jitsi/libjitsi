@@ -1612,17 +1612,6 @@ public class VideoMediaDeviceSession
     {
         Format format = mediaFormat.getFormat();
 
-        if ("h263-1998/rtp".equalsIgnoreCase(format.getEncoding()))
-        {
-            /*
-             * If no output size has been defined, then no SDP fmtp has been
-             * found with QCIF, CIF, VGA or CUSTOM parameters. Let's default to
-             * QCIF (176x144).
-             */
-            if (outputSize == null)
-                outputSize = new Dimension(176, 144);
-        }
-
         /*
          * Add a size in the output format. As VideoFormat has no setter, we
          * recreate the object. Also check whether capture device can output
