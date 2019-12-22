@@ -256,11 +256,6 @@ public class MediaUtils
             MediaType.VIDEO,
             VideoFormat.JPEG_RTP);
         addMediaFormats(
-            (byte) SdpConstants.H263,
-            "H263",
-            MediaType.VIDEO,
-            VideoFormat.H263_RTP);
-        addMediaFormats(
             (byte) SdpConstants.H261,
             "H261",
             MediaType.VIDEO,
@@ -366,28 +361,6 @@ public class MediaUtils
                 h264FormatParams,
                 h264AdvancedAttributes);
         }
-
-        /* H263+
-        Map<String, String> h263FormatParams
-            = new HashMap<String, String>();
-        Map<String, String> h263AdvancedAttributes
-            = new LinkedHashMap<String, String>();
-
-         // The maximum resolution we can receive is the size of our screen
-         // device.
-        if (res != null)
-            h263FormatParams.put("CUSTOM", res.width + "," + res.height + ",2");
-        h263FormatParams.put("VGA", "2");
-        h263FormatParams.put("CIF", "1");
-        h263FormatParams.put("QCIF", "1");
-
-        addMediaFormats(
-                MediaFormat.RTP_PAYLOAD_TYPE_UNKNOWN,
-                "H263-1998",
-                MediaType.VIDEO,
-                Constants.H263P_RTP,
-                h263FormatParams,
-                h263AdvancedAttributes);*/
 
         addMediaFormats(
                 MediaFormat.RTP_PAYLOAD_TYPE_UNKNOWN,
@@ -1060,10 +1033,6 @@ public class MediaUtils
         else if (jmfEncoding.equals(AudioFormat.G729_RTP))
         {
             return SdpConstants.G729;
-        }
-        else if (jmfEncoding.equals(VideoFormat.H263_RTP))
-        {
-            return SdpConstants.H263;
         }
         else if (jmfEncoding.equals(VideoFormat.JPEG_RTP))
         {

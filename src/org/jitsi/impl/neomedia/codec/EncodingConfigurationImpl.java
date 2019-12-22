@@ -62,20 +62,9 @@ public class EncodingConfigurationImpl extends EncodingConfiguration
             1100);
 
         setEncodingPreference(
-            "H263-1998",
-            VideoMediaFormatImpl.DEFAULT_CLOCK_RATE,
-            0);
-
-        setEncodingPreference(
             "VP8",
             VideoMediaFormatImpl.DEFAULT_CLOCK_RATE,
             0);
-        /*
-        setEncodingPreference(
-            "H263",
-            VideoMediaFormatImpl.DEFAULT_CLOCK_RATE,
-            1000);
-        */
         setEncodingPreference(
             "JPEG",
             VideoMediaFormatImpl.DEFAULT_CLOCK_RATE,
