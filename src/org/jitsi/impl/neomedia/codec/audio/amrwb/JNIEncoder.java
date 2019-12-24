@@ -42,6 +42,19 @@ public class JNIEncoder
         = {  6600,  8850, 12650, 14250, 15850, 18250, 19850, 23050, 23850 };
 
     /**
+     * The amount of bytes in the RTP frame, for each BIT_RATE and the
+     * Silence Indicator (SID), see 3GPP TS 26.201 Table 2 and 3:
+     * Total number of (speech) bits + 10, devided by 8 to get the octets.
+     * 10 because of the added header, which is CMR=4, F=1, FT=4, Q=1.
+     * Three examples:
+     * Mode 0 ( 6600) has 132 speech bits and 10 header bits = 18 octets
+     * Mode 8 (23850) has 477 speech bits and 10 header bits = 61 octets.
+     * Mode 9 (  SID) has  40        bits and 10 header bits =  7 octets.
+     */
+    static final int[] OCTETS
+        = {    18,    24,    33,    37,    41,    47,    51,    59,    61, 7 };
+
+    /**
      * The list of <tt>Format</tt>s of audio data supported as input by
      * <tt>JNIEncoder</tt> instances.
      */
@@ -150,12 +163,23 @@ public class JNIEncoder
         int dstLen = srcLen + 1;
         byte[] dst = new byte[dstLen];
 
-        int cmr /* codec mode request */ = 15;
-        int ft /* frame type index */ = 8;
-        int q /* frame quality indicator */ = 1;
+        int cmr /* codec mode request */        = 15;
+        int f   /* followed by another frame */ = (src[0] >>> 7) & 0x01;
+        int ft  /* frame type index */          = (src[0] >>> 3) & 0x0F;
+        int q   /* frame quality indicator */   = (src[0] >>> 2) & 0x01;
 
-        dst[0] = (byte) (((cmr & 0x0F) << 4) | ((ft & 0x0E) >>> 1));
-        dst[1] = (byte) (((ft & 0x01) << 7) | ((q & 0x01) << 6));
+        if (ft > 9) {
+            /**
+             * speech lost or no data, in case of DTX because of VAD
+             * In both cases, no RTP packet shall be sent = silence. The return
+             * code "OK" (with zero length or zero duration) does this not. The
+             * return code "FAILED" does this.
+             */
+            return BUFFER_PROCESSED_FAILED;
+        }
+
+        dst[0] = (byte) (((cmr & 0x0F) << 4) | ((f & 0x01) << 3) | ((ft & 0x0E) >>> 1));
+        dst[1] = (byte) ((( ft & 0x01) << 7) | ((q & 0x01) << 6));
 
         for (int srcI = srcOff + 1, srcEnd = srcOff + srcLen, dstI = 1;
                 srcI < srcEnd;
@@ -173,6 +197,7 @@ public class JNIEncoder
         }
 
         buf.setData(dst);
+        buf.setLength(OCTETS[ft]);
         buf.setDuration(
                 20L /* milliseconds */
                     * 1000000L /* nanoseconds in a millisecond */);
