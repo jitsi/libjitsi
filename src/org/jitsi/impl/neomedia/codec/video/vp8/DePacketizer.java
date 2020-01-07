@@ -418,7 +418,7 @@ public class DePacketizer
 
     /**
      * A class that represents the VP8 Payload Descriptor structure defined
-     * in {@link "http://tools.ietf.org/html/draft-ietf-payload-vp8-10"}
+     * in {@link "https://tools.ietf.org/html/rfc7741"}
      */
     public static class VP8PayloadDescriptor
     {
@@ -475,22 +475,37 @@ public class DePacketizer
         private static final byte N_BIT = (byte) 0x20;
 
         /**
-         * Gets the temporal layer index (TID), if that's set.
+         * The bitmask for the temporal-layer index
+         */
+        private static final byte TID_MASK = (byte) 0xC0;
+
+        /**
+         * Y bit from the TID/Y/KEYIDX extension byte.
+         */
+        private static final byte Y_BIT = (byte) 0x20;
+
+        /**
+         * The bitmask for the temporal key frame index
+         */
+        private static final byte KEYIDX_MASK = (byte) 0x1F;
+
+        /**
+         * Gets the TID/Y/KEYIDX extension byte if available
          *
          * @param buf the byte buffer that holds the VP8 packet.
          * @param off the offset in the byte buffer where the VP8 packet starts.
          * @param len the length of the VP8 packet.
          *
-         * @return the temporal layer index (TID), if that's set, -1 otherwise.
+         * @return the TID/Y/KEYIDX extension byte, if that's set, -1 otherwise.
          */
-        public static int getTemporalLayerIndex(byte[] buf, int off, int len)
+        private static byte getTidYKeyIdxExtensionByte(byte[] buf, int off, int len)
         {
             if (buf == null || buf.length < off + len || len < 2)
             {
                 return -1;
             }
 
-            if ((buf[off] & X_BIT) == 0 || (buf[off+1] & T_BIT) == 0)
+            if ((buf[off] & X_BIT) == 0 || (buf[off+1] & (T_BIT | K_BIT)) == 0)
             {
                 return -1;
             }
@@ -501,7 +516,55 @@ public class DePacketizer
                 return -1;
             }
 
-            return (buf[off + sz - 1] & 0xc0) >> 6;
+            return (byte) (buf[off + sz - 1] & 0xFF);
+        }
+
+        /**
+         * Gets the temporal layer index (TID), if that's set.
+         *
+         * @param buf the byte buffer that holds the VP8 packet.
+         * @param off the offset in the byte buffer where the VP8 packet starts.
+         * @param len the length of the VP8 packet.
+         *
+         * @return the temporal layer index (TID), if that's set, -1 otherwise.
+         */
+        public static int getTemporalLayerIndex(byte[] buf, int off, int len)
+        {
+            byte tidYKeyIdxByte = getTidYKeyIdxExtensionByte(buf, off, len);
+
+            return tidYKeyIdxByte != -1 && (buf[off+1] & T_BIT) != 0 ?(tidYKeyIdxByte & TID_MASK) >> 6 : tidYKeyIdxByte;
+        }
+
+        /**
+         * Gets the 1 layer sync bit (Y BIT), if that's set.
+         *
+         * @param buf the byte buffer that holds the VP8 packet.
+         * @param off the offset in the byte buffer where the VP8 packet starts.
+         * @param len the length of the VP8 packet.
+         *
+         * @return the 1 layer sync bit (Y BIT), if that's set, -1 otherwise.
+         */
+        public static int getFirstLayerSyncBit(byte[] buf, int off, int len)
+        {
+            byte tidYKeyIdxByte = getTidYKeyIdxExtensionByte(buf, off, len);
+
+            return tidYKeyIdxByte != -1 ? (tidYKeyIdxByte & Y_BIT) >> 5 : tidYKeyIdxByte;
+        }
+
+        /**
+         * Gets the temporal key frame index (KEYIDX), if that's set.
+         *
+         * @param buf the byte buffer that holds the VP8 packet.
+         * @param off the offset in the byte buffer where the VP8 packet starts.
+         * @param len the length of the VP8 packet.
+         *
+         * @return the temporal key frame index (KEYIDX), if that's set, -1 otherwise.
+         */
+        public static int getTemporalKeyFrameIndex(byte[] buf, int off, int len)
+        {
+            byte tidYKeyIdxByte = getTidYKeyIdxExtensionByte(buf, off, len);
+
+            return tidYKeyIdxByte != -1 && (buf[off+1] & K_BIT) != 0 ? (tidYKeyIdxByte & KEYIDX_MASK) : tidYKeyIdxByte;
         }
 
         /**
@@ -568,7 +631,7 @@ public class DePacketizer
                 if ((input[offset+2] & M_BIT) != 0)
                     size++;
             }
-            if ((input[offset+1] & L_BIT) != 0)
+            if ((input[offset+1] & (L_BIT | T_BIT)) != 0)
                 size++;
             if ((input[offset+1] & (T_BIT | K_BIT)) != 0)
                 size++;
@@ -807,14 +870,14 @@ public class DePacketizer
 
     /**
      * A class that represents the VP8 Payload Header structure defined
-     * in {@link "http://tools.ietf.org/html/draft-ietf-payload-vp8-10"}
+     * in {@link "https://tools.ietf.org/html/rfc7741"}
      */
     public static class VP8PayloadHeader
     {
         /**
-         * S bit of the Payload Descriptor.
+         * P bit of the Payload Descriptor.
          */
-        private static final byte S_BIT = (byte) 0x01;
+        private static final byte P_BIT = (byte) 0x01;
 
         /**
          * Returns true if the <tt>P</tt> (inverse key frame flag) field of the
@@ -829,7 +892,7 @@ public class DePacketizer
             // When set to 0 the current frame is a key frame.  When set to 1
             // the current frame is an interframe. Defined in [RFC6386]
 
-            return (input[offset] & S_BIT) == 0;
+            return (input[offset] & P_BIT) == 0;
         }
     }
 
