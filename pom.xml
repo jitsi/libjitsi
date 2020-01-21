@@ -141,7 +141,7 @@
          <configuration>
             <excludeDependencies>jitsi-lgpl-dependencies</excludeDependencies>
             <instructions>
-               <Import-Package>*,sun.lwawt,sun.lwawt.macosx</Import-Package>
+               <Import-Package>*,sun.awt.X11,sun.lwawt,sun.lwawt.macosx</Import-Package>
                <Export-Package>org.jitsi.util.*,
                org.jitsi.service.*,
                org.jitsi.sctp4j.*,
