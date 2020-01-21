@@ -612,7 +612,6 @@ public class JNIEncoder
             FFmpeg.avcodeccontext_add_flags2(avctx,
                 FFmpeg.CODEC_FLAG2_INTRA_REFRESH);
         }
-        FFmpeg.avcodeccontext_set_me_method(avctx, 7);
         FFmpeg.avcodeccontext_set_me_subpel_quality(avctx, 2);
         FFmpeg.avcodeccontext_set_me_range(avctx, 16);
         FFmpeg.avcodeccontext_set_me_cmp(avctx, FFmpeg.FF_CMP_CHROMA);
