@@ -255,7 +255,7 @@ public class HFlip
                 String filters
                     = VSRC_BUFFER_NAME + "=" + size.width + ":" + size.height
                         + ":" + pixFmt + ":1:1000000:1:1,"
-                        + "hflip,"
+                        + "scale,hflip,scale,"
                         + "format=pix_fmts=" + pixFmt + ","
                         + VSINK_FFSINK_NAME;
                 long log_ctx = 0;
@@ -293,7 +293,7 @@ public class HFlip
                         parsedFilterName
                             = String.format(
                                     parsedFilterNameFormat,
-                                    3,
+                                    5,
                                     VSINK_FFSINK_NAME);
                         ffsink
                             = FFmpeg.avfilter_graph_get_filter(
