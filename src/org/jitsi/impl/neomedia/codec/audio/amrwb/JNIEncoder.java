@@ -101,7 +101,7 @@ public class JNIEncoder
     /**
      * The bit rate to be produced by this <tt>JNIEncoder</tt>.
      */
-    private int bitRate = BIT_RATES[BIT_RATES.length - 1];
+    private int bitRate = BIT_RATES[2]; // Mode 2 = 12650
 
     /**
      * The indicator which determines whether this <tt>JNIEncoder</tt> is to
@@ -131,6 +131,14 @@ public class JNIEncoder
         super.configureAVCodecContext(avctx, format);
 
         FFmpeg.avcodeccontext_set_bit_rate(avctx, bitRate);
+        /**
+         * Enable the voice-activation detection (VAD) included in the
+         * encoder which allows to transmit no RTP packets when no voice
+         * was detected. This is called discontinuous transmission (DTX)
+         * and reduces the used bandwidth.
+         */
+        long codec = 0; // if 0, avctx->codec is used
+        FFmpeg.avcodec_open2(avctx, codec, "dtx", "1"); // = on
     }
 
     /**
@@ -233,7 +241,7 @@ public class JNIEncoder
         return format;
     }
     
-        /**
+    /**
      * Gets the <tt>Format</tt> of the media output by this <tt>Codec</tt>.
      *
      * @return the <tt>Format</tt> of the media output by this <tt>Codec</tt>
