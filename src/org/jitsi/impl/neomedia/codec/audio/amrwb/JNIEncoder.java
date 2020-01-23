@@ -91,6 +91,14 @@ public class JNIEncoder
         };
 
     /**
+     *  The current implementation provides only single frames with 20ms size,
+     *  see {@link #doProcess(Buffer, Buffer)}.
+     */
+    private static final long durationNanos
+            = 20L /* milliseconds */
+                * 1000_000L /* nanoseconds in a millisecond */;
+
+    /**
      * The bit rate to be produced by this <tt>JNIEncoder</tt>.
      */
     private int bitRate = BIT_RATES[BIT_RATES.length - 1];
@@ -197,9 +205,7 @@ public class JNIEncoder
         }
 
         buf.setData(dst);
-        buf.setDuration(
-                20L /* milliseconds */
-                    * 1000000L /* nanoseconds in a millisecond */);
+        buf.setDuration(durationNanos);
         buf.setLength(OCTETS[ft]);
         buf.setOffset(0);
 
@@ -225,5 +231,44 @@ public class JNIEncoder
                 = ((encoding != null) && encoding.endsWith(Constants._RTP));
         }
         return format;
+    }
+    
+        /**
+     * Gets the <tt>Format</tt> of the media output by this <tt>Codec</tt>.
+     *
+     * @return the <tt>Format</tt> of the media output by this <tt>Codec</tt>
+     * @see net.sf.fmj.media.AbstractCodec#getOutputFormat()
+     */
+    @Override
+    @SuppressWarnings("serial") /* copied from Speex and Opus Codec */
+    public Format getOutputFormat()
+    {
+        Format f = super.getOutputFormat();
+
+        if ((f != null) && (f.getClass() == AudioFormat.class))
+        {
+            AudioFormat af = (AudioFormat) f;
+
+            f
+                = setOutputFormat(
+                        new AudioFormat(
+                                    af.getEncoding(),
+                                    af.getSampleRate(),
+                                    af.getSampleSizeInBits(),
+                                    af.getChannels(),
+                                    af.getEndian(),
+                                    af.getSigned(),
+                                    af.getFrameSizeInBits(),
+                                    af.getFrameRate(),
+                                    af.getDataType())
+                                {
+                                    @Override
+                                    public long computeDuration(long length)
+                                    {
+                                        return durationNanos;
+                                    }
+                                });
+        }
+        return f;
     }
 }

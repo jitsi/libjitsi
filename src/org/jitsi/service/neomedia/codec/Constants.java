@@ -71,16 +71,6 @@ public class Constants
     public static final String G722_RTP = G722 + _RTP;
 
     /**
-     * The H263+ constant.
-     */
-    public static final String H263P = "h263-1998";
-
-    /**
-     * The H263+/rtp constant.
-     */
-    public static final String H263P_RTP = H263P + _RTP;
-
-    /**
      * The H264 constant.
      */
     public static final String H264 = "h264";

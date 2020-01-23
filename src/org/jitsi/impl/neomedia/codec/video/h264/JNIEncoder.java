@@ -600,8 +600,6 @@ public class JNIEncoder
         FFmpeg.avcodeccontext_set_mb_decision(avctx,
             FFmpeg.FF_MB_DECISION_SIMPLE);
 
-        FFmpeg.avcodeccontext_set_rc_eq(avctx, "blurCplx^(1-qComp)");
-
         FFmpeg.avcodeccontext_add_flags(avctx,
                 FFmpeg.CODEC_FLAG_LOOP_FILTER);
         if (intraRefresh)
@@ -614,7 +612,6 @@ public class JNIEncoder
             FFmpeg.avcodeccontext_add_flags2(avctx,
                 FFmpeg.CODEC_FLAG2_INTRA_REFRESH);
         }
-        FFmpeg.avcodeccontext_set_me_method(avctx, 7);
         FFmpeg.avcodeccontext_set_me_subpel_quality(avctx, 2);
         FFmpeg.avcodeccontext_set_me_range(avctx, 16);
         FFmpeg.avcodeccontext_set_me_cmp(avctx, FFmpeg.FF_CMP_CHROMA);

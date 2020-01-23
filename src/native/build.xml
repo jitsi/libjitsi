@@ -252,6 +252,8 @@
 
       <linkerarg value="-L${system.JAVA_HOME}/jre/lib/i386" if="is.running.linux" />
       <linkerarg value="-L${system.JAVA_HOME}/jre/lib/amd64" if="is.running.linux" />
+      <linkerarg value="-Wl,-rpath,${system.JAVA_HOME}/jre/lib/i386" if="is.running.linux" />
+      <linkerarg value="-Wl,-rpath,${system.JAVA_HOME}/jre/lib/amd64" if="is.running.linux" />
       <linkerarg value="-Wl,-z,relro" if="is.running.debian"/>
       <linkerarg value="-lXv" location="end" if="is.running.linux" />
       <linkerarg value="-lX11" location="end" if="is.running.linux" />
