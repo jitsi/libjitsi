@@ -98,9 +98,7 @@ public class JAWTRenderer
 
     static
     {
-        JNIUtils.loadLibrary(
-                "jnawtrenderer",
-                JAWTRenderer.class.getClassLoader());
+        JNIUtils.loadLibrary("jnawtrenderer", JAWTRenderer.class);
     }
 
     static native void addNotify(long handle, Component component);

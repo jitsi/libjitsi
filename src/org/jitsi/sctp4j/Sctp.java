@@ -65,7 +65,7 @@ public class Sctp
 
         try
         {
-            JNIUtils.loadLibrary(lib, Sctp.class.getClassLoader());
+            JNIUtils.loadLibrary(lib, Sctp.class);
         }
         catch (Throwable t)
         {

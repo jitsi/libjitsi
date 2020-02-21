@@ -78,7 +78,7 @@ public class Opus
      */
     static
     {
-        JNIUtils.loadLibrary("jnopus", Opus.class.getClassLoader());
+        JNIUtils.loadLibrary("jnopus", Opus.class);
     }
 
     /**

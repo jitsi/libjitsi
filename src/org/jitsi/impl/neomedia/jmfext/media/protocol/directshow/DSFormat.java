@@ -79,7 +79,7 @@ public class DSFormat
 
     static
     {
-        JNIUtils.loadLibrary("jndirectshow", DSFormat.class.getClassLoader());
+        JNIUtils.loadLibrary("jndirectshow", DSFormat.class);
 
         ARGB32 = ARGB32();
         I420 = I420();

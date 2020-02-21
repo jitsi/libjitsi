@@ -28,7 +28,7 @@ public class NSObject
 {
     static
     {
-        JNIUtils.loadLibrary("jnquicktime", NSObject.class.getClassLoader());
+        JNIUtils.loadLibrary("jnquicktime", NSObject.class);
     }
 
     /**

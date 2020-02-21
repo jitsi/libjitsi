@@ -902,7 +902,7 @@ public class VPX {
 
     static
     {
-        JNIUtils.loadLibrary("jnvpx", VPX.class.getClassLoader());
+        JNIUtils.loadLibrary("jnvpx", VPX.class);
     }
 
     /**

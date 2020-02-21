@@ -22,7 +22,7 @@ public class WebmWriter
 {
     static
     {
-        JNIUtils.loadLibrary("jnvpx", WebmWriter.class.getClassLoader());
+        JNIUtils.loadLibrary("jnvpx", WebmWriter.class);
     }
 
     /**

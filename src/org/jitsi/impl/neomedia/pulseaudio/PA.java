@@ -122,7 +122,7 @@ public final class PA
 
     static
     {
-        JNIUtils.loadLibrary("jnpulseaudio", PA.class.getClassLoader());
+        JNIUtils.loadLibrary("jnpulseaudio", PA.class);
     }
 
     public static native void buffer_attr_free(long attr);

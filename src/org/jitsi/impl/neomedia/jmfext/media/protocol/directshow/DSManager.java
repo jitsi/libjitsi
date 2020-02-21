@@ -44,7 +44,7 @@ public class DSManager
 
     static
     {
-        JNIUtils.loadLibrary("jndirectshow", DSManager.class.getClassLoader());
+        JNIUtils.loadLibrary("jndirectshow", DSManager.class);
     }
 
     /**

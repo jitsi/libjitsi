@@ -30,9 +30,7 @@ public final class CVPixelBufferAttributeKey
 
     static
     {
-        JNIUtils.loadLibrary(
-                "jnquicktime",
-                CVPixelBufferAttributeKey.class.getClassLoader());
+        JNIUtils.loadLibrary("jnquicktime", CVPixelBufferAttributeKey.class);
 
         kCVPixelBufferHeightKey = kCVPixelBufferHeightKey();
         kCVPixelBufferPixelFormatTypeKey = kCVPixelBufferPixelFormatTypeKey();
