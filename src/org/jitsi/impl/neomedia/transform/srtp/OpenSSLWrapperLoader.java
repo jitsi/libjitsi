@@ -39,8 +39,7 @@ public class OpenSSLWrapperLoader
     {
         try
         {
-            JNIUtils.loadLibrary("jnopenssl",
-                OpenSSLWrapperLoader.class.getClassLoader());
+            JNIUtils.loadLibrary("jnopenssl", OpenSSLWrapperLoader.class);
             if (OpenSSL_Init())
             {
                 logger.info("jnopenssl successfully loaded");

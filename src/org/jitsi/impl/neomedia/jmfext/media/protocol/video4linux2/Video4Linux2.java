@@ -95,9 +95,7 @@ public class Video4Linux2
 
     static
     {
-        JNIUtils.loadLibrary(
-                "jnvideo4linux2",
-                Video4Linux2.class.getClassLoader());
+        JNIUtils.loadLibrary("jnvideo4linux2", Video4Linux2.class);
 
         VIDIOC_DQBUF = VIDIOC_DQBUF();
         VIDIOC_G_FMT = VIDIOC_G_FMT();

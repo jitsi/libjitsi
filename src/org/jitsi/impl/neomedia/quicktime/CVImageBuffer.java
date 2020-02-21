@@ -26,9 +26,7 @@ public class CVImageBuffer
 {
     static
     {
-        JNIUtils.loadLibrary(
-                "jnquicktime",
-                CVImageBuffer.class.getClassLoader());
+        JNIUtils.loadLibrary("jnquicktime", CVImageBuffer.class);
     }
 
     /**

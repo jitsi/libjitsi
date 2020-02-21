@@ -60,9 +60,7 @@ public class CoreAudioDevice
             }
             if (libname != null)
             {
-                JNIUtils.loadLibrary(
-                        libname,
-                        CoreAudioDevice.class.getClassLoader());
+                JNIUtils.loadLibrary(libname, CoreAudioDevice.class);
                 isLoaded = true;
             }
         }

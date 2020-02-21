@@ -42,7 +42,7 @@ public final class Speex
 
     static
     {
-        JNIUtils.loadLibrary("jnspeex", Speex.class.getClassLoader());
+        JNIUtils.loadLibrary("jnspeex", Speex.class);
     }
 
     public static void assertSpeexIsFunctional()
