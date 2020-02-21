@@ -275,10 +275,13 @@ public class FMJPlugInConfiguration
                 }
                 else
                 {
-                    logger.warn(
+                    if (logger.isTraceEnabled())
+                    {
+                        logger.trace(
                             "Codec " + className
                                 + " is NOT successfully registered",
                             exception);
+                    }
                 }
             }
         }
