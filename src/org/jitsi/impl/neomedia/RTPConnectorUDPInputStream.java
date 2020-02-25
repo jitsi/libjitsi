@@ -20,6 +20,7 @@ import java.net.*;
 
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.packetlogging.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * RTPConnectorInputStream implementation for UDP protocol.
@@ -29,6 +30,13 @@ import org.jitsi.service.packetlogging.*;
 public class RTPConnectorUDPInputStream
     extends TransformInputStream<DatagramSocket>
 {
+    /**
+     * The <tt>Logger</tt> used by the <tt>RTPConnectorInputStream</tt> class
+     * and its instances to print debug information.
+     */
+    private static final Logger logger
+        = Logger.getLogger(RTPConnectorUDPInputStream.class);
+
     /**
      * Initializes a new <tt>RTPConnectorInputStream</tt> which is to receive
      * packet data from a specific UDP socket.
@@ -87,5 +95,8 @@ public class RTPConnectorUDPInputStream
         throws IOException
     {
         socket.setReceiveBufferSize(receiveBufferSize);
+
+        logger.info("Receive buffer size updated: "
+            + socket.getReceiveBufferSize());
     }
 }
