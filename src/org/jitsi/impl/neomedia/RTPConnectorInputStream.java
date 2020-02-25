@@ -64,6 +64,14 @@ public abstract class RTPConnectorInputStream<T extends Closeable>
     public static final int PACKET_RECEIVE_BUFFER_LENGTH = 4 * 1024;
 
     /**
+     * The name of the property which controls the size of the receive buffer
+     * which {@link RTPConnectorInputStream} will request for the sockets that
+     * it uses.
+     */
+    public static final String SO_RCVBUF_PNAME
+        = RTPConnectorInputStream.class.getName() + ".SO_RCVBUF";
+
+    /**
      * Sets a specific priority on a specific <tt>Thread</tt>.
      *
      * @param thread the <tt>Thread</tt> to set the specified <tt>priority</tt>
@@ -210,7 +218,9 @@ public abstract class RTPConnectorInputStream<T extends Closeable>
 
             try
             {
-                setReceiveBufferSize(65535);
+                int receiveBufferSize = LibJitsi.getConfigurationService()
+                    .getInt(SO_RCVBUF_PNAME, 65535);
+                setReceiveBufferSize(receiveBufferSize);
             }
             catch (Throwable t)
             {
