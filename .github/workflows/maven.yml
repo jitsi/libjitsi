@@ -22,4 +22,4 @@ jobs:
           path: ~/.m2
           key: m2
       - name: Build with Maven
-        run: mvn -B package --file m2/pom.xml
+        run: mvn -B package --file pom.xml
