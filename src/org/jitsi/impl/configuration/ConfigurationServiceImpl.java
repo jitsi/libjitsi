@@ -690,17 +690,11 @@ public class ConfigurationServiceImpl
             if (trans != null)
                 trans.beginTransaction();
 
-            OutputStream stream
-                = (file == null) ? null : new FileOutputStream(file);
-
-            try
+            try (OutputStream stream = (file == null)
+                ? null
+                : new FileOutputStream(file))
             {
                 store.storeConfiguration(stream);
-            }
-            finally
-            {
-                if (stream != null)
-                    stream.close();
             }
 
             if (trans != null)
@@ -1168,19 +1162,14 @@ public class ConfigurationServiceImpl
     private static void copy(InputStream inputStream, File outputFile)
         throws IOException
     {
-        OutputStream outputStream = new FileOutputStream(outputFile);
 
-        try
+        try (OutputStream outputStream = new FileOutputStream(outputFile))
         {
             byte[] bytes = new byte[4 * 1024];
             int bytesRead;
 
             while ((bytesRead = inputStream.read(bytes)) != -1)
                 outputStream.write(bytes, 0, bytesRead);
-        }
-        finally
-        {
-            outputStream.close();
         }
     }
 
@@ -1449,18 +1438,10 @@ public class ConfigurationServiceImpl
 
                 Properties fileProps = new Properties();
 
-                InputStream stream = null;
-                try
+                try (InputStream stream = ClassLoader
+                    .getSystemResourceAsStream(fileName))
                 {
-                    stream = ClassLoader.getSystemResourceAsStream(fileName);
                     fileProps.load(stream);
-                }
-                finally
-                {
-                    if (stream != null)
-                    {
-                        stream.close();
-                    }
                 }
 
                 // now set all of this file's properties as system properties
@@ -1595,8 +1576,14 @@ public class ConfigurationServiceImpl
                 return;
             }
 
-            fileProps.load(fileStream);
-            fileStream.close();
+            try
+            {
+                fileProps.load(fileStream);
+            }
+            finally
+            {
+                fileStream.close();
+            }
 
             // now get those properties and place them into the mutable and
             // immutable properties maps.
