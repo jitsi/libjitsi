@@ -17,6 +17,7 @@ package org.jitsi.impl.fileaccess;
 
 import java.io.*;
 
+import java.nio.file.*;
 import org.jitsi.service.fileaccess.*;
 
 /**
@@ -29,7 +30,6 @@ import org.jitsi.service.fileaccess.*;
 public class FailSafeTransactionImpl
     implements FailSafeTransaction
 {
-
     /**
      * Original file used by the transaction
      */
@@ -60,7 +60,8 @@ public class FailSafeTransactionImpl
     protected FailSafeTransactionImpl(File file)
         throws NullPointerException
     {
-        if (file == null) {
+        if (file == null)
+        {
             throw new NullPointerException("null file provided");
         }
 
@@ -75,16 +76,14 @@ public class FailSafeTransactionImpl
      * @throws IllegalStateException if the file doesn't exists anymore
      * @throws IOException if an IOException occurs during the file restoration
      */
-    public void restoreFile()
-        throws IllegalStateException, IOException
+    public void restoreFile() throws IllegalStateException, IOException
     {
         File back = new File(this.file.getAbsolutePath() + BAK_EXT);
 
         // if a backup copy is still present, simply restore it
-        if (back.exists()) {
-            failsafeCopy(back.getAbsolutePath(),
-                    this.file.getAbsolutePath());
-
+        if (back.exists())
+        {
+            failsafeCopy(back, this.file);
             back.delete();
         }
     }
@@ -104,7 +103,8 @@ public class FailSafeTransactionImpl
         throws IllegalStateException, IOException
     {
         // if the last transaction hasn't been closed, commit it
-        if (this.backup != null) {
+        if (this.backup != null)
+        {
             this.commit();
         }
 
@@ -114,8 +114,7 @@ public class FailSafeTransactionImpl
         this.backup = new File(this.file.getAbsolutePath() + BAK_EXT);
 
         // else backup the current file
-        failsafeCopy(this.file.getAbsolutePath(),
-                this.backup.getAbsolutePath());
+        failsafeCopy(this.file, this.backup);
     }
 
     /**
@@ -123,12 +122,11 @@ public class FailSafeTransactionImpl
      * file during the transaction is saved.
      *
      * @throws IllegalStateException if the file doesn't exists anymore
-     * @throws IOException if an IOException occurs during the operation
      */
-    public void commit()
-        throws IllegalStateException, IOException
+    public void commit() throws IllegalStateException
     {
-        if (this.backup == null) {
+        if (this.backup == null)
+        {
             return;
         }
 
@@ -143,8 +141,7 @@ public class FailSafeTransactionImpl
      * @throws IllegalStateException if the file doesn't exists anymore
      * @throws IOException if an IOException occurs during the operation
      */
-    public void rollback()
-        throws IllegalStateException, IOException
+    public void rollback() throws IllegalStateException, IOException
     {
         if (this.backup == null)
         {
@@ -152,8 +149,7 @@ public class FailSafeTransactionImpl
         }
 
         // restore the backup and delete it
-        failsafeCopy(this.backup.getAbsolutePath(),
-                this.file.getAbsolutePath());
+        failsafeCopy(this.backup, this.file);
         this.backup.delete();
         this.backup = null;
     }
@@ -168,52 +164,18 @@ public class FailSafeTransactionImpl
      * @throws IllegalStateException if the file doesn't exists anymore
      * @throws IOException if an IOException occurs during the operation
      */
-    private void failsafeCopy(String from, String to)
+    private void failsafeCopy(File from, File to)
         throws IllegalStateException, IOException
     {
-        FileInputStream in = null;
-        FileOutputStream out = null;
-
         // to ensure a perfect copy, delete the destination if it exists
-        File toF = new File(to);
-        if (toF.exists())
-        {
-            if (!toF.delete())
-                throw new IOException("Failed to delete destination file: "
-                                      + toF.getName());
-        }
+        Files.deleteIfExists(to.toPath());
 
-        File ptoF = new File(to + PART_EXT);
-        if (ptoF.exists())
-        {
-            if (!ptoF.delete())
-                throw new IOException("Failed to delete partial file: "
-                                      + ptoF.getName());
-        }
+        File ptoF = new File(to.getAbsolutePath() + PART_EXT);
+        Files.deleteIfExists(ptoF.toPath());
 
-        try
-        {
-            in = new FileInputStream(from);
-            out = new FileOutputStream(to + PART_EXT);
-        } catch (FileNotFoundException e)
-        {
-            throw new IllegalStateException(e.getMessage());
-        }
-
-        // actually copy the file
-        byte[] buf = new byte[1024];
-        int len;
-        while ((len = in.read(buf)) > 0)
-        {
-          out.write(buf, 0, len);
-        }
-
-        in.close();
-        out.close();
+        Files.copy(from.toPath(), ptoF.toPath());
 
         // once done, rename the partial file to the final copy
-        if (!ptoF.renameTo(toF))
-            throw new IOException("Failed to rename " + ptoF.getName() + " to "
-                                  + toF.getName());
+        Files.move(ptoF.toPath(), to.toPath(), StandardCopyOption.ATOMIC_MOVE);
     }
 }
