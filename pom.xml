@@ -68,7 +68,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-srtp</artifactId>
-      <version>1.0-18-gcdf3d3b</version>
+      <version>1.0-23-g4fc659a</version>
     </dependency>
     <dependency>
       <groupId>org.opentelecoms.sdp</groupId>
