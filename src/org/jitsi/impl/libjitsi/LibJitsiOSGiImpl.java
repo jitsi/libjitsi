@@ -15,7 +15,7 @@
  */
 package org.jitsi.impl.libjitsi;
 
-import org.jitsi.service.libjitsi.*;
+import java.util.*;
 import org.osgi.framework.*;
 
 /**
@@ -34,28 +34,6 @@ public class LibJitsiOSGiImpl
     private final BundleContext bundleContext;
 
     /**
-     * Initializes a new <tt>LibJitsiOSGiImpl</tt> instance with the
-     * <tt>BundleContext</tt> of the <tt>Bundle</tt> which has loaded the
-     * <tt>LibJitsi</tt> class.
-     */
-    public LibJitsiOSGiImpl()
-    {
-        Bundle bundle = FrameworkUtil.getBundle(LibJitsi.class);
-
-        if (bundle == null)
-            throw new IllegalStateException("FrameworkUtil.getBundle");
-        else
-        {
-            BundleContext bundleContext = bundle.getBundleContext();
-
-            if (bundleContext == null)
-                throw new IllegalStateException("Bundle.getBundleContext");
-            else
-                this.bundleContext = bundleContext;
-        }
-    }
-
-    /**
      * Initializes a new <tt>LibJitsiOSGiImpl</tt> instance with a specific
      * <tt>BundleContext</tt>.
      *
@@ -64,10 +42,8 @@ public class LibJitsiOSGiImpl
      */
     public LibJitsiOSGiImpl(BundleContext bundleContext)
     {
-        if (bundleContext == null)
-            throw new NullPointerException("bundleContext");
-        else
-            this.bundleContext = bundleContext;
+        this.bundleContext =
+            Objects.requireNonNull(bundleContext, "bundleContext");
     }
 
     /**
@@ -82,14 +58,12 @@ public class LibJitsiOSGiImpl
     @Override
     protected <T> T getService(Class<T> serviceClass)
     {
-        @SuppressWarnings("rawtypes")
-        ServiceReference serviceReference
-            = bundleContext.getServiceReference(serviceClass.getName());
-        @SuppressWarnings("unchecked")
+        ServiceReference<T> serviceReference
+            = bundleContext.getServiceReference(serviceClass);
         T service
             = (serviceReference == null)
                 ? null
-                : (T) bundleContext.getService(serviceReference);
+                : bundleContext.getService(serviceReference);
 
         if (service == null)
             service = super.getService(serviceClass);
