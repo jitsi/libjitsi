@@ -695,10 +695,6 @@ public class StatisticsEngine
             gapDensity = (short) (l & 0xFFL);
             l >>= 8;
             burstDensity = (short) (l & 0xFFL);
-            l >>= 8;
-            discardRate = l & 0xFFL;
-            l >>= 8;
-            lossRate = l & 0xFFL;
 
             voipMetrics.setBurstDensity(burstDensity);
             voipMetrics.setGapDensity(gapDensity);
