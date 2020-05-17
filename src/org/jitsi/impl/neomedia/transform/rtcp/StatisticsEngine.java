@@ -247,21 +247,16 @@ public class StatisticsEngine
             }
 
             // Write extendedReport into pkt.
-            DataOutputStream dataoutputstream
-                = new DataOutputStream(
-                        new ByteBufferOutputStream(
-                                buf,
-                                off,
-                                extendedReportLen));
-
-            try
+            ByteBufferOutputStream bbos = new ByteBufferOutputStream(buf, off, extendedReportLen);
+            try (DataOutputStream dos = new DataOutputStream(bbos))
             {
-                extendedReport.assemble(dataoutputstream);
-                added = (dataoutputstream.size() == extendedReportLen);
+                extendedReport.assemble(dos);
+                added = (dos.size() == extendedReportLen);
             }
             catch (IOException e)
             {
             }
+
             if (added)
             {
                 pkt.setLength(pkt.getLength() + extendedReportLen);
