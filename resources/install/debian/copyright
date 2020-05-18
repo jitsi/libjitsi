@@ -53,18 +53,6 @@ Files: lib/src/jsip/src/gov/nist/core/MultiMap.java
 Copyright: 1999-2004 The Apache Software Foundation
 License: Apache-2.0
 
-Files: lib/src/bccontrib/*
-Copyright:
- 2010 Alberto Fajardo and Werner Dittmann
- 2004, 2006 Free Software Foundation, Inc.
-License: MIT
-
-Files: lib/src/bccontrib/src/main/java/org/jitsi/bccontrib/prng/*
-Copyright:
- Copyright (C) 2010 Werner Dittmann <Werner.Dittmann@t-online.de>
- Copyright (C) 2004, 2006 Free Software Foundation, Inc.
-License: GPL-2+ with classpath exception
-
 Files: lib/src/portaudio/*
 Copyright:
  1999-2006 Ross Bencina and Phil Burk

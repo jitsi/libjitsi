@@ -173,10 +173,14 @@ public class SRTCPTransformer
     {
         SrtcpCryptoContext context = getContext(pkt, reverseFactory);
 
-        return
-            ((context != null) && context.reverseTransformPacket(pkt))
-                ? pkt
-                : null;
+        if (context == null)
+        {
+            return null;
+        }
+
+        return context.reverseTransformPacket(pkt) == SrtpErrorStatus.OK
+            ? pkt
+            : null;
     }
 
     /**

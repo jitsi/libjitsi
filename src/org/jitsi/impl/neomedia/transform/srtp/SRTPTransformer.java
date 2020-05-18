@@ -35,12 +35,10 @@
 package org.jitsi.impl.neomedia.transform.srtp;
 
 import java.util.*;
-
+import javax.media.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.srtp.*;
-
-import javax.media.Buffer;
 
 /**
  * SRTPTransformer implements PacketTransformer and provides implementations
@@ -193,12 +191,18 @@ public class SRTPTransformer
                     reverseFactory,
                     pkt.getSequenceNumber());
 
-        boolean skipDecryption = (pkt.getFlags() & (Buffer.FLAG_DISCARD | Buffer.FLAG_SILENCE)) != 0;
+        boolean skipDecryption =
+            (pkt.getFlags() & (Buffer.FLAG_DISCARD | Buffer.FLAG_SILENCE)) != 0;
 
-        return
-            ((context != null) && context.reverseTransformPacket(pkt, skipDecryption))
-                ? pkt
-                : null;
+        if (context == null)
+        {
+            return null;
+        }
+
+        return context.reverseTransformPacket(pkt, skipDecryption)
+            == SrtpErrorStatus.OK
+            ? pkt
+            : null;
     }
 
     /**
@@ -215,6 +219,6 @@ public class SRTPTransformer
 
         if (context == null)
             return null;
-        return context.transformPacket(pkt) ? pkt : null;
+        return context.transformPacket(pkt) == SrtpErrorStatus.OK ? pkt : null;
     }
 }
