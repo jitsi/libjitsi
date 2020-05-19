@@ -23,15 +23,20 @@ import org.osgi.framework.*;
 public class LibJitsiActivator
     implements BundleActivator
 {
+    private ServiceRegistration<LibJitsi> service;
+
     public void start(BundleContext bundleContext)
         throws Exception
     {
-        LibJitsi.start(bundleContext);
+        LibJitsi impl = LibJitsi.start(bundleContext);
+        service =
+            bundleContext.registerService(LibJitsi.class, impl, null);
     }
 
     public void stop(BundleContext bundleContext)
         throws Exception
     {
+        service.unregister();
         LibJitsi.stop();
     }
 }
