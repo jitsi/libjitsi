@@ -25,6 +25,7 @@ import java.util.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.impl.neomedia.transform.srtp.*;
+import org.jitsi.srtp.*;
 import org.jitsi.service.fileaccess.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
@@ -864,29 +865,30 @@ public class ZRTPTransformEngine
             ZrtpSrtpSecrets secrets,
             EnableSecurity part)
     {
-        SRTPPolicy srtpPolicy;
+        SrtpPolicy srtpPolicy;
         int cipher = 0, authn = 0, authKeyLen = 0;
+        org.jitsi.utils.logging2.Logger logger2 = new org.jitsi.utils.logging2.LoggerImpl(getClass().getName());
 
         if (secrets.getAuthAlgorithm() == ZrtpConstants.SupportedAuthAlgos.HS)
         {
-            authn = SRTPPolicy.HMACSHA1_AUTHENTICATION;
+            authn = SrtpPolicy.HMACSHA1_AUTHENTICATION;
             authKeyLen = 20;
         }
         else if (secrets.getAuthAlgorithm()
                 == ZrtpConstants.SupportedAuthAlgos.SK)
         {
-            authn = SRTPPolicy.SKEIN_AUTHENTICATION;
+            authn = SrtpPolicy.SKEIN_AUTHENTICATION;
             authKeyLen = 32;
         }
 
         if (secrets.getSymEncAlgorithm() == ZrtpConstants.SupportedSymAlgos.AES)
         {
-            cipher = SRTPPolicy.AESCM_ENCRYPTION;
+            cipher = SrtpPolicy.AESCM_ENCRYPTION;
         }
         else if (secrets.getSymEncAlgorithm()
                 == ZrtpConstants.SupportedSymAlgos.TwoFish)
         {
-            cipher = SRTPPolicy.TWOFISH_ENCRYPTION;
+            cipher = SrtpPolicy.TWOFISH_ENCRYPTION;
         }
 
         if (part == EnableSecurity.ForSender)
@@ -898,19 +900,20 @@ public class ZRTPTransformEngine
             if (secrets.getRole() == Role.Initiator)
             {
                 srtpPolicy
-                    = new SRTPPolicy(cipher,
+                    = new SrtpPolicy(cipher,
                             secrets.getInitKeyLen() / 8,    // key length
                             authn, authKeyLen,              // auth key length
                             secrets.getSrtpAuthTagLen() / 8,// auth tag length
                             secrets.getInitSaltLen() / 8    /* salt length */);
 
-                SRTPContextFactory engine
-                    = new SRTPContextFactory(
+                SrtpContextFactory engine
+                    = new SrtpContextFactory(
                             true /* sender */,
                             secrets.getKeyInitiator(),
                             secrets.getSaltInitiator(),
                             srtpPolicy,
-                            srtpPolicy);
+                            srtpPolicy,
+                            logger2);
 
                 srtpOutTransformer = new SRTPTransformer(engine);
                 getRTCPTransformer().setSrtcpOut(new SRTCPTransformer(engine));
@@ -918,20 +921,21 @@ public class ZRTPTransformEngine
             else
             {
                 srtpPolicy
-                    = new SRTPPolicy(
+                    = new SrtpPolicy(
                             cipher,
                             secrets.getRespKeyLen() / 8,    // key length
                             authn, authKeyLen,              // auth key length
                             secrets.getSrtpAuthTagLen() / 8,// auth taglength
                             secrets.getRespSaltLen() / 8    /* salt length */);
 
-                SRTPContextFactory engine
-                    = new SRTPContextFactory(
+                SrtpContextFactory engine
+                    = new SrtpContextFactory(
                             true /* sender */,
                             secrets.getKeyResponder(),
                             secrets.getSaltResponder(),
                             srtpPolicy,
-                            srtpPolicy);
+                            srtpPolicy,
+                            logger2);
 
                 srtpOutTransformer = new SRTPTransformer(engine);
                 getRTCPTransformer().setSrtcpOut(new SRTCPTransformer(engine));
@@ -945,20 +949,21 @@ public class ZRTPTransformEngine
             if (secrets.getRole() == Role.Initiator)
             {
                 srtpPolicy
-                    = new SRTPPolicy(
+                    = new SrtpPolicy(
                             cipher,
                             secrets.getRespKeyLen() / 8,    // key length
                             authn, authKeyLen,              // auth key length
                             secrets.getSrtpAuthTagLen() / 8,// auth tag length
                             secrets.getRespSaltLen() / 8    /* salt length */);
 
-                SRTPContextFactory engine
-                    = new SRTPContextFactory(
+                SrtpContextFactory engine
+                    = new SrtpContextFactory(
                             false /* receiver */,
                             secrets.getKeyResponder(),
                             secrets.getSaltResponder(),
                             srtpPolicy,
-                            srtpPolicy);
+                            srtpPolicy,
+                            logger2);
 
                 srtpInTransformer = new SRTPTransformer(engine);
                 getRTCPTransformer().setSrtcpIn(new SRTCPTransformer(engine));
@@ -967,20 +972,21 @@ public class ZRTPTransformEngine
             else
             {
                 srtpPolicy
-                    = new SRTPPolicy(
+                    = new SrtpPolicy(
                             cipher,
                             secrets.getInitKeyLen() / 8,    // key length
                             authn, authKeyLen,              // auth key length
                             secrets.getSrtpAuthTagLen() / 8,// auth tag length
                             secrets.getInitSaltLen() / 8    /* salt length */);
 
-                SRTPContextFactory engine
-                    = new SRTPContextFactory(
+                SrtpContextFactory engine
+                    = new SrtpContextFactory(
                             false /* receiver */,
                             secrets.getKeyInitiator(),
                             secrets.getSaltInitiator(),
                             srtpPolicy,
-                            srtpPolicy);
+                            srtpPolicy,
+                            logger2);
 
                 srtpInTransformer = new SRTPTransformer(engine);
                 getRTCPTransformer().setSrtcpIn(new SRTCPTransformer(engine));

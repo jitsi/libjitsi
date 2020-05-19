@@ -35,11 +35,10 @@
 package org.jitsi.impl.neomedia.transform.srtp;
 
 import java.util.*;
-
+import javax.media.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
-
-import javax.media.Buffer;
+import org.jitsi.srtp.*;
 
 /**
  * SRTPTransformer implements PacketTransformer and provides implementations
@@ -55,13 +54,13 @@ import javax.media.Buffer;
 public class SRTPTransformer
     extends SinglePacketTransformer
 {
-    SRTPContextFactory forwardFactory;
-    SRTPContextFactory reverseFactory;
+    SrtpContextFactory forwardFactory;
+    SrtpContextFactory reverseFactory;
 
     /**
-     * All the known SSRC's corresponding SRTPCryptoContexts
+     * All the known SSRC's corresponding SrtpCryptoContexts
      */
-    private final Map<Integer,SRTPCryptoContext> contexts;
+    private final Map<Integer,SrtpCryptoContext> contexts;
 
     /**
      * Initializes a new <tt>SRTPTransformer</tt> instance.
@@ -69,7 +68,7 @@ public class SRTPTransformer
      * @param factory the context factory to be used by the new
      * instance for both directions.
      */
-    public SRTPTransformer(SRTPContextFactory factory)
+    public SRTPTransformer(SrtpContextFactory factory)
     {
         this(factory, factory);
     }
@@ -83,12 +82,12 @@ public class SRTPTransformer
      *            transformations.
      */
     public SRTPTransformer(
-            SRTPContextFactory forwardFactory,
-            SRTPContextFactory reverseFactory)
+            SrtpContextFactory forwardFactory,
+            SrtpContextFactory reverseFactory)
     {
         this.forwardFactory = forwardFactory;
         this.reverseFactory = reverseFactory;
-        this.contexts = new HashMap<Integer,SRTPCryptoContext>();
+        this.contexts = new HashMap<Integer,SrtpCryptoContext>();
     }
 
     /**
@@ -99,7 +98,7 @@ public class SRTPTransformer
      *            transformations, <tt>false</tt> for the reverse transformation
      *            factory.
      */
-    public void setContextFactory(SRTPContextFactory factory, boolean forward)
+    public void setContextFactory(SrtpContextFactory factory, boolean forward)
     {
         synchronized (contexts)
         {
@@ -139,10 +138,10 @@ public class SRTPTransformer
             if (reverseFactory != forwardFactory)
                 reverseFactory.close();
 
-            for (Iterator<SRTPCryptoContext> i = contexts.values().iterator();
+            for (Iterator<SrtpCryptoContext> i = contexts.values().iterator();
                     i.hasNext();)
             {
-                SRTPCryptoContext context = i.next();
+                SrtpCryptoContext context = i.next();
 
                 i.remove();
                 if (context != null)
@@ -151,25 +150,20 @@ public class SRTPTransformer
         }
     }
 
-    private SRTPCryptoContext getContext(
+    private SrtpCryptoContext getContext(
             int ssrc,
-            SRTPContextFactory engine,
+            SrtpContextFactory engine,
             int deriveSrtpKeysIndex)
     {
-        SRTPCryptoContext context;
+        SrtpCryptoContext context;
 
         synchronized (contexts)
         {
             context = contexts.get(ssrc);
             if (context == null)
             {
-                context = engine.getDefaultContext();
-                if (context != null)
-                {
-                    context = context.deriveContext(ssrc, 0, 0);
-                    context.deriveSrtpKeys(deriveSrtpKeysIndex);
-                    contexts.put(ssrc, context);
-                }
+                context = engine.deriveContext(ssrc, 0);
+                contexts.put(ssrc, context);
             }
         }
 
@@ -191,18 +185,24 @@ public class SRTPTransformer
         if((pkt.readByte(0) & 0xC0) != 0x80)
             return null;
 
-        SRTPCryptoContext context
+        SrtpCryptoContext context
             = getContext(
                     pkt.getSSRC(),
                     reverseFactory,
                     pkt.getSequenceNumber());
 
-        boolean skipDecryption = (pkt.getFlags() & (Buffer.FLAG_DISCARD | Buffer.FLAG_SILENCE)) != 0;
+        boolean skipDecryption =
+            (pkt.getFlags() & (Buffer.FLAG_DISCARD | Buffer.FLAG_SILENCE)) != 0;
 
-        return
-            ((context != null) && context.reverseTransformPacket(pkt, skipDecryption))
-                ? pkt
-                : null;
+        if (context == null)
+        {
+            return null;
+        }
+
+        return context.reverseTransformPacket(pkt, skipDecryption)
+            == SrtpErrorStatus.OK
+            ? pkt
+            : null;
     }
 
     /**
@@ -214,11 +214,11 @@ public class SRTPTransformer
     @Override
     public RawPacket transform(RawPacket pkt)
     {
-        SRTPCryptoContext context
+        SrtpCryptoContext context
             = getContext(pkt.getSSRC(), forwardFactory, 0);
 
         if (context == null)
             return null;
-        return context.transformPacket(pkt) ? pkt : null;
+        return context.transformPacket(pkt) == SrtpErrorStatus.OK ? pkt : null;
     }
 }

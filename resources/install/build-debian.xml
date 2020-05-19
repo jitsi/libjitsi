@@ -145,15 +145,6 @@
             </patternset>
         </unzip>
 
-        <!-- bccontrib -->
-        <unzip src="../libsrc/bccontrib.zip"
-               dest="${tmp}/libjitsi/lib/src/">
-            <patternset>
-                <exclude name="**/*.jar"/>
-                <exclude name="**/*.class"/>
-            </patternset>
-        </unzip>
-
         <!-- portaudio -->
         <unzip src="../libsrc/portaudio.zip"
                dest="${tmp}/libjitsi/lib/src/">
@@ -217,7 +208,6 @@
                 <include name="fmj.jar"/>
             </fileset>
         </delete>
-        <delete dir="lib/src/bccontrib/target" failonerror="false"/>
 
         <ant dir="lib/src/jitsi-lgpl-dependencies"
              inheritAll="false"
@@ -343,44 +333,6 @@
         <copy todir="lib"
               file="lib/src/ice4j/ice4j.jar"/>
 
-        <!-- compile and pack bccontrib -->
-        <mkdir dir="lib/src/bccontrib/target/classes"/>
-        <javac debug="false" optimize="true"
-               destdir="lib/src/bccontrib/target/classes"
-               nowarn="false"
-               source="1.5" target="1.5" fork="true">
-            <src path="lib/src/bccontrib/src/main/java"/>
-            <classpath>
-                <pathelement location="/usr/share/java/bcprov.jar"/>
-            </classpath>
-        </javac>
-        <jar compress="true"
-             destfile="lib/src/bccontrib/target/bccontrib-1.0-SNAPSHOT.jar">
-            <fileset dir="lib/src/bccontrib/target/classes"/>
-            <manifest>
-                <attribute name="Bundle-Name" value="bccontrib"/>
-                <attribute name="Bundle-SymbolicName"
-                           value="org.jitsi.bccontrib"/>
-                <attribute name="Bundle-Version" value="1.0.5.SNAPSHOT"/>
-
-                <attribute name="Import-Package"
-                           value="org.bouncycastle.crypto,
-org.bouncycastle.crypto.digests,
-org.bouncycastle.crypto.engines,
-org.bouncycastle.crypto.params,
-org.bouncycastle.crypto.prng"/>
-                <attribute name="Export-Package"
-                           value="org.jitsi.bccontrib.digests,
-org.jitsi.bccontrib.engines,
-org.jitsi.bccontrib.macs,
-org.jitsi.bccontrib.params,
-org.jitsi.bccontrib.prng,
-org.jitsi.bccontrib.util"/>
-            </manifest>
-        </jar>
-        <copy tofile="lib/bccontrib.jar"
-              file="lib/src/bccontrib/target/bccontrib-1.0-SNAPSHOT.jar"/>
-
         <!-- compile and pack fmj -->
         <property name="fmj.src.folder" value="lib/src/fmj"/>
         <mkdir dir="${fmj.src.folder}/build/classes" />
@@ -432,9 +384,6 @@ org.jitsi.bccontrib.util"/>
 
         <!-- zrtp -->
         <mkdir dir="lib/src/zrtp4j/lib"/>
-        <symlink resource="../../bccontrib/target/bccontrib-1.0-SNAPSHOT.jar"
-                 overwrite="true"
-                 link="lib/src/zrtp4j/lib"/>
         <symlink resource="/usr/share/java/bcprov.jar"
                  overwrite="true"
                  link="lib/src/zrtp4j/lib/bcprov-jdk15on-148.jar"/>
