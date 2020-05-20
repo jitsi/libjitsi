@@ -386,11 +386,27 @@ public class DataSource
 
             boolean interrupted = false;
 
+            // a workaround for an issue we see where we cannot stop this stream
+            // as the thread waiting to transfer data is waiting for data that
+            // never comes, so we timeout after short period and we interrupt
+            // the thread to clean it
+            long WAIT_TIMEOUT = 100; // ms.
+            boolean waited = false;
             while (thread != null)
             {
+                if (waited)
+                {
+                    // our stop had timed out, so let's interrupt the thread
+                    this.thread.interrupt();
+                    break;
+                }
+
                 try
                 {
-                    wait();
+                    long started = System.currentTimeMillis();
+                    wait(WAIT_TIMEOUT);
+                    waited
+                        = System.currentTimeMillis() - started >= WAIT_TIMEOUT;
                 }
                 catch (InterruptedException ie)
                 {
