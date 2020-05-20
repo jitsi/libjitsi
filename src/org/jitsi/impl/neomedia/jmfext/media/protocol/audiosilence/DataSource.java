@@ -392,6 +392,7 @@ public class DataSource
             // the thread to clean it
             long WAIT_TIMEOUT = 100; // ms.
             boolean waited = false;
+            long started = System.currentTimeMillis();
             while (thread != null)
             {
                 if (waited)
@@ -403,7 +404,6 @@ public class DataSource
 
                 try
                 {
-                    long started = System.currentTimeMillis();
                     wait(WAIT_TIMEOUT);
                     waited
                         = System.currentTimeMillis() - started >= WAIT_TIMEOUT;
