@@ -26,6 +26,7 @@ import javax.media.format.*;
 import javax.media.protocol.*;
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.*;
 
 /**
  * Implements a <tt>CaptureDevice</tt> which provides silence in the form of
@@ -392,7 +393,7 @@ public class DataSource
             // the thread to clean it
             long WAIT_TIMEOUT = 100; // ms.
             boolean waited = false;
-            long started = System.currentTimeMillis();
+            long started = System.nanoTime();
             while (thread != null)
             {
                 if (waited)
@@ -405,8 +406,8 @@ public class DataSource
                 try
                 {
                     wait(WAIT_TIMEOUT);
-                    waited
-                        = System.currentTimeMillis() - started >= WAIT_TIMEOUT;
+                    waited = TimeUnit.NANOSECONDS.toMillis(
+                        System.nanoTime() - started) >= WAIT_TIMEOUT;
                 }
                 catch (InterruptedException ie)
                 {
