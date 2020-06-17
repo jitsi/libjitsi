@@ -164,7 +164,7 @@ public class SDesTransformEngine
     {
         int keyLength = attribute.getCryptoSuite().getEncKeyLength() / 8;
         int saltLength = attribute.getCryptoSuite().getSaltKeyLength() / 8;
-        byte[] salt = new byte[keyLength];
+        byte[] salt = new byte[saltLength];
         System.arraycopy(attribute.getKeyParams()[0].getKey(), keyLength, salt,
             0, saltLength);
         return salt;
