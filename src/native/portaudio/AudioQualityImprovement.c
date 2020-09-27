@@ -22,7 +22,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifndef WIN32
 #include <sys/time.h>
+#endif
 
 #define MIN_SOUND_PRESSURE_LEVEL 40
 #define MAX_SOUND_PRESSURE_LEVEL 85
@@ -911,10 +913,19 @@ AudioQualityImprovement_updatePreprocess(AudioQualityImprovement *aqi)
 static jlong
 System_currentTimeMillis()
 {
+#ifdef WIN32
+    FILETIME ft_now;
+    GetSystemTimeAsFileTime(&ft_now);
+    ULARGE_INTEGER msecs_win_epoch;
+    msecs_win_epoch.LowPart = ft_now.dwLowDateTime;
+    msecs_win_epoch.HighPart = ft_now.dwHighDateTime;
+    return (msecs_win_epoch.QuadPart / 10000) - 116444736000000000LL;
+#else
     struct timeval tv;
 
     return
         (gettimeofday(&tv, NULL) == 0)
             ? ((tv.tv_sec * 1000) + (tv.tv_usec / 1000))
             : -1;
+#endif
 }

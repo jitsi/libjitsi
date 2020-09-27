@@ -1,0 +1,9 @@
+#ifndef _ORG_LIBJITSI_CONFIG_H
+#define PRODUCTNAME               "libjitsi"
+#define PRODUCTCOPYRIGHT          "jitsi.org"
+#define COMPANYNAME               "jitsi.org"
+#cmakedefine PRODUCTBUILDVERSION       "@PRODUCTBUILDVERSION@"
+#cmakedefine PRODUCTBUILDVERSION_COMMA @PRODUCTBUILDVERSION_COMMA@
+#cmakedefine PRODUCT_INFO_VERSION      "@PRODUCT_INFO_VERSION@"
+#define PRODUCT_FILEFLAGS         @PRODUCT_FILEFLAGS@
+#endif

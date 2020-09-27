@@ -17,7 +17,7 @@
 #include "org_jitsi_impl_neomedia_codec_audio_opus_Opus.h"
 
 #include <stdint.h>
-#include <opus.h>
+#include <opus/opus.h>
 
 JNIEXPORT jint JNICALL
 Java_org_jitsi_impl_neomedia_codec_audio_opus_Opus_decode

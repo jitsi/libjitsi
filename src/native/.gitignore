@@ -1,0 +1,5 @@
+cmake-build-*
+.idea/
+.vs/
+out/
+vcpkg_installed/

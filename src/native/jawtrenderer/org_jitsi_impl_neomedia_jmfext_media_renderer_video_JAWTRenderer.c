@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer.h"
+#include <org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer.h>
 #include "JAWTRenderer.h"
 
 /*

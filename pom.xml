@@ -219,6 +219,8 @@
                 <target>1.8</target>
                 <compilerArgs>
                     <arg>-Xlint:all</arg>
+                    <arg>-h</arg>
+                    <arg>${project.build.directory}/native/javah/</arg>
                 </compilerArgs>
             </configuration>
         </plugin>
@@ -230,11 +232,6 @@
     <resources>
       <resource>
         <directory>lib/native</directory>
-        <excludes>
-          <!-- jitsi-lgpl-dependencies -->
-          <exclude>**/*jnffmpeg.*</exclude>
-          <exclude>**/*jng722.*</exclude>
-        </excludes>
       </resource>
     </resources>
   </build>
