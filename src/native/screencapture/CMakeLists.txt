@@ -1,8 +1,11 @@
 project(jnscreencapture C)
 
 set(OS_SOURCES "")
+set(OS_LIBS "")
 if (WIN32)
     set(OS_SOURCES screencapture.rc)
+elseif (APPLE)
+    set(OS_LIBS "-framework ApplicationServices")
 elseif (UNIX AND NOT APPLE)
     include(CheckIncludeFiles)
     find_package(X11 REQUIRED)
@@ -19,6 +22,7 @@ add_library(${PROJECT_NAME} SHARED
             ${OS_SOURCES})
 
 target_link_libraries(${PROJECT_NAME} LINK_PUBLIC
+                      ${OS_LIBS}
                       )
 
 target_include_directories(${PROJECT_NAME} PUBLIC
@@ -28,4 +32,5 @@ target_include_directories(${PROJECT_NAME} PUBLIC
                            )
 
 install(TARGETS ${PROJECT_NAME}
-        RUNTIME DESTINATION ".")
+        RUNTIME DESTINATION "."
+        LIBRARY DESTINATION ".")

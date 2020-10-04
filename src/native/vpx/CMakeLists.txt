@@ -6,7 +6,6 @@ set(DEFAULT_USE_SYSTEM_VPX 0)
 if (WIN32)
     set(OS_SOURCES vpx.rc)
 elseif (APPLE)
-    set(OS_LIBS AudioToolbox AudioUnit CoreAudio Carbon)
 elseif (UNIX)
     set(DEFAULT_USE_SYSTEM_VPX 1)
 endif ()
@@ -36,4 +35,5 @@ target_include_directories(${PROJECT_NAME} PUBLIC
                            ${CMAKE_CURRENT_SOURCE_DIR}/../third_party/)
 
 install(TARGETS ${PROJECT_NAME}
-        RUNTIME DESTINATION ".")
+        RUNTIME DESTINATION "."
+        LIBRARY DESTINATION ".")

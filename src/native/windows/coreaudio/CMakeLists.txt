@@ -5,10 +5,7 @@ add_library(${PROJECT_NAME} SHARED
             org_jitsi_impl_neomedia_device_CoreAudioDevice.cpp
             coreaudio.rc)
 
-target_link_libraries(${PROJECT_NAME} LINK_PUBLIC
-#                      strmiids
-#                      uuid
-                      )
+target_link_libraries(${PROJECT_NAME} LINK_PUBLIC)
 
 target_include_directories(${PROJECT_NAME} PUBLIC
                            ${LIBJITSI_JAVAH}

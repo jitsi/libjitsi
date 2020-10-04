@@ -6,7 +6,6 @@ set(DEFAULT_USE_SYSTEM_SPEEX 0)
 if (WIN32)
     set(OS_SOURCES speex.rc)
 elseif (APPLE)
-    set(OS_LIBS AudioToolbox AudioUnit CoreAudio Carbon)
 elseif (UNIX)
     set(OS_LIBS pthread asound)
 endif ()
@@ -41,4 +40,5 @@ target_include_directories(${PROJECT_NAME} PUBLIC
                            ${libspeexdsp_INCLUDE_DIRS})
 
 install(TARGETS ${PROJECT_NAME}
-        RUNTIME DESTINATION ".")
+        RUNTIME DESTINATION "."
+        LIBRARY DESTINATION ".")

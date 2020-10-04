@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "org_jitsi_impl_neomedia_codec_audio_opus_Opus.h"
+#include <org_jitsi_impl_neomedia_codec_audio_opus_Opus.h>
 
 #include <stdint.h>
 #include <opus/opus.h>

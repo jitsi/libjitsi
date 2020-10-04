@@ -14,4 +14,5 @@ target_include_directories(${PROJECT_NAME} PUBLIC
                            ${CMAKE_BINARY_DIR}/include/)
 
 install(TARGETS ${PROJECT_NAME}
-        RUNTIME DESTINATION ".")
+        RUNTIME DESTINATION "."
+        LIBRARY DESTINATION ".")

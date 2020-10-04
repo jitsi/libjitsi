@@ -5,7 +5,10 @@ set(OS_LIBS "")
 if (WIN32)
     set(OS_SOURCES WMME_DSound.c portaudio.rc)
 elseif (APPLE)
-    set(OS_LIBS AudioToolbox AudioUnit CoreAudio Carbon)
+    set(OS_LIBS "-framework AudioToolbox"
+            "-framework AudioUnit"
+            "-framework CoreAudio"
+            "-framework Carbon")
 elseif (UNIX)
     set(OS_LIBS pthread asound)
 endif ()
@@ -15,17 +18,10 @@ set(PORTAUDIO_ROOT ${CMAKE_BINARY_DIR}/libportaudio)
 set(libportaudio_INCLUDE_DIRS ${PORTAUDIO_ROOT}/include)
 set(libportaudio_LIBRARY_DIRS ${PORTAUDIO_ROOT}/lib)
 
-if (WIN32)
-    set(git_repo "C:/Projects/jitsi/portaudio")
-else ()
-    set(git_repo "/mnt/c/Projects/jitsi/portaudio")
-endif ()
-
-
 externalproject_add(ext_lib_portaudio
                     INSTALL_DIR ${PORTAUDIO_ROOT}
-                    GIT_REPOSITORY ${git_repo}
-                    GIT_TAG libjitsi
+                    GIT_REPOSITORY https://github.com/jitsi/portaudio
+                    GIT_TAG libjitsi_v2
                     GIT_SHALLOW false
                     CMAKE_ARGS (-DPA_BUILD_SHARED:BOOL=OFF
                     -DPA_LIBNAME_ADD_SUFFIX:BOOL=OFF
@@ -69,4 +65,5 @@ target_include_directories(${PROJECT_NAME} PUBLIC
                            ${libportaudio_INCLUDE_DIRS})
 
 install(TARGETS ${PROJECT_NAME}
-        RUNTIME DESTINATION ".")
+        RUNTIME DESTINATION "."
+        LIBRARY DESTINATION ".")

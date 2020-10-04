@@ -38,4 +38,5 @@ target_include_directories(${PROJECT_NAME} PUBLIC
                            )
 
 install(TARGETS ${PROJECT_NAME}
-        RUNTIME DESTINATION ".")
+        RUNTIME DESTINATION "."
+        LIBRARY DESTINATION ".")

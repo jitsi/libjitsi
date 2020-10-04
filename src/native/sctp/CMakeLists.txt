@@ -6,6 +6,8 @@ set(DEFAULT_USE_SYSTEM_USRSCTP 0)
 if (WIN32)
     set(OS_SOURCES sctp.rc)
     set(OS_LIBS Ws2_32)
+elseif (APPLE)
+    set(OS_LIBS pthread)
 elseif (UNIX)
     set(OS_LIBS pthread)
     set(DEFAULT_USE_SYSTEM_USRSCTP 1)
@@ -52,4 +54,5 @@ target_include_directories(${PROJECT_NAME} PUBLIC
                            ${libusrsctp_INCLUDE_DIRS})
 
 install(TARGETS ${PROJECT_NAME}
-        RUNTIME DESTINATION ".")
+        RUNTIME DESTINATION "."
+        LIBRARY DESTINATION ".")

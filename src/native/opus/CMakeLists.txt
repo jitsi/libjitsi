@@ -6,7 +6,7 @@ set(DEFAULT_USE_SYSTEM_OPUS 0)
 if (WIN32)
     set(OS_SOURCES opus.rc)
 elseif (APPLE)
-    set(OS_LIBS AudioToolbox AudioUnit CoreAudio Carbon)
+    set(OS_LIBS "-framework AudioToolbox" "-framework AudioUnit" "-framework CoreAudio" "-framework Carbon")
 elseif (UNIX)
     set(DEFAULT_USE_SYSTEM_OPUS 1)
 endif ()
@@ -54,4 +54,5 @@ target_include_directories(${PROJECT_NAME} PUBLIC
                            ${libopus_INCLUDE_DIRS})
 
 install(TARGETS ${PROJECT_NAME}
-        RUNTIME DESTINATION ".")
+        RUNTIME DESTINATION "."
+        LIBRARY DESTINATION ".")
