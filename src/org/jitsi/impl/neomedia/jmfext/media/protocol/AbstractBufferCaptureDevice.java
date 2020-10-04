@@ -20,6 +20,8 @@ import java.lang.reflect.*;
 import java.util.*;
 import java.util.concurrent.locks.*;
 
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.media.*;
 import javax.media.Controls;
 import javax.media.control.*;
@@ -355,50 +357,13 @@ public abstract class AbstractBufferCaptureDevice
     final Object[] defaultGetControls()
     {
         FormatControl[] formatControls = internalGetFormatControls();
-        int formatControlCount
-            = (formatControls == null) ? 0 : formatControls.length;
         FrameRateControl[] frameRateControls = internalGetFrameRateControls();
-        int frameRateControlCount
-            = (frameRateControls == null) ? 0 : frameRateControls.length;
         RTPInfo[] rtpInfos = internalGetRTPInfos();
-        int rtpInfoCount = (rtpInfos == null) ? 0 : rtpInfos.length;
-
-        if ((formatControlCount == 0)
-                && (frameRateControlCount == 0)
-                && (rtpInfoCount == 0))
-            return ControlsAdapter.EMPTY_CONTROLS;
-        else
-        {
-            Object[] controls
-                = new Object[
-                             formatControlCount
-                                 + frameRateControlCount
-                                 + rtpInfoCount];
-            int offset = 0;
-
-            if (formatControlCount != 0)
-            {
-                System.arraycopy(
-                        formatControls, 0,
-                        controls, offset,
-                        formatControlCount);
-                offset += formatControlCount;
-            }
-            if (frameRateControlCount != 0)
-            {
-                System.arraycopy(
-                        frameRateControls, 0,
-                        controls, offset,
-                        frameRateControlCount);
-                offset += frameRateControlCount;
-            }
-            if (rtpInfoCount != 0)
-            {
-                System.arraycopy(rtpInfos, 0, controls, offset, rtpInfoCount);
-                offset += rtpInfoCount;
-            }
-            return controls;
-        }
+        return Stream.concat(
+            Stream.concat(
+                Arrays.stream(formatControls),
+                Arrays.stream(frameRateControls)),
+            Arrays.stream(rtpInfos)).toArray();
     }
 
     /**

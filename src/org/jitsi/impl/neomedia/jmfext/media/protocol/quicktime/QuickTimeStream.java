@@ -172,18 +172,6 @@ public class QuickTimeStream
                                 sampleBuffer);
                     }
                 });
-
-        FrameRateControl frameRateControl
-            = (FrameRateControl)
-                dataSource.getControl(FrameRateControl.class.getName());
-
-        if (frameRateControl != null)
-        {
-            float frameRate = frameRateControl.getFrameRate();
-
-            if (frameRate > 0)
-                setFrameRate(frameRate);
-        }
     }
 
     /**
@@ -440,20 +428,6 @@ public class QuickTimeStream
     }
 
     /**
-     * Gets the output frame rate of the
-     * <tt>QTCaptureDecompressedVideoOutput</tt> represented by this
-     * <tt>QuickTimeStream</tt>.
-     *
-     * @return the output frame rate of the
-     * <tt>QTCaptureDecompressedVideoOutput</tt> represented by this
-     * <tt>QuickTimeStream</tt>
-     */
-    public float getFrameRate()
-    {
-        return (float) (1.0d / captureOutput.minimumVideoFrameInterval());
-    }
-
-    /**
      * Gets the <tt>Format</tt> of the media data made available by this
      * <tt>PushBufferStream</tt> as indicated by a specific
      * <tt>CVPixelBuffer</tt>.
@@ -663,12 +637,13 @@ public class QuickTimeStream
             height = size.height;
         }
 
-        NSMutableDictionary pixelBufferAttributes = null;
+        NSMutableDictionary pixelBufferAttributes
+            = new NSMutableDictionary();
 
         if ((width > 0) && (height > 0))
         {
-            if (pixelBufferAttributes == null)
-                pixelBufferAttributes = new NSMutableDictionary();
+            // TODO width/height not supported anyway as per
+            // https://developer.apple.com/documentation/avfoundation/avcapturevideodataoutput/1389945-videosettings?language=objc
             pixelBufferAttributes.setIntForKey(
                     width,
                     CVPixelBufferAttributeKey.kCVPixelBufferWidthKey);
@@ -678,7 +653,6 @@ public class QuickTimeStream
         }
 
         String encoding;
-
         if (format instanceof AVFrameFormat)
         {
             switch (((AVFrameFormat) format).getPixFmt())
@@ -703,16 +677,12 @@ public class QuickTimeStream
 
         if (VideoFormat.RGB.equalsIgnoreCase(encoding))
         {
-            if (pixelBufferAttributes == null)
-                pixelBufferAttributes = new NSMutableDictionary();
             pixelBufferAttributes.setIntForKey(
                     CVPixelFormatType.kCVPixelFormatType_32ARGB,
                     CVPixelBufferAttributeKey.kCVPixelBufferPixelFormatTypeKey);
         }
         else if (VideoFormat.YUV.equalsIgnoreCase(encoding))
         {
-            if (pixelBufferAttributes == null)
-                pixelBufferAttributes = new NSMutableDictionary();
             pixelBufferAttributes.setIntForKey(
                     CVPixelFormatType.kCVPixelFormatType_420YpCbCr8Planar,
                     CVPixelBufferAttributeKey.kCVPixelBufferPixelFormatTypeKey);
@@ -720,29 +690,8 @@ public class QuickTimeStream
         else
             throw new IllegalArgumentException("format");
 
-        if (pixelBufferAttributes != null)
-        {
-            captureOutput.setPixelBufferAttributes(pixelBufferAttributes);
-            captureOutputFormat = videoFormat;
-        }
-    }
-
-    /**
-     * Sets the output frame rate of the
-     * <tt>QTCaptureDecompressedVideoOutput</tt> represented by this
-     * <tt>QuickTimeStream</tt>.
-     *
-     * @param frameRate the output frame rate to be set on the
-     * <tt>QTCaptureDecompressedVideoOutput</tt> represented by this
-     * <tt>QuickTimeStream</tt>
-     * @return the output frame rate of the
-     * <tt>QTCaptureDecompressedVideoOutput</tt> represented by this
-     * <tt>QuickTimeStream</tt>
-     */
-    public float setFrameRate(float frameRate)
-    {
-        captureOutput.setMinimumVideoFrameInterval(1.0d / frameRate);
-        return getFrameRate();
+        captureOutput.setPixelBufferAttributes(pixelBufferAttributes);
+        captureOutputFormat = videoFormat;
     }
 
     /**

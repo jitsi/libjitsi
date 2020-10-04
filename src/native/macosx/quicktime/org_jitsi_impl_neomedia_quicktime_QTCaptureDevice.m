@@ -16,44 +16,55 @@
 
 #include "org_jitsi_impl_neomedia_quicktime_QTCaptureDevice.h"
 
-#include "common.h"
-
-#include <stdint.h>
 #include <string.h>
 
-#import <Foundation/NSArray.h>
 #import <Foundation/NSAutoreleasePool.h>
 #import <Foundation/NSError.h>
-#import <Foundation/NSObject.h> /* NSSelectorFromString */
-#import <Foundation/NSString.h>
-#import <QTKit/QTCaptureDevice.h>
-#import <QTKit/QTFormatDescription.h>
-#import <QTKit/QTMedia.h>
+#import <AVFoundation/AVFoundation.h>
 
 jstring QTCaptureDevice_getString(JNIEnv *, jlong, NSString *);
 NSString * QTCaptureDevice_jstringToMediaType(JNIEnv *, jobject);
 jlongArray QTCaptureDevice_nsArrayToJlongArray(JNIEnv *, NSArray *);
 
+JNIEXPORT jdouble JNICALL
+Java_org_jitsi_impl_neomedia_quicktime_QTCaptureDevice_setVideoMinFrameDuration
+        (JNIEnv *jniEnv, jclass clazz, jlong ptr, jdouble videoMinframeDuration)
+{
+    AVCaptureDevice *captureDevice = (AVCaptureDevice *) (intptr_t) ptr;
+    [captureDevice setActiveVideoMinFrameDuration:CMTimeMakeWithSeconds(videoMinframeDuration, 1000)];
+    return CMTimeGetSeconds([captureDevice activeVideoMinFrameDuration]);
+}
+
+JNIEXPORT jdouble JNICALL
+Java_org_jitsi_impl_neomedia_quicktime_QTCaptureDevice_getVideoMinFrameDuration
+        (JNIEnv *jniEnv, jclass clazz, jlong ptr)
+{
+    AVCaptureDevice *captureDevice = (AVCaptureDevice *) (intptr_t) ptr;
+    return CMTimeGetSeconds([captureDevice activeVideoMinFrameDuration]);
+}
+
 JNIEXPORT void JNICALL
 Java_org_jitsi_impl_neomedia_quicktime_QTCaptureDevice_close
     (JNIEnv *jniEnv, jclass clazz, jlong ptr)
 {
-    NSObject_performSelector((id) (intptr_t) ptr, @"close");
+    //TODO do something here?
+    //AVCaptureDevice *captureDevice = (AVCaptureDevice *) (intptr_t) ptr;
+    //[captureDevice close];
 }
 
 JNIEXPORT jlongArray JNICALL
 Java_org_jitsi_impl_neomedia_quicktime_QTCaptureDevice_formatDescriptions
     (JNIEnv *jniEnv, jclass clazz, jlong ptr)
 {
-    QTCaptureDevice *captureDevice;
+    AVCaptureDevice *captureDevice;
     NSAutoreleasePool *autoreleasePool;
-    NSArray *formatDescriptions;
+    NSArray<AVCaptureDeviceFormat *> *formatDescriptions;
     jlongArray formatDescriptionPtrs;
 
-    captureDevice = (QTCaptureDevice *) (intptr_t) ptr;
+    captureDevice = (AVCaptureDevice *) (intptr_t) ptr;
     autoreleasePool = [[NSAutoreleasePool alloc] init];
 
-    formatDescriptions = [captureDevice formatDescriptions];
+    formatDescriptions = [captureDevice formats];
     formatDescriptionPtrs
         = QTCaptureDevice_nsArrayToJlongArray(jniEnv, formatDescriptions);
 
@@ -66,14 +77,14 @@ Java_org_jitsi_impl_neomedia_quicktime_QTCaptureDevice_inputDevicesWithMediaType
     (JNIEnv *jniEnv, jclass clazz, jstring mediaType)
 {
     NSAutoreleasePool *autoreleasePool;
-    NSArray *inputDevices;
+    NSArray<AVCaptureDevice *> *inputDevices;
     jlongArray inputDevicePtrs;
 
     autoreleasePool = [[NSAutoreleasePool alloc] init];
 
     inputDevices
-        = [QTCaptureDevice
-            inputDevicesWithMediaType:
+        = [AVCaptureDevice
+            devicesWithMediaType:
                 QTCaptureDevice_jstringToMediaType(jniEnv, mediaType)];
     inputDevicePtrs = QTCaptureDevice_nsArrayToJlongArray(jniEnv, inputDevices);
 
@@ -85,32 +96,30 @@ JNIEXPORT jboolean JNICALL
 Java_org_jitsi_impl_neomedia_quicktime_QTCaptureDevice_isConnected
     (JNIEnv *jniEnv, jclass clazz, jlong ptr)
 {
-    return
-        (YES == (BOOL) (intptr_t) NSObject_performSelector((id) (intptr_t) ptr, @"isConnected"))
-            ? JNI_TRUE
-            : JNI_FALSE;
+    AVCaptureDevice *captureDevice = (AVCaptureDevice *) (intptr_t) ptr;
+    return [captureDevice isConnected] == YES ? JNI_TRUE : JNI_FALSE;
 }
 
 JNIEXPORT jstring JNICALL
 Java_org_jitsi_impl_neomedia_quicktime_QTCaptureDevice_localizedDisplayName
     (JNIEnv *jniEnv, jclass clazz, jlong ptr)
 {
-    return QTCaptureDevice_getString (jniEnv, ptr, @"localizedDisplayName");
+    return QTCaptureDevice_getString (jniEnv, ptr, @"localizedName");
 }
 
 JNIEXPORT jboolean JNICALL
 Java_org_jitsi_impl_neomedia_quicktime_QTCaptureDevice_open
     (JNIEnv *jniEnv, jclass clazz, jlong ptr)
 {
-    QTCaptureDevice *captureDevice;
+    AVCaptureDevice *captureDevice;
     NSAutoreleasePool *autoreleasePool;
     BOOL ret;
     NSError *error;
 
-    captureDevice = (QTCaptureDevice *) (intptr_t) ptr;
+    captureDevice = (AVCaptureDevice *) (intptr_t) ptr;
     autoreleasePool = [[NSAutoreleasePool alloc] init];
 
-    ret = [captureDevice open:&error];
+    ret = YES; //TODO ??? [captureDevice open:&error];
 
     [autoreleasePool release];
     return (YES == ret) ? JNI_TRUE : JNI_FALSE;
@@ -158,11 +167,11 @@ QTCaptureDevice_jstringToMediaType(JNIEnv *jniEnv, jstring str)
     if (cstr)
     {
         if (0 == strcmp ("Muxed", cstr))
-            mediaType = QTMediaTypeMuxed;
+            mediaType = AVMediaTypeMuxed;
         else if (0 == strcmp ("Sound", cstr))
-            mediaType = QTMediaTypeSound;
+            mediaType = AVMediaTypeAudio;
         else if (0 == strcmp ("Video", cstr))
-            mediaType = QTMediaTypeVideo;
+            mediaType = AVMediaTypeVideo;
         else
             mediaType = nil;
         (*jniEnv)->ReleaseStringUTFChars (jniEnv, str, cstr);
@@ -192,7 +201,7 @@ QTCaptureDevice_nsArrayToJlongArray(JNIEnv *jniEnv, NSArray *oArray)
                 id obj;
                 jlong ptr;
 
-                obj = [oArray objectAtIndex:i];
+                obj = oArray[i];
                 ptr = (jlong) (intptr_t) obj;
                 (*jniEnv)->SetLongArrayRegion(jniEnv, jArray, i, 1, &ptr);
                 [obj retain];
@@ -201,7 +210,7 @@ QTCaptureDevice_nsArrayToJlongArray(JNIEnv *jniEnv, NSArray *oArray)
                     NSUInteger j;
 
                     for (j = 0; j < i; j++)
-                        [[oArray objectAtIndex:j] release];
+                        [oArray[j] release];
                     break;
                 }
             }

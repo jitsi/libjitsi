@@ -28,13 +28,6 @@ import java.awt.*;
 public class QTFormatDescription
     extends NSObject
 {
-    public static final String VideoEncodedPixelsSizeAttribute;
-
-    static
-    {
-        VideoEncodedPixelsSizeAttribute = VideoEncodedPixelsSizeAttribute();
-    }
-
     /**
      * Initializes a new <tt>QTFormatDescription</tt> instance which is to
      * represent a specific QTKit <tt>QTFormatDescription</tt> object.
@@ -59,12 +52,10 @@ public class QTFormatDescription
         release();
     }
 
-    public Dimension sizeForKey(String key)
+    public Dimension size()
     {
-        return sizeForKey(getPtr(), key);
+        return size(getPtr());
     }
 
-    private static native Dimension sizeForKey(long ptr, String key);
-
-    private static native String VideoEncodedPixelsSizeAttribute();
+    private static native Dimension size(long ptr);
 }

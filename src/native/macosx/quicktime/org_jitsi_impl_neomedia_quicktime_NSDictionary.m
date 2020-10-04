@@ -33,7 +33,7 @@ Java_org_jitsi_impl_neomedia_quicktime_NSDictionary_intForKey
     dictionary = (NSDictionary *) (intptr_t) ptr;
     autoreleasePool = [[NSAutoreleasePool alloc] init];
 
-    value = [dictionary objectForKey:(id)(intptr_t)key];
+    value = dictionary[(id) (intptr_t) key];
     jvalue = value ? [value intValue] : 0;
 
     [autoreleasePool release];

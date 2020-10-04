@@ -90,9 +90,7 @@ public class QuickTimeSystem
                             "Webcam available resolution for "
                                 + inputDevice.localizedDisplayName()
                                 + ":"
-                                + f.sizeForKey(
-                                        QTFormatDescription
-                                            .VideoEncodedPixelsSizeAttribute));
+                                + f.size());
                 }
             }
 

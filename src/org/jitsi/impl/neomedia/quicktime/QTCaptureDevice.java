@@ -172,14 +172,8 @@ public class QTCaptureDevice
             inputDevicesWithMediaType = new QTCaptureDevice[inputDeviceCount];
 
             List<QTCaptureDevice> cachedInputDevicesWithMediaType
-                = inputDevices.get(mediaType);
+                = inputDevices.computeIfAbsent(mediaType, k -> new LinkedList<>());
 
-            if (cachedInputDevicesWithMediaType == null)
-            {
-                cachedInputDevicesWithMediaType
-                    = new LinkedList<QTCaptureDevice>();
-                inputDevices.put(mediaType, cachedInputDevicesWithMediaType);
-            }
             for (int i = 0; i < inputDeviceCount; i++)
             {
                 long inputDevicePtr = inputDevicePtrs[i];
@@ -321,4 +315,18 @@ public class QTCaptureDevice
      * <tt>QTCaptureDevice</tt> object
      */
     private static native String uniqueID(long ptr);
+
+    private static native double getVideoMinFrameDuration(long ptr);
+    
+    public double getVideoMinFrameDuration()
+    {
+        return getVideoMinFrameDuration(getPtr());
+    }
+
+    private static native double setVideoMinFrameDuration(long ptr, double videoMinframeDuration);
+    
+    public double setVideoMinFrameDuration(double videoMinframeDuration)
+    {
+        return setVideoMinFrameDuration(getPtr(), videoMinframeDuration);
+    }
 }

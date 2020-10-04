@@ -127,7 +127,7 @@ public class DataSource
 
                                 if (quickTimeStream != null)
                                 {
-                                    frameRate = quickTimeStream.getFrameRate();
+                                    frameRate = (float)(1.0d / device.getVideoMinFrameDuration());
                                     frameRateFromQuickTimeStream = true;
                                     if (frameRate != -1)
                                         break;
@@ -161,8 +161,7 @@ public class DataSource
                                 if (quickTimeStream != null)
                                 {
                                     float quickTimeStreamFrameRate
-                                        = quickTimeStream.setFrameRate(
-                                                frameRate);
+                                        = (float) device.setVideoMinFrameDuration(1.0d / frameRate);
 
                                     if (quickTimeStreamFrameRate != -1)
                                     {
