@@ -17,7 +17,7 @@
 #include "org_jitsi_impl_neomedia_device_CoreAudioDevice.h"
 
 #include "device.h"
-#include "MacCoreaudio_util.h"
+#include "maccoreaudio_util.h"
 
 /**
  * JNI code for CoreAudioDevice.
