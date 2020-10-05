@@ -69,32 +69,9 @@ Java_org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer_paint
     return JAWTRenderer_paint(0, NULL, clazz, handle, g, zOrder);
 #else /* #ifdef __ANDROID__ */
     JAWT awt;
-    jboolean awtIsAvailable;
-    jboolean wantsPaint;
-
-    awt.version = JAWT_VERSION_1_4;
-#ifdef __APPLE__
-#ifndef JAWT_MACOSX_USE_CALAYER
-#define JAWT_MACOSX_USE_CALAYER 0x80000000
-#endif /* #ifndef JAWT_MACOSX_USE_CALAYER */
-
-    awt.version |= JAWT_MACOSX_USE_CALAYER;
-    awtIsAvailable = JAWT_GetAWT(env, &awt);
-    /*
-     * We do not know whether JAWT_GetAWT will fail when JAWT_MACOSX_USE_CALAYER
-     * is specified and not supported or it will rather remove the flag from the
-     * version field of JAWT. That's why we will call the function in question
-     * again in case of failure with the flag removed.
-     */
-    if (JNI_FALSE == awtIsAvailable)
-    {
-        awt.version &= ~JAWT_MACOSX_USE_CALAYER;
-        awtIsAvailable = JAWT_GetAWT(env, &awt);
-    }
-#else /* #ifdef __APPLE__ */
-    awtIsAvailable = JAWT_GetAWT(env, &awt);
-#endif /* #ifdef __APPLE__ */
-    wantsPaint = JNI_TRUE;
+    awt.version = JAWT_VERSION_1_7;
+    jboolean awtIsAvailable = JAWT_GetAWT(env, &awt);
+    jboolean wantsPaint = JNI_TRUE;
     if (JNI_TRUE == awtIsAvailable)
     {
         JAWT_DrawingSurface *ds;
@@ -102,14 +79,10 @@ Java_org_jitsi_impl_neomedia_jmfext_media_renderer_video_JAWTRenderer_paint
         ds = awt.GetDrawingSurface(env, component);
         if (ds)
         {
-            jint dsLock;
-
-            dsLock = ds->Lock(ds);
+            jint dsLock = ds->Lock(ds);
             if (0 == (dsLock & JAWT_LOCK_ERROR))
             {
-                JAWT_DrawingSurfaceInfo *dsi;
-
-                dsi = ds->GetDrawingSurfaceInfo(ds);
+                JAWT_DrawingSurfaceInfo *dsi = ds->GetDrawingSurfaceInfo(ds);
                 if (dsi && dsi->platformInfo)
                 {
                     /*

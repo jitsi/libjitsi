@@ -29,12 +29,6 @@ public class JAWTRendererVideoComponent
     extends Canvas
 {
     /**
-     * The serial version UID of the <tt>JAWTRendererVideoComponent</tt> class
-     * defined to silence a serialization compile-time warning.
-     */
-    private static final long serialVersionUID = 0L;
-
-    /**
      * The <tt>JAWTRenderer</tt> which paints in this
      * <tt>JAWTRendererVideoComponent</tt>.
      */
@@ -81,16 +75,8 @@ public class JAWTRendererVideoComponent
 
             if ((handle = getHandle()) != 0)
             {
-                try
-                {
-                    JAWTRenderer.addNotify(handle, this);
-                }
-                catch (UnsatisfiedLinkError uler)
-                {
-                    // The function/method has been introduced in a revision of
-                    // the JAWTRenderer API and may not be available in the
-                    // binary.
-                }
+                JAWTRenderer.addNotify(handle, this);
+
                 // The first task of the method paint(Graphics) is to attach to
                 // the native view/widget/window of this Canvas. The sooner, the
                 // better. Technically, it should be possible to do it
@@ -210,16 +196,7 @@ public class JAWTRendererVideoComponent
 
             if ((handle = getHandle()) != 0)
             {
-                try
-                {
-                    JAWTRenderer.removeNotify(handle, this);
-                }
-                catch (UnsatisfiedLinkError uler)
-                {
-                    // The function/method has been introduced in a revision of
-                    // the JAWTRenderer API and may not be available in the
-                    // binary.
-                }
+                JAWTRenderer.removeNotify(handle, this);
             }
         }
 
