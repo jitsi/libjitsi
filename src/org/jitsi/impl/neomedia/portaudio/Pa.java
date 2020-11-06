@@ -17,6 +17,7 @@ package org.jitsi.impl.neomedia.portaudio;
 
 import java.lang.reflect.*;
 
+import java.nio.charset.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.util.OSUtils;
@@ -331,7 +332,7 @@ public final class Pa
      */
     public static String DeviceInfo_getDeviceUID(long deviceInfo)
     {
-        return StringUtils.newString(DeviceInfo_getDeviceUIDBytes(deviceInfo));
+        return newString(DeviceInfo_getDeviceUIDBytes(deviceInfo));
     }
 
     /**
@@ -377,7 +378,7 @@ public final class Pa
      */
     public static String DeviceInfo_getName(long deviceInfo)
     {
-        return StringUtils.newString(DeviceInfo_getNameBytes(deviceInfo));
+        return newString(DeviceInfo_getNameBytes(deviceInfo));
     }
 
     /**
@@ -400,8 +401,7 @@ public final class Pa
      */
     public static String DeviceInfo_getTransportType(long deviceInfo)
     {
-        return StringUtils.newString(
-                DeviceInfo_getTransportTypeBytes(deviceInfo));
+        return newString(DeviceInfo_getTransportTypeBytes(deviceInfo));
     }
 
     /**
@@ -892,5 +892,17 @@ public final class Pa
      */
     private Pa()
     {
+    }
+
+    private static String newString(byte[] bytes)
+    {
+        if (bytes == null || bytes.length == 0)
+        {
+            return null;
+        }
+        else
+        {
+            return new String(bytes, StandardCharsets.UTF_8);
+        }
     }
 }
