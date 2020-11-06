@@ -40,20 +40,20 @@ public final class Pa
      */
     public static enum HostApiTypeId
     {
-        paAL(9),
-        paALSA(8),
-        paASIO(3),
-        paAudioScienceHPI(14),
-        paBeOS(10),
-        paCoreAudio(5),
-        paDirectSound(1),
-        paInDevelopment(0) /* use while developing support for a new host API */,
-        paJACK(12),
-        paMME(2),
-        paOSS(7),
-        paSoundManager(4),
-        paWASAPI(13),
-        paWDMKS(11);
+        paInDevelopment(0, "In Development") /* use while developing support for a new host API */,
+        paDirectSound(1, "DirectSound"),
+        paMME(2, "MME"),
+        paASIO(3, "ASIO"),
+        paSoundManager(4, "SoundManager"),
+        paCoreAudio(5, "CoreAudio"),
+        paOSS(7, "OSS"),
+        paALSA(8, "ALSA"),
+        paAL(9, "AL"),
+        paBeOS(10, "Be OS"),
+        paWDMKS(11, "WDMKS"),
+        paJACK(12, "JACK"),
+        paWASAPI(13, "WASAPI"),
+        paAudioScienceHPI(14, "Audio Science HPI");
 
         /**
          * Returns the <tt>PaHostApiTypeId</tt> which has a specific value or
@@ -75,9 +75,17 @@ public final class Pa
 
         private final int value;
 
-        private HostApiTypeId(int value)
+        private final String name;
+
+        HostApiTypeId(int value, String name)
         {
             this.value = value;
+            this.name = name;
+        }
+        
+        public String getApiName()
+        {
+            return name;
         }
     }
 

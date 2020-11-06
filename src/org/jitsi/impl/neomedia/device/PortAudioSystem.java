@@ -24,6 +24,7 @@ import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.control.*;
 import org.jitsi.impl.neomedia.jmfext.media.renderer.audio.*;
 import org.jitsi.impl.neomedia.portaudio.*;
+import org.jitsi.impl.neomedia.portaudio.Pa.*;
 import org.jitsi.utils.logging.*;
 
 /**
@@ -203,6 +204,19 @@ public class PortAudioSystem
 
             if (name != null)
                 name = name.trim();
+
+            int hostApiIndex = Pa.DeviceInfo_getHostApi(deviceInfo);
+            long hostApiInfo = Pa.GetHostApiInfo(hostApiIndex);
+            if (hostApiInfo != 0)
+            {
+                int hostApiTypeValue = Pa.HostApiInfo_getType(hostApiInfo);
+                HostApiTypeId hostApiTypeId =
+                    HostApiTypeId.valueOf(hostApiTypeValue);
+                if (hostApiTypeId != null)
+                {
+                    name = hostApiTypeId.getApiName() + ": " + name;
+                }
+            }
 
             int maxInputChannels
                 = Pa.DeviceInfo_getMaxInputChannels(deviceInfo);
