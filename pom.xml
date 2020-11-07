@@ -85,7 +85,11 @@
       <artifactId>org.osgi.core</artifactId>
       <version>6.0.0</version>
     </dependency>
-    <!-- https://mvnrepository.com/artifact/org.jetbrains/annotations -->
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+      <version>3.11</version>
+    </dependency>
     <dependency>
       <groupId>org.jetbrains</groupId>
       <artifactId>annotations</artifactId>
@@ -105,28 +109,24 @@
       <version>3.4</version>
       <scope>test</scope>
     </dependency>
-        <!-- https://mvnrepository.com/artifact/org.powermock/powermock-core -->
     <dependency>
         <groupId>org.powermock</groupId>
         <artifactId>powermock-core</artifactId>
         <version>1.7.3</version>
         <scope>test</scope>
     </dependency>
-    <!-- https://mvnrepository.com/artifact/org.powermock/powermock-api-easymock -->
     <dependency>
         <groupId>org.powermock</groupId>
         <artifactId>powermock-api-easymock</artifactId>
         <version>1.7.3</version>
         <scope>test</scope>
     </dependency>
-    <!-- https://mvnrepository.com/artifact/org.powermock/powermock-module-junit4 -->
     <dependency>
         <groupId>org.powermock</groupId>
         <artifactId>powermock-module-junit4</artifactId>
         <version>1.7.3</version>
         <scope>test</scope>
     </dependency>
-    <!-- https://mvnrepository.com/artifact/io.pkts/pkts-core -->
     <dependency>
         <groupId>io.pkts</groupId>
         <artifactId>pkts-core</artifactId>

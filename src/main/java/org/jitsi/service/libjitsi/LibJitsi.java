@@ -15,7 +15,6 @@
  */
 package org.jitsi.service.libjitsi;
 
-import java.lang.reflect.*;
 import org.jitsi.impl.libjitsi.*;
 import org.jitsi.service.audionotifier.*;
 import org.jitsi.service.configuration.*;

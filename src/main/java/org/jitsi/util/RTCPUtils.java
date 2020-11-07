@@ -21,7 +21,7 @@ import org.jitsi.utils.*;
 /**
  * Utility class that contains static methods for RTCP header manipulation.
  *
- * @deprecated
+ * @deprecated Use org.jitsi.rtp.rtcp.RtcpHeader and maybe others (requires Kotlin)
  *
  * @author George Politis
  */

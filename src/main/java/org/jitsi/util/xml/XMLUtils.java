@@ -19,8 +19,6 @@ import static javax.xml.XMLConstants.W3C_XML_SCHEMA_INSTANCE_NS_URI;
 import static javax.xml.XMLConstants.W3C_XML_SCHEMA_NS_URI;
 import static javax.xml.XMLConstants.XMLNS_ATTRIBUTE_NS_URI;
 import static javax.xml.XMLConstants.XML_NS_URI;
-import static org.jitsi.utils.StringUtils.fromString;
-import static org.jitsi.utils.StringUtils.isNullOrEmpty;
 
 import java.io.*;
 import java.util.*;
@@ -31,9 +29,11 @@ import javax.xml.transform.*;
 import javax.xml.transform.dom.*;
 import javax.xml.transform.stream.*;
 
+import org.apache.commons.lang3.*;
 import org.jitsi.util.*;
 import org.jitsi.utils.logging.*;
 import org.w3c.dom.*;
+import org.xml.sax.*;
 
 /**
  * Common XML Tasks
@@ -599,7 +599,7 @@ public class XMLUtils
         String prefix = node.getPrefix();
         String namespaceUri = node.getNamespaceURI();
 
-        if (!isNullOrEmpty(namespaceUri))
+        if (StringUtils.isNotBlank(namespaceUri))
             return normalizeNamespace(namespaceUri);
         if (XMLConstants.XMLNS_ATTRIBUTE.equals(node.getNodeName())
                 || XMLConstants.XMLNS_ATTRIBUTE.equals(prefix))
@@ -617,7 +617,7 @@ public class XMLUtils
                     parentNode = ((Attr) node).getOwnerElement();
                     // If attribute doesn't have prefix - it has its parent
                     // namespace
-                    if (isNullOrEmpty(prefix))
+                    if (StringUtils.isBlank(prefix))
                         prefix = parentNode.getPrefix();
                 }
                 else if (node.getNodeType() == Node.ELEMENT_NODE)
@@ -629,7 +629,7 @@ public class XMLUtils
                 parentNode = parentNode.getParentNode();
             String parentPrefix = parentNode.getPrefix();
             String parentNamespaceUri = parentNode.getNamespaceURI();
-            if (isNullOrEmpty(prefix))
+            if (StringUtils.isBlank(prefix))
             {
                 Node xmlnsAttribute =
                         parentNode.getAttributes().getNamedItem("xmlns");
@@ -638,7 +638,7 @@ public class XMLUtils
             }
             else if (Objects.equals(prefix, parentPrefix))
             {
-                if (!isNullOrEmpty(parentNamespaceUri))
+                if (StringUtils.isNotBlank(parentNamespaceUri))
                     return normalizeNamespace(parentNamespaceUri);
             }
         }
@@ -712,10 +712,9 @@ public class XMLUtils
         builderFactory.setNamespaceAware(true);
 
         DocumentBuilder documentBuilder = builderFactory.newDocumentBuilder();
-        if (!isNullOrEmpty(xml))
+        if (StringUtils.isNotBlank(xml))
         {
-            InputStream input = fromString(xml);
-            return documentBuilder.parse(input);
+            return documentBuilder.parse(new InputSource(new StringReader(xml)));
         }
         else
         {

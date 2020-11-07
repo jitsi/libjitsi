@@ -20,6 +20,7 @@ import java.math.*;
 import java.security.*;
 import java.util.*;
 
+import org.apache.commons.lang3.StringUtils;
 import org.bouncycastle.asn1.*;
 import org.bouncycastle.asn1.x500.*;
 import org.bouncycastle.asn1.x500.style.*;
@@ -28,14 +29,15 @@ import org.bouncycastle.cert.*;
 import org.bouncycastle.crypto.*;
 import org.bouncycastle.crypto.generators.*;
 import org.bouncycastle.crypto.params.*;
-import org.bouncycastle.crypto.tls.*;
+import org.bouncycastle.tls.*;
+import org.bouncycastle.tls.crypto.*;
+import org.bouncycastle.tls.crypto.impl.bc.*;
 import org.bouncycastle.crypto.util.*;
 import org.bouncycastle.operator.*;
 import org.bouncycastle.operator.bc.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
-import org.jitsi.util.*;
 import org.jitsi.utils.*;
 import org.jitsi.utils.logging.*;
 import org.jitsi.utils.version.*;
@@ -423,17 +425,10 @@ public class DtlsControlImpl
         X500NameBuilder builder = new X500NameBuilder(BCStyle.INSTANCE);
         // TODO: Get the versions from a VersionService
         String applicationName = "libjitsi";
-        String applicationVersion = null;
         StringBuilder cn = new StringBuilder();
 
-        if (!StringUtils.isNullOrEmpty(applicationName, true))
+        if (StringUtils.isNotEmpty(applicationName))
             cn.append(applicationName);
-        if (!StringUtils.isNullOrEmpty(applicationVersion, true))
-        {
-            if (cn.length() != 0)
-                cn.append(' ');
-            cn.append(applicationVersion);
-        }
         if (cn.length() == 0)
             cn.append(DtlsControlImpl.class.getName());
         builder.addRDN(BCStyle.CN, cn.toString());

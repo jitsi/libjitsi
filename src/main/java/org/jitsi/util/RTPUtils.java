@@ -20,7 +20,7 @@ import java.util.*;
 /**
  * RTP-related static utility methods.
  *
- * @deprecated
+ * @deprecated use org.jitsi.rtp.util.RtpUtils (requires Kotlin)
  *
  * @author Boris Grozev
  */

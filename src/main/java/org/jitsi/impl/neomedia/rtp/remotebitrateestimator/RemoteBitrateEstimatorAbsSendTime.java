@@ -106,8 +106,7 @@ public class RemoteBitrateEstimatorAbsSendTime
      * the purposes of reducing the number of allocations and the effects of
      * garbage collection.
      */
-    private Collection<Long> ssrcs
-        = Collections.unmodifiableList(Collections.EMPTY_LIST);
+    private Collection<Long> ssrcs = Collections.emptyList();
 
     /**
      * A map of SSRCs -> time first seen (in millis).
