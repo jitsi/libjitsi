@@ -1491,12 +1491,7 @@ public class MediaServiceImpl
                 || DeviceConfiguration.VIDEO_CAPTURE_DEVICE.equals(
                         propertyName))
         {
-            /*
-             * We do not know the old value of the property at the time of this
-             * writing. We cannot report the new value either because we do not
-             * know the MediaType and the MediaUseCase.
-             */
-            firePropertyChange(DEFAULT_DEVICE, null, null);
+            firePropertyChange(DEFAULT_DEVICE, event.getOldValue(), event.getNewValue());
         }
     }
 
