@@ -207,6 +207,7 @@ public class PortAudioSystem
 
             int hostApiIndex = Pa.DeviceInfo_getHostApi(deviceInfo);
             long hostApiInfo = Pa.GetHostApiInfo(hostApiIndex);
+            String hostApiName = null;
             if (hostApiInfo != 0)
             {
                 int hostApiTypeValue = Pa.HostApiInfo_getType(hostApiInfo);
@@ -214,7 +215,8 @@ public class PortAudioSystem
                     HostApiTypeId.valueOf(hostApiTypeValue);
                 if (hostApiTypeId != null)
                 {
-                    name = hostApiTypeId.getApiName() + ": " + name;
+                    hostApiName = hostApiTypeId.getApiName();
+                    name = hostApiName + ": " + name;
                 }
             }
 
@@ -240,6 +242,7 @@ public class PortAudioSystem
                     = CoreAudioDevice.isLoaded
                         ? CoreAudioDevice.getDeviceModelIdentifier(deviceUID)
                         : null;
+                deviceUID = hostApiName + "_" + deviceUID;
                 locatorRemainder = deviceUID;
             }
 

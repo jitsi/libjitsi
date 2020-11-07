@@ -498,10 +498,24 @@ public final class Pa
                 /* The deviceID is either the deviceUID or the name. */
                 String deviceUID = Pa.DeviceInfo_getDeviceUID(deviceInfo);
 
+                int hostApiIndex = Pa.DeviceInfo_getHostApi(deviceInfo);
+                long hostApiInfo = Pa.GetHostApiInfo(hostApiIndex);
+                String hostApiName = null;
+                if (hostApiInfo != 0)
+                {
+                    int hostApiTypeValue = Pa.HostApiInfo_getType(hostApiInfo);
+                    HostApiTypeId hostApiTypeId =
+                        HostApiTypeId.valueOf(hostApiTypeValue);
+                    if (hostApiTypeId != null)
+                    {
+                        hostApiName = hostApiTypeId.getApiName();
+                    }
+                }
+
                 if(deviceID.equals(
                         ((deviceUID == null) || (deviceUID.length() == 0))
-                            ? Pa.DeviceInfo_getName(deviceInfo)
-                            : deviceUID))
+                            ? hostApiName + ": " + Pa.DeviceInfo_getName(deviceInfo)
+                            : hostApiName + "_" + deviceUID))
                 {
                     /*
                      * Resolve deviceID clashes by further identifying the

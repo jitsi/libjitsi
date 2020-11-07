@@ -169,7 +169,6 @@ public abstract class Devices
             String property = getPropDevice();
 
             loadDevicePreferences(property);
-            renameOldFashionedIdentifier(activeDevices);
 
             boolean isEmptyList = devicePreferences.isEmpty();
 
@@ -181,8 +180,7 @@ public abstract class Devices
             {
                 CaptureDeviceInfo2 activeDevice = activeDevices.get(i);
 
-                if(!devicePreferences.contains(
-                            activeDevice.getModelIdentifier()))
+                if(!devicePreferences.contains(activeDevice.getUID()))
                 {
                     // By default, select automatically the USB devices.
                     boolean isSelected
@@ -226,8 +224,7 @@ public abstract class Devices
                     {
                         // If we have found the "preferred" device among active
                         // device.
-                        if(devicePreference.equals(
-                                activeDevice.getModelIdentifier()))
+                        if(devicePreference.equals(activeDevice.getUID()))
                         {
                             return activeDevice;
                         }
@@ -298,54 +295,6 @@ public abstract class Devices
     }
 
     /**
-     * Renames the old fashioned identifier (name only), into new fashioned one
-     * (UID, or name + transport type).
-     *
-     * @param activeDevices The list of the active devices.
-     */
-    private void renameOldFashionedIdentifier(
-            List<CaptureDeviceInfo2> activeDevices)
-    {
-        // Renames the old fashioned device identifier for all active devices.
-        for(CaptureDeviceInfo2 activeDevice : activeDevices)
-        {
-            String name = activeDevice.getName();
-            String id = activeDevice.getModelIdentifier();
-
-            // We can only switch to the new fashioned notation, only if the OS
-            // API gives us a unique identifier (different from the device
-            // name).
-            if(!name.equals(id))
-            {
-                synchronized(devicePreferences)
-                {
-                    do
-                    {
-                        int nameIndex = devicePreferences.indexOf(name);
-
-                        // If there is one old fashioned identifier.
-                        if(nameIndex == -1)
-                            break;
-                        else
-                        {
-                            int idIndex = devicePreferences.indexOf(id);
-
-                            // If the corresponding new fashioned identifier
-                            // does not exist, then renames the old one into
-                            // the new one.
-                            if(idIndex == -1)
-                                devicePreferences.set(nameIndex, id);
-                            else // Remove the duplicate.
-                                devicePreferences.remove(nameIndex);
-                        }
-                    }
-                    while(true);
-                }
-            }
-        }
-    }
-
-    /**
      * Saves the new selected device in top of the user preferences.
      *
      * @param property the name of the <tt>ConfigurationService</tt> property
@@ -362,7 +311,7 @@ public abstract class Devices
         String selectedDeviceIdentifier
             = (device == null)
                 ? NoneAudioSystem.LOCATOR_PROTOCOL
-                : device.getModelIdentifier();
+                : device.getUID();
 
         // Sorts the user preferences to put the selected device on top.
         addToDevicePreferences(
