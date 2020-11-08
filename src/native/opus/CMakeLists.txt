@@ -22,9 +22,9 @@ if (NOT ${USE_SYSTEM_OPUS})
     externalproject_add(ext_lib_opus
                         INSTALL_DIR ${OPUS_ROOT}
                         GIT_REPOSITORY https://github.com/xiph/opus
-                        GIT_TAG e85ed7726db5d677c9c0677298ea0cb9c65bdd23
+                        GIT_TAG c2b542b6c02bafbe7a83b2eeec6cb5a0bfa3ed0d
                         GIT_SHALLOW false
-                        CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR> -DOPUS_X86_PRESUME_AVX:BOOL=ON -DOPUS_X86_PRESUME_SSE4_1:BOOL=ON
+                        CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
                         )
 endif ()
 

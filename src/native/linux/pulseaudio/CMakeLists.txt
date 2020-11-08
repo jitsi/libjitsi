@@ -1,4 +1,4 @@
-project(pulseaudio C)
+project(jnpulseaudio C)
 
 find_package(PulseAudio REQUIRED)
 

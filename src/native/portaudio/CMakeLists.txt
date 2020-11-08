@@ -10,6 +10,7 @@ elseif (APPLE)
             "-framework CoreAudio"
             "-framework Carbon")
 elseif (UNIX)
+    find_package(ALSA REQUIRED)
     set(OS_LIBS pthread asound)
 endif ()
 

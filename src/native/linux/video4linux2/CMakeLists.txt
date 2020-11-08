@@ -1,4 +1,4 @@
-project(video4linux2 C)
+project(jnvideo4linux2 C)
 
 include(CheckIncludeFiles)
 check_include_files(linux/videodev2.h HAVE_V4L)

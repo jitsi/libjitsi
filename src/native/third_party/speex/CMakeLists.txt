@@ -35,7 +35,6 @@ if (NOT ${USE_SYSTEM_SPEEX})
             GIT_REPOSITORY https://github.com/xiph/speex
             GIT_TAG 6e04bfa884e6719b51573ed8bfa713b71fc29db6
             GIT_SHALLOW false
-            UPDATE_COMMAND git clean -fdx
             PATCH_COMMAND git am ${CMAKE_CURRENT_LIST_DIR}/speex-cmake.patch
             CMAKE_ARGS -DUSE_GPL_FFTW3:BOOL=NO -DUSE_SPEEXDSP:BOOL=YES -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR> -DSPEEXDSP_ROOT:PATH=${SPEEXDSP_ROOT}
             )

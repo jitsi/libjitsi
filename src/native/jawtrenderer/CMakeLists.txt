@@ -15,6 +15,13 @@ elseif (APPLE)
         "-framework AppKit"
         "-framework QuartzCore")
 elseif (UNIX)
+    find_package(X11 REQUIRED)
+    if (NOT X11_FOUND)
+        message(FATAL_ERROR "libx11-dev is missing")
+    endif ()
+    if (NOT X11_Xv_FOUND)
+        message(FATAL_ERROR "libxv-dev is missing")
+    endif ()
     set(OS_SOURCES JAWTRenderer_Linux.c)
     set(OS_LIBS
         "Xv"

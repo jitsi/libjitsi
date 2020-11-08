@@ -15,7 +15,7 @@ endif ()
 
 option(USE_SYSTEM_USRSCTP "Use system-installed usrsctp" ${DEFAULT_USE_SYSTEM_USRSCTP})
 
-if (NOT ${DEFAULT_USE_SYSTEM_USRSCTP})
+if (NOT ${USE_SYSTEM_USRSCTP})
     set(USRSCTP_ROOT ${CMAKE_BINARY_DIR}/usrsctp)
     set(libusrsctp_INCLUDE_DIRS ${USRSCTP_ROOT}/include)
     set(libusrsctp_LIBRARY_DIRS ${USRSCTP_ROOT}/lib)
@@ -41,7 +41,7 @@ target_link_libraries(${PROJECT_NAME} LINK_PUBLIC
                       usrsctp
                       )
 
-if (NOT ${DEFAULT_USE_SYSTEM_USRSCTP})
+if (NOT ${USE_SYSTEM_USRSCTP})
     add_dependencies(${PROJECT_NAME} ext_lib_usrsctp)
 else ()
     find_package(usrsctp REQUIRED)
