@@ -1,0 +1,42 @@
+name: CI with CMake and Maven
+
+on:
+  push:
+    branches: desktop
+
+jobs:
+  Ubuntu:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          submodules: true
+
+      - name: Show version
+        run: git describe --match "v[0-9\.]*" --long --dirty --always
+        
+      - name: Build build container
+        run: |
+          cd .github/workflows
+          docker build -f Dockerfile.static -t libjitsi-static:${{ github.sha }} .
+
+      - name: Build natives x86 (static)
+        run: docker run -v ${{ github.workspace }}:/ghws libjitsi-static:${{ github.sha }} /bin/bash -c "/ghws/.github/workflows/build-static.sh m32 /ghws"
+
+      - name: Upload Linux x86 natives
+        uses: actions/upload-artifact@v1
+        with:
+          name: linux-x86
+          path: lib/native/linux-x86
+
+      - name: Build natives x64 (static)
+        run: docker run -v ${{ github.workspace }}:/ghws libjitsi-static:${{ github.sha }} /bin/bash -c "/ghws/.github/workflows/build-static.sh m64 /ghws"
+
+      - name: Upload Linux x64 natives
+        uses: actions/upload-artifact@v1
+        with:
+          name: linux-x86-64
+          path: lib/native/linux-x86-64
