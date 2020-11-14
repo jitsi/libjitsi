@@ -16,7 +16,7 @@
 package org.jitsi.impl.neomedia.transform.dtls;
 
 import org.bouncycastle.crypto.*;
-import org.bouncycastle.crypto.tls.*;
+import org.bouncycastle.tls.*;
 
 /**
  * Bundles information such as key pair, hash function, fingerprint, etc. about

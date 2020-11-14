@@ -15,6 +15,8 @@
  */
 package org.jitsi.impl.neomedia.transform.dtls;
 
+import static org.jitsi.impl.neomedia.transform.dtls.DtlsUtils.BC_TLS_CRYPTO;
+
 import java.io.*;
 import java.math.*;
 import java.security.*;
@@ -40,7 +42,6 @@ import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.utils.*;
 import org.jitsi.utils.logging.*;
-import org.jitsi.utils.version.*;
 
 /**
  * Implements {@link DtlsControl} i.e. {@link SrtpControl} for DTLS-SRTP.
@@ -389,12 +390,9 @@ public class DtlsControlImpl
         org.bouncycastle.asn1.x509.Certificate x509Certificate
             = generateX509Certificate(generateCN(), keyPair);
 
-        org.bouncycastle.crypto.tls.Certificate certificate
-            = new org.bouncycastle.crypto.tls.Certificate(
-                    new org.bouncycastle.asn1.x509.Certificate[]
-                    {
-                        x509Certificate
-                    });
+        org.bouncycastle.tls.Certificate certificate
+            = new org.bouncycastle.tls.Certificate(new BcTlsCertificate[]{
+                new BcTlsCertificate(BC_TLS_CRYPTO, x509Certificate) } );
         String localFingerprintHashFunction
             = findHashFunction(x509Certificate);
         String localFingerprint
@@ -762,6 +760,13 @@ public class DtlsControlImpl
         if (remoteFingerprints == null)
             throw new NullPointerException("remoteFingerprints");
 
+        // Don't pass an empty list to the stack in order to avoid wiping
+        // certificates that were contained in a previous request.
+        if (remoteFingerprints.isEmpty())
+        {
+            return;
+        }
+
         // Make sure that the hash functions (which are keys of the field
         // remoteFingerprints) are written in lower case.
         Map<String,String> rfs = new HashMap<>(remoteFingerprints.size());
@@ -920,14 +925,14 @@ public class DtlsControlImpl
      * over the signaling path
      */
     boolean verifyAndValidateCertificate(
-            org.bouncycastle.crypto.tls.Certificate certificate)
+            org.bouncycastle.tls.Certificate certificate)
         throws Exception
     {
         boolean b = false;
 
         try
         {
-            org.bouncycastle.asn1.x509.Certificate[] certificateList
+            TlsCertificate[] certificateList
                 = certificate.getCertificateList();
 
             if (certificateList.length == 0)
@@ -937,10 +942,11 @@ public class DtlsControlImpl
             }
             else
             {
-                for (org.bouncycastle.asn1.x509.Certificate x509Certificate
+                for (org.bouncycastle.tls.crypto.TlsCertificate tlsCertificate
                         : certificateList)
                 {
-                    verifyAndValidateCertificate(x509Certificate);
+                    verifyAndValidateCertificate(org.bouncycastle.asn1.x509.Certificate
+                        .getInstance(tlsCertificate.getEncoded()));
                 }
                 b = true;
             }

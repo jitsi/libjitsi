@@ -15,11 +15,13 @@
  */
 package org.jitsi.impl.neomedia.transform.srtp;
 
+import java.security.*;
 import java.util.*;
 
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.srtp.*;
+import org.jitsi.utils.logging.*;
 
 /**
  * SRTCPTransformer implements PacketTransformer.
@@ -31,6 +33,7 @@ import org.jitsi.srtp.*;
 public class SRTCPTransformer
     extends SinglePacketTransformer
 {
+    private static final Logger logger = Logger.getLogger(SRTCPTransformer.class);
     private SrtpContextFactory forwardFactory;
     private SrtpContextFactory reverseFactory;
 
@@ -79,7 +82,7 @@ public class SRTCPTransformer
     {
         this.forwardFactory = forwardFactory;
         this.reverseFactory = reverseFactory;
-        this.contexts = new HashMap<Integer,SrtcpCryptoContext>();
+        this.contexts = new HashMap<>();
     }
 
     /**
@@ -130,15 +133,7 @@ public class SRTCPTransformer
             if (reverseFactory != forwardFactory)
                 reverseFactory.close();
 
-            for (Iterator<SrtcpCryptoContext> i = contexts.values().iterator();
-                    i.hasNext();)
-            {
-                SrtcpCryptoContext context = i.next();
-
-                i.remove();
-                if (context != null)
-                    context.close();
-            }
+            contexts.clear();
         }
     }
 
@@ -147,14 +142,22 @@ public class SRTCPTransformer
             SrtpContextFactory engine)
     {
         int ssrc = (int) pkt.getRTCPSSRC();
-        SrtcpCryptoContext context = null;
+        SrtcpCryptoContext context;
 
         synchronized (contexts)
         {
             context = contexts.get(ssrc);
             if (context == null && engine != null)
             {
-                context = engine.deriveControlContext(ssrc);
+                try
+                {
+                    context = engine.deriveControlContext(ssrc);
+                }
+                catch (GeneralSecurityException e)
+                {
+                    logger.error("Could not get context for ssrc " + ssrc, e);
+                    return null;
+                }
                 contexts.put(ssrc, context);
             }
         }
@@ -178,9 +181,17 @@ public class SRTCPTransformer
             return null;
         }
 
-        return context.reverseTransformPacket(pkt) == SrtpErrorStatus.OK
-            ? pkt
-            : null;
+        try
+        {
+            return context.reverseTransformPacket(pkt) == SrtpErrorStatus.OK
+                ? pkt
+                : null;
+        }
+        catch (GeneralSecurityException e)
+        {
+            // the error was already logged in SinglePacketTransformer
+            return null;
+        }
     }
 
     /**
@@ -196,8 +207,16 @@ public class SRTCPTransformer
 
         if(context != null)
         {
-            context.transformPacket(pkt);
-            return pkt;
+            try
+            {
+                context.transformPacket(pkt);
+                return pkt;
+            }
+            catch (GeneralSecurityException e)
+            {
+                // the error was already logged in SinglePacketTransformer
+                return null;
+            }
         }
         else
         {

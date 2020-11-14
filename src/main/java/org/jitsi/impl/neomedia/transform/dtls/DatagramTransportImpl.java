@@ -19,7 +19,7 @@ import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
 
-import org.bouncycastle.crypto.tls.*;
+import org.bouncycastle.tls.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.codec.video.h264.*;
 import org.jitsi.service.neomedia.*;
@@ -112,20 +112,13 @@ public class DatagramTransportImpl
         receiveQ = new ArrayBlockingQueue<>(receiveQCapacity);
     }
 
-    private AbstractRTPConnector assertNotClosed(
-            boolean breakOutOfDTLSReliableHandshakeReceiveMessage)
+    private AbstractRTPConnector assertNotClosed()
         throws IOException
     {
         AbstractRTPConnector connector = this.connector;
-
         if (connector == null)
         {
-            IOException ioe
-                = new IOException(getClass().getName() + " is closed!");
-
-            if (breakOutOfDTLSReliableHandshakeReceiveMessage)
-                breakOutOfDTLSReliableHandshakeReceiveMessage(ioe);
-            throw ioe;
+            throw new IOException(getClass().getName() + " is closed!");
         }
         else
         {
@@ -134,33 +127,10 @@ public class DatagramTransportImpl
     }
 
     /**
-     * Works around a bug in the Bouncy Castle Crypto APIs which may cause
-     * <tt>org.bouncycastle.crypto.tls.DTLSReliableHandshake.receiveMessage()</tt>
-     * to enter an endless loop.
-     *
-     * @param cause the <tt>Throwable</tt> which would have been thrown if the
-     * bug did not exist
-     */
-    private void breakOutOfDTLSReliableHandshakeReceiveMessage(Throwable cause)
-    {
-        for (StackTraceElement stackTraceElement : cause.getStackTrace())
-        {
-            if ("org.bouncycastle.crypto.tls.DTLSReliableHandshake".equals(
-                        stackTraceElement.getClassName())
-                    && "receiveMessage".equals(
-                            stackTraceElement.getMethodName()))
-            {
-                throw new IllegalStateException(cause);
-            }
-        }
-    }
-
-    /**
      * {@inheritDoc}
      */
     @Override
     public void close()
-        throws IOException
     {
         setConnector(null);
     }
@@ -171,7 +141,7 @@ public class DatagramTransportImpl
         // Do preserve the sequence of sends.
         flush();
 
-        AbstractRTPConnector connector = assertNotClosed(false);
+        AbstractRTPConnector connector = assertNotClosed();
         RTPConnectorOutputStream outputStream;
 
         switch (componentID)
@@ -202,7 +172,7 @@ public class DatagramTransportImpl
     private void flush()
         throws IOException
     {
-        assertNotClosed(false);
+        assertNotClosed();
 
         byte[] buf;
         int len;
@@ -240,7 +210,6 @@ public class DatagramTransportImpl
      */
     @Override
     public int getReceiveLimit()
-        throws IOException
     {
         AbstractRTPConnector connector = this.connector;
         int receiveLimit
@@ -256,7 +225,6 @@ public class DatagramTransportImpl
      */
     @Override
     public int getSendLimit()
-        throws IOException
     {
         AbstractRTPConnector connector = this.connector;
         int sendLimit
@@ -294,7 +262,7 @@ public class DatagramTransportImpl
             {
                 try
                 {
-                    assertNotClosed(false);
+                    assertNotClosed();
                 }
                 catch (IOException ioe)
                 {
@@ -304,7 +272,7 @@ public class DatagramTransportImpl
                 RawPacket pkt = rawPacketPool.poll();
                 byte[] pktBuf;
 
-                if ((pkt == null) || ((pktBuf = pkt.getBuffer()).length < len))
+                if ((pkt == null) || (pkt.getBuffer().length < len))
                 {
                     pktBuf = new byte[len];
                     pkt = new RawPacket(pktBuf, 0, len);
@@ -375,7 +343,7 @@ public class DatagramTransportImpl
 
             synchronized (receiveQ)
             {
-                assertNotClosed(true);
+                assertNotClosed();
 
                 RawPacket pkt = receiveQ.peek();
 
@@ -474,7 +442,7 @@ public class DatagramTransportImpl
     public void send(byte[] buf, int off, int len)
         throws IOException
     {
-        assertNotClosed(false);
+        assertNotClosed();
 
         // If possible, construct a single datagram from multiple DTLS records.
         if (len >= DtlsPacketTransformer.DTLS_RECORD_HEADER_LENGTH)
@@ -503,7 +471,7 @@ public class DatagramTransportImpl
                 case HandshakeType.client_key_exchange:
                 case HandshakeType.server_hello:
                 case HandshakeType.server_key_exchange:
-                case HandshakeType.session_ticket:
+                case HandshakeType.new_session_ticket:
                 case HandshakeType.supplemental_data:
                     endOfFlight = false;
                     break;

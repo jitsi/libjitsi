@@ -15,12 +15,14 @@
  */
 package org.jitsi.impl.neomedia.transform.dtls;
 
+import static org.jitsi.impl.neomedia.transform.dtls.DtlsUtils.BC_TLS_CRYPTO;
+
 import java.beans.*;
 import java.io.*;
 import java.security.*;
 import java.util.*;
 
-import org.bouncycastle.crypto.tls.*;
+import org.bouncycastle.tls.*;
 import org.jitsi.impl.neomedia.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.impl.neomedia.transform.srtp.*;
@@ -28,9 +30,9 @@ import org.jitsi.srtp.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
-import org.jitsi.util.*;
 import org.jitsi.utils.*;
 import org.jitsi.utils.logging.*;
+import org.bouncycastle.tls.crypto.impl.bc.*;
 
 /**
  * Implements {@link PacketTransformer} for DTLS-SRTP. It's capable of working
@@ -302,20 +304,7 @@ public class DtlsPacketTransformer
     {
         if (datagramTransport != null)
         {
-            try
-            {
-                datagramTransport.close();
-            }
-            catch (IOException ioe)
-            {
-                // DatagramTransportImpl has no reason to fail because it is
-                // merely an adapter of #connector and this PacketTransformer to
-                // the terms of the Bouncy Castle Crypto API.
-                logger.error(
-                        "Failed to (properly) close "
-                            + datagramTransport.getClass(),
-                        ioe);
-            }
+            datagramTransport.close();
             datagramTransport = null;
         }
     }
@@ -535,8 +524,7 @@ public class DtlsPacketTransformer
             PacketTransformer srtpTransformer
                 = rtpTransformer.getSRTPTransformer();
 
-            if (srtpTransformer != null
-                    && srtpTransformer instanceof SRTPTransformer)
+            if (srtpTransformer instanceof SRTPTransformer)
             {
                 synchronized (this)
                 {
@@ -648,7 +636,7 @@ public class DtlsPacketTransformer
                         ExporterLabel.dtls_srtp,
                         null,
                         2 * (cipher_key_length + cipher_salt_length),
-                        sessionParameters.getMasterSecret()
+                        sessionParameters.getMasterSecret().extract()
                 );
             }
         }
@@ -1250,12 +1238,12 @@ public class DtlsPacketTransformer
 
         if (DtlsControl.Setup.ACTIVE.equals(setup))
         {
-            dtlsProtocolObj = new DTLSClientProtocol(new SecureRandom());
+            dtlsProtocolObj = new DTLSClientProtocol();
             tlsPeer = new TlsClientImpl(this);
         }
         else
         {
-            dtlsProtocolObj = new DTLSServerProtocol(new SecureRandom());
+            dtlsProtocolObj = new DTLSServerProtocol();
             tlsPeer = new TlsServerImpl(this);
         }
         tlsPeerHasRaisedCloseNotifyWarning = false;
@@ -1394,7 +1382,7 @@ public class DtlsPacketTransformer
 
         outPkts = transformNonDtls(inPkts, transform, outPkts);
 
-        return outPkts.toArray(new RawPacket[outPkts.size()]);
+        return outPkts.toArray(new RawPacket[0]);
     }
 
     /**
@@ -1479,7 +1467,8 @@ public class DtlsPacketTransformer
             boolean transform,
             List<RawPacket> outPkts)
     {
-        /* Pure/non-SRTP DTLS */ if (isSrtpDisabled())
+        // Pure/non-SRTP DTLS
+        if (isSrtpDisabled())
         {
             // (1) In the incoming/reverseTransform direction, only DTLS records
             // pass through.
@@ -1489,9 +1478,10 @@ public class DtlsPacketTransformer
             if (transform)
                 outPkts = transformNonSrtp(inPkts, outPkts);
         }
-        /* SRTP */ else
+        else
         {
-            outPkts = transformSrtp(inPkts, transform, outPkts);
+            // SRTP 
+            transformSrtp(inPkts, transform, outPkts);
         }
         return outPkts;
     }
@@ -1543,11 +1533,8 @@ public class DtlsPacketTransformer
      * the remote peer
      * @param outPkts the {@code List} of {@code RawPacket}s into which the
      * results of the processing of {@code inPkts} are to be written
-     * @return the {@code List} of {@code RawPacket}s which are the result of
-     * the processing including the elements of {@code outPkts}. Practically,
-     * {@code outPkts} itself.
      */
-    private List<RawPacket> transformSrtp(
+    private void transformSrtp(
             RawPacket[] inPkts,
             boolean transform,
             List<RawPacket> outPkts)
@@ -1595,13 +1582,12 @@ public class DtlsPacketTransformer
 
                     try
                     {
-                        outPkts
-                            = transformSrtp(
-                                    srtpTransformer,
-                                    q,
-                                    transform,
-                                    outPkts,
-                                    template);
+                        transformSrtp(
+                            srtpTransformer,
+                            q,
+                            transform,
+                            outPkts,
+                            template);
                     }
                     finally
                     {
@@ -1616,16 +1602,14 @@ public class DtlsPacketTransformer
             // invocation.
             if (inPkts != null && inPkts.length != 0)
             {
-                outPkts
-                    = transformSrtp(
-                            srtpTransformer,
-                            Arrays.asList(inPkts),
-                            transform,
-                            outPkts,
-                            /* template */ null);
+                transformSrtp(
+                    srtpTransformer,
+                    Arrays.asList(inPkts),
+                    transform,
+                    outPkts,
+                    null);
             }
         }
-        return outPkts;
     }
 
     /**
@@ -1645,11 +1629,8 @@ public class DtlsPacketTransformer
      * @param template A template to match input packets. Only input packets
      * matching this template (checked with {@link #match(RawPacket, RawPacket)})
      * will be processed. A null template matches all packets.
-     * @return the {@code List} of {@code RawPacket}s which are the result of
-     * the processing including the elements of {@code outPkts}. Practically,
-     * {@code outPkts} itself.
      */
-    private List<RawPacket> transformSrtp(
+    private void transformSrtp(
             SinglePacketTransformer srtpTransformer,
             Collection<RawPacket> inPkts,
             boolean transform,
@@ -1669,7 +1650,6 @@ public class DtlsPacketTransformer
                     outPkts.add(outPkt);
             }
         }
-        return outPkts;
     }
 
     /**
@@ -1697,11 +1677,7 @@ public class DtlsPacketTransformer
             return;
         }
 
-        for (Iterator<RawPacket> it = q.iterator(); it.hasNext();)
-        {
-            if (match(template, it.next()))
-                it.remove();
-        }
+        q.removeIf(rawPacket -> match(template, rawPacket));
     }
 
     /**
@@ -1778,6 +1754,6 @@ public class DtlsPacketTransformer
             throw new IllegalStateException("error in calculation of seed for export");
         }
 
-        return TlsUtils.PRF(context, masterSecret, asciiLabel, seed, length);
+        return TlsUtils.PRF(context, new BcTlsSecret(BC_TLS_CRYPTO, masterSecret), asciiLabel, seed, length).extract();
     }
 }

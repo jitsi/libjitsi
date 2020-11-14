@@ -34,11 +34,13 @@
 */
 package org.jitsi.impl.neomedia.transform.srtp;
 
+import java.security.*;
 import java.util.*;
 import javax.media.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.srtp.*;
+import org.jitsi.utils.logging.Logger;
 
 /**
  * SRTPTransformer implements PacketTransformer and provides implementations
@@ -54,6 +56,8 @@ import org.jitsi.srtp.*;
 public class SRTPTransformer
     extends SinglePacketTransformer
 {
+    private static final Logger logger = Logger.getLogger(SRTPTransformer.class);
+
     SrtpContextFactory forwardFactory;
     SrtpContextFactory reverseFactory;
 
@@ -138,15 +142,7 @@ public class SRTPTransformer
             if (reverseFactory != forwardFactory)
                 reverseFactory.close();
 
-            for (Iterator<SrtpCryptoContext> i = contexts.values().iterator();
-                    i.hasNext();)
-            {
-                SrtpCryptoContext context = i.next();
-
-                i.remove();
-                if (context != null)
-                    context.close();
-            }
+            contexts.clear();
         }
     }
 
@@ -162,7 +158,15 @@ public class SRTPTransformer
             context = contexts.get(ssrc);
             if (context == null)
             {
-                context = engine.deriveContext(ssrc, 0);
+                try
+                {
+                    context = engine.deriveContext(ssrc, 0);
+                }
+                catch (GeneralSecurityException e)
+                {
+                    logger.error("Could not get context for ssrc " + ssrc, e);
+                    return null;
+                }
                 contexts.put(ssrc, context);
             }
         }
@@ -199,10 +203,18 @@ public class SRTPTransformer
             return null;
         }
 
-        return context.reverseTransformPacket(pkt, skipDecryption)
-            == SrtpErrorStatus.OK
-            ? pkt
-            : null;
+        try
+        {
+            return context.reverseTransformPacket(pkt, skipDecryption)
+                == SrtpErrorStatus.OK
+                ? pkt
+                : null;
+        }
+        catch (GeneralSecurityException e)
+        {
+            // the error was already logged in SinglePacketTransformer
+            return null;
+        }
     }
 
     /**
@@ -219,6 +231,14 @@ public class SRTPTransformer
 
         if (context == null)
             return null;
-        return context.transformPacket(pkt) == SrtpErrorStatus.OK ? pkt : null;
+        try
+        {
+            return context.transformPacket(pkt) == SrtpErrorStatus.OK ? pkt : null;
+        }
+        catch (GeneralSecurityException e)
+        {
+            // the error was already logged in SinglePacketTransformer
+            return null;
+        }
     }
 }

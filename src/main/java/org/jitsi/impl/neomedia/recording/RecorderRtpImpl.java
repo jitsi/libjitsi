@@ -57,7 +57,7 @@ import org.jitsi.utils.logging.*;
 public class RecorderRtpImpl
         implements Recorder,
                    ReceiveStreamListener,
-                   ActiveSpeakerChangedListener,
+                   ActiveSpeakerChangedListener<Long>,
                    ControllerListener
 {
     /**
@@ -197,7 +197,7 @@ public class RecorderRtpImpl
     /**
      * The <tt>ActiveSpeakerDetector</tt> which will listen to the audio receive
      * streams of this <tt>RecorderRtpImpl</tt> and notify it about changes to
-     * the active speaker via calls to {@link #activeSpeakerChanged(long)}
+     * the active speaker via calls to {@link #activeSpeakerChanged(Long)}
      */
     private ActiveSpeakerDetector activeSpeakerDetector = null;
 
@@ -1139,14 +1139,14 @@ public class RecorderRtpImpl
     }
 
     /**
-     * Implements {@link ActiveSpeakerChangedListener#activeSpeakerChanged(long)}.
+     * Implements {@link ActiveSpeakerChangedListener#activeSpeakerChanged(Object)}.
      * Notifies this <tt>RecorderRtpImpl</tt> that the audio
      * <tt>ReceiveStream</tt> considered active has changed, and that the new
      * active stream has SSRC <tt>ssrc</tt>.
      * @param ssrc the SSRC of the new active stream.
      */
     @Override
-    public void activeSpeakerChanged(long ssrc)
+    public void activeSpeakerChanged(Long ssrc)
     {
         if (performActiveSpeakerDetection)
         {
@@ -1208,7 +1208,7 @@ public class RecorderRtpImpl
         if (!(recorder instanceof RecorderRtpImpl))
             return;
 
-        ((RecorderRtpImpl)recorder).setSynchronizer(getSynchronizer());
+        recorder.setSynchronizer(getSynchronizer());
     }
 
     private void emptyPacketBuffer(long ssrc)
@@ -1400,6 +1400,7 @@ public class RecorderRtpImpl
                 this.isControlStream = isControlStream;
             }
 
+            @Override
             public synchronized int write(byte[] buffer,
                              int offset,
                              int length)
@@ -1435,9 +1436,9 @@ public class RecorderRtpImpl
                             : rtpPacketTransformer;
 
                     if (packetTransformer != null)
-                        rawPacketArray
-                            = packetTransformer.reverseTransform(rawPacketArray);
-                }
+                            rawPacketArray
+                                = packetTransformer.reverseTransform(rawPacketArray);
+                        }
 
                 SourceTransferHandler transferHandler;
                 PushSourceStream pushSourceStream;
@@ -1456,7 +1457,7 @@ public class RecorderRtpImpl
                 }
                 catch (IOException ioe)
                 {
-                    throw new UndeclaredThrowableException(ioe);
+                    throw new RuntimeException(ioe);
                 }
 
                 for (int i = 0; i < rawPacketArray.length; i++)
@@ -1597,8 +1598,7 @@ public class RecorderRtpImpl
                 if (pendingPacketBuffer != null)
                 {
                     int pendingPacketLength = pendingPacket.getLength();
-                    bytesToRead = length > pendingPacketLength ?
-                            pendingPacketLength: length;
+                    bytesToRead = Math.min(length, pendingPacketLength);
                     System.arraycopy(
                             pendingPacketBuffer,
                             pendingPacket.getOffset(),
@@ -1722,7 +1722,7 @@ public class RecorderRtpImpl
     {
         private RecorderEventHandler handler;
         private final Set<RecorderEvent> pendingEvents
-                = new HashSet<RecorderEvent>();
+                = new HashSet<>();
 
         private RecorderEventHandlerImpl(RecorderEventHandler handler)
         {

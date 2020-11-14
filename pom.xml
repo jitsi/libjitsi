@@ -6,14 +6,14 @@
 
   <groupId>org.jitsi</groupId>
   <artifactId>libjitsi</artifactId>
-  <version>1.0-SNAPSHOT</version>
+  <version>1.0-ib-SNAPSHOT</version>
   <packaging>bundle</packaging>
 
   <name>libjitsi</name>
   <url>https://github.com/jitsi/libjitsi</url>
 
   <properties>
-    <bouncycastle.version>1.54</bouncycastle.version>
+    <bouncycastle.version>1.66</bouncycastle.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
 
@@ -37,7 +37,7 @@
     <dependency>
       <groupId>net.java.dev.jna</groupId>
       <artifactId>jna</artifactId>
-      <version>5.5.0</version>
+      <version>5.6.0</version>
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
@@ -50,19 +50,24 @@
       <version>${bouncycastle.version}</version>
     </dependency>
     <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bctls-jdk15on</artifactId>
+      <version>${bouncycastle.version}</version>
+    </dependency>
+    <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>fmj</artifactId>
-      <version>1.0.0-jitsi</version>
+      <version>1.0.1-jitsi</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-utils</artifactId>
-      <version>1.0-39-gd481c98</version>
+      <version>1.0-61-gb2588f2</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-srtp</artifactId>
-      <version>1.0-24-g6823dfa</version>
+      <version>1.0-33-gfe519d1</version>
     </dependency>
     <dependency>
       <groupId>org.opentelecoms.sdp</groupId>
@@ -78,7 +83,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>zrtp4j-light</artifactId>
-      <version>4.1.1</version>
+      <version>4.1.2</version>
     </dependency>
     <dependency>
       <groupId>org.osgi</groupId>
@@ -96,6 +101,7 @@
       <version>19.0.0</version>
       <scope>provided</scope>
     </dependency>
+
     <!-- test -->
     <dependency>
       <groupId>junit</groupId>
@@ -141,11 +147,12 @@
       <plugin>
          <groupId>org.apache.felix</groupId>
          <artifactId>maven-bundle-plugin</artifactId>
-         <version>4.2.1</version>
+         <version>5.1.1</version>
          <extensions>true</extensions>
          <configuration>
             <excludeDependencies>jitsi-lgpl-dependencies</excludeDependencies>
             <instructions>
+               <_noclassforname>true</_noclassforname> 
                <Import-Package>*,sun.awt.X11,sun.lwawt,sun.lwawt.macosx</Import-Package>
                <Export-Package>org.jitsi.util.*,
                org.jitsi.service.*,
@@ -206,9 +213,18 @@
                    win32-x86-64/jnwasapi.dll;
                    win32-x86-64/jnwincoreaudio.dll;osname=Win32;processor=x86-64
                </Bundle-NativeCode>
+              <Bundle-License>
+                Apache-2.0;link="https://github.com/jitsi/libjitsi/raw/master/LICENSE"
+              </Bundle-License>
+              <_removeheaders>Bnd-*, Tool, Require-Capability, Include-Resource
+              </_removeheaders>
+              <Include-Resource>
+                {maven-resources},
+                META-INF/LICENSE=LICENSE
+              </Include-Resource>
             </instructions>
          </configuration>
-      </plugin>
+        </plugin>
         <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-compiler-plugin</artifactId>

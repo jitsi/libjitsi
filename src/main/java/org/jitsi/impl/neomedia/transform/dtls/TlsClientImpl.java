@@ -15,11 +15,16 @@
  */
 package org.jitsi.impl.neomedia.transform.dtls;
 
+import static org.jitsi.impl.neomedia.transform.dtls.DtlsUtils.BC_TLS_CRYPTO;
+
 import java.io.*;
 import java.util.*;
 
-import org.bouncycastle.crypto.tls.*;
+import org.bouncycastle.tls.*;
 import org.jitsi.utils.logging.*;
+import org.bouncycastle.tls.crypto.impl.bc.BcTlsCrypto;
+import org.bouncycastle.tls.crypto.impl.bc.BcDefaultTlsCredentialedSigner;
+import org.bouncycastle.tls.crypto.TlsCryptoParameters;
 
 /**
  * Implements {@link TlsClient} for the purposes of supporting DTLS-SRTP.
@@ -65,6 +70,7 @@ public class TlsClientImpl
      */
     public TlsClientImpl(DtlsPacketTransformer packetTransformer)
     {
+        super(BC_TLS_CRYPTO);
         this.packetTransformer = packetTransformer;
     }
 
@@ -73,7 +79,6 @@ public class TlsClientImpl
      */
     @Override
     public synchronized TlsAuthentication getAuthentication()
-        throws IOException
     {
         return authentication;
     }
@@ -98,24 +103,25 @@ public class TlsClientImpl
      * Forward Secrecy.
      */
     @Override
-    public int[] getCipherSuites()
+    protected int[] getSupportedCipherSuites()
     {
-        return new int[]
+        int[] suites = new int[]
         {
 /* core/src/main/java/org/bouncycastle/crypto/tls/DefaultTlsClient.java */
+            CipherSuite.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
             CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
             CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
             CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
+            CipherSuite.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
             CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
             CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
             CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-            CipherSuite.TLS_DHE_DSS_WITH_AES_128_GCM_SHA256,
-            CipherSuite.TLS_DHE_DSS_WITH_AES_128_CBC_SHA256,
-            CipherSuite.TLS_DHE_DSS_WITH_AES_128_CBC_SHA,
+            CipherSuite.TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
             CipherSuite.TLS_DHE_RSA_WITH_AES_128_GCM_SHA256,
             CipherSuite.TLS_DHE_RSA_WITH_AES_128_CBC_SHA256,
             CipherSuite.TLS_DHE_RSA_WITH_AES_128_CBC_SHA,
         };
+        return TlsUtils.getSupportedCipherSuites(getCrypto(), suites);
     }
 
     /**
@@ -146,20 +152,6 @@ public class TlsClientImpl
     }
 
     /**
-     * {@inheritDoc}
-     *
-     * The implementation of <tt>TlsClientImpl</tt> always returns
-     * <tt>ProtocolVersion.DTLSv10</tt> because <tt>ProtocolVersion.DTLSv12</tt>
-     * does not work with the Bouncy Castle Crypto APIs at the time of this
-     * writing.
-     */
-    @Override
-    public ProtocolVersion getClientVersion()
-    {
-        return ProtocolVersion.DTLSv10;
-    }
-
-    /**
      * Gets the <tt>TlsContext</tt> with which this <tt>TlsClient</tt> has been
      * initialized.
      *
@@ -172,47 +164,6 @@ public class TlsClientImpl
     }
 
     /**
-     * Gets the <tt>DtlsControl</tt> implementation associated with this
-     * instance.
-     *
-     * @return the <tt>DtlsControl</tt> implementation associated with this
-     * instance
-     */
-    private DtlsControlImpl getDtlsControl()
-    {
-        return packetTransformer.getDtlsControl();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public ProtocolVersion getMinimumVersion()
-    {
-        return ProtocolVersion.DTLSv10;
-    }
-
-    private Properties getProperties()
-    {
-        return packetTransformer.getProperties();
-    }
-
-    /**
-     * {@inheritDoc}
-     *
-     * Overrides the super implementation as a simple means of detecting that
-     * the security-related negotiations between the local and the remote
-     * enpoints are starting. The detection carried out for the purposes of
-     * <tt>SrtpListener</tt>.
-     */
-    @Override
-    public void init(TlsClientContext context)
-    {
-        // TODO Auto-generated method stub
-        super.init(context);
-    }
-
-    /**
      * Determines whether this {@code TlsClientImpl} is to operate in pure DTLS
      * mode without SRTP extensions or in DTLS/SRTP mode.
      *
@@ -221,7 +172,7 @@ public class TlsClientImpl
      */
     private boolean isSrtpDisabled()
     {
-        return getProperties().isSrtpDisabled();
+        return packetTransformer.getProperties().isSrtpDisabled();
     }
 
     /**
@@ -248,7 +199,6 @@ public class TlsClientImpl
      * <tt>use_srtp</tt> extension.
      */
     @Override
-    @SuppressWarnings("rawtypes")
     public void processServerExtensions(Hashtable serverExtensions)
         throws IOException
     {
@@ -337,23 +287,23 @@ public class TlsClientImpl
         @Override
         public TlsCredentials getClientCredentials(
                 CertificateRequest certificateRequest)
-            throws IOException
         {
             if (clientCredentials == null)
             {
                 CertificateInfo certificateInfo
-                    = getDtlsControl().getCertificateInfo();
+                    = packetTransformer.getDtlsControl().getCertificateInfo();
 
                 // FIXME The signature and hash algorithms should be retrieved
                 // from the certificate.
                 clientCredentials
-                    = new DefaultTlsSignerCredentials(
-                            context,
-                            certificateInfo.getCertificate(),
+                    = new BcDefaultTlsCredentialedSigner(
+                            new TlsCryptoParameters(context),
+                            (BcTlsCrypto) context.getCrypto(),
                             certificateInfo.getKeyPair().getPrivate(),
+                            certificateInfo.getCertificate(),
                             new SignatureAndHashAlgorithm(
-                                    HashAlgorithm.sha1,
-                                    SignatureAlgorithm.rsa));
+                                    HashAlgorithm.sha256,
+                                    SignatureAlgorithm.ecdsa));
             }
             return clientCredentials;
         }
@@ -362,13 +312,15 @@ public class TlsClientImpl
          * {@inheritDoc}
          */
         @Override
-        public void notifyServerCertificate(Certificate serverCertificate)
+        public void notifyServerCertificate(TlsServerCertificate serverCertificate)
             throws IOException
         {
             try
             {
-                getDtlsControl().verifyAndValidateCertificate(
-                        serverCertificate);
+                packetTransformer
+                    .getDtlsControl()
+                    .verifyAndValidateCertificate(
+                        serverCertificate.getCertificate());
             }
             catch (Exception e)
             {
