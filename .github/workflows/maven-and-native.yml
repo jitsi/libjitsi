@@ -17,7 +17,10 @@ jobs:
 
       - name: Show version
         run: git describe --match "v[0-9\.]*" --long --dirty --always
-        
+
+      - name: Compile Java for JNI headers
+        run: mvn -B compile
+
       - name: Build build container
         run: |
           cd .github/workflows
