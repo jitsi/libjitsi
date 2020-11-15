@@ -6,8 +6,11 @@ on:
 
 jobs:
   javatest:
-    name: Java Test
+    name: Java ${{ matrix.java }} Test
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        java: [ 8, 11 ]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -21,6 +24,13 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
+
+      - name: Install Java 8
+        id: install_java
+        uses: actions/setup-java@v1
+        with:
+          java-version: ${{ matrix.java }}
+          java-package: jdk
 
       - name: Verify Java
         run: mvn -B verify
@@ -89,10 +99,20 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
+      - name: Install Java 8
+        id: install_java
+        uses: actions/setup-java@v1
+        with:
+          java-version: 8
+          java-package: jdk
+          architecture: x86
+
       - name: Compile Java for JNI headers
         run: mvn -B compile
 
       - name: Build natives x86
+        env:
+          JAVA_HOME: ${{ steps.install_java.ouput.path }}
         run: |
           git config --global user.email "jitsi-jenkins@jitsi.org"
           git config --global user.name "Jitsi GitHub Action"
@@ -117,7 +137,17 @@ jobs:
           name: win32-x86
           path: lib/native/win32-x86
 
+      - name: Install Java 8
+        id: install_java
+        uses: actions/setup-java@v1
+        with:
+          java-version: 8
+          java-package: jdk
+          architecture: x64
+
       - name: Build natives x64 (static)
+        env:
+          JAVA_HOME: ${{ steps.install_java.ouput.path }}
         run: |
           cd $Env:GITHUB_WORKSPACE/src/native/
           cmake -B cmake-build-x64 -A x64
@@ -148,10 +178,19 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
+      - name: Install Java 8
+        id: install_java
+        uses: actions/setup-java@v1
+        with:
+          java-version: 8
+          java-package: jdk
+
       - name: Compile Java for JNI headers
         run: mvn -B compile
 
       - name: Build natives
+        env:
+          JAVA_HOME: ${{ steps.install_java.ouput.path }}
         run: |
           git config --global user.email "jitsi-jenkins@jitsi.org"
           git config --global user.name "Jitsi GitHub Action"
@@ -195,6 +234,12 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
+
+      - name: Install Java 8
+        uses: actions/setup-java@v1
+        with:
+          java-version: 8
+          java-package: jdk
 
       - name: Set version
         run: |
