@@ -94,6 +94,8 @@ jobs:
 
       - name: Build natives x86
         run: |
+          git config --global user.email "jitsi-jenkins@jitsi.org"
+          git config --global user.name "Jitsi GitHub Action"
           cd $Env:GITHUB_WORKSPACE/src/native/
           cmake -B cmake-build-x86 -A Win32
           cmake --build cmake-build-x86 --config Release --target install
@@ -151,6 +153,8 @@ jobs:
 
       - name: Build natives
         run: |
+          git config --global user.email "jitsi-jenkins@jitsi.org"
+          git config --global user.name "Jitsi GitHub Action"
           brew install yasm
           cd $GITHUB_WORKSPACE/src/native/
           cmake -B cmake-build
