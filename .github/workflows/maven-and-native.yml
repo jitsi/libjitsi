@@ -26,7 +26,6 @@ jobs:
             ${{ runner.os }}-maven-
 
       - name: Install Java 8
-        id: install_java
         uses: actions/setup-java@v1
         with:
           java-version: ${{ matrix.java }}
@@ -81,10 +80,25 @@ jobs:
           path: lib/native/linux-x86-64
 
   windows:
-    name: Windows Natives
+    name: Windows ${{ matrix.arch}} Natives
     runs-on: windows-latest
     needs: javatest
+    strategy:
+      matrix:
+        arch: [ x86, x64 ]
     steps:
+      - name: Expand architecture
+        id: expand_arch
+        shell: bash
+        run: |
+          if [ "${{ matrix.arch }}" == "x86" ]; then
+            echo "::set-ouput name=cmake_arch::Win32"
+            echo "::set-ouput name=jitsi_arch::x86"
+          else
+            echo "::set-ouput name=cmake_arch::x64"
+            echo "::set-ouput name=jitsi_arch::x86-64"
+          fi;
+
       - name: Checkout
         uses: actions/checkout@v2
         with:
@@ -105,59 +119,38 @@ jobs:
         with:
           java-version: 8
           java-package: jdk
-          architecture: x86
+          architecture: ${{ matrix.arch }}
 
       - name: Compile Java for JNI headers
         run: mvn -B compile
 
-      - name: Build natives x86
+      - name: Build natives
         env:
           JAVA_HOME: ${{ steps.install_java.ouput.path }}
         run: |
           git config --global user.email "jitsi-jenkins@jitsi.org"
           git config --global user.name "Jitsi GitHub Action"
+          
           cd $Env:GITHUB_WORKSPACE/src/native/
-          cmake -B cmake-build-x86 -A Win32
-          cmake --build cmake-build-x86 --config Release --target install
+          cmake -B cmake-build-${{ matrix.arch}} -A ${{ steps.expand_arch.output.cmake_arch }}
+          cmake --build cmake-build-${{ matrix.arch}} --config Release --target install
 
       - name: The job has failed
         if: ${{ failure() }}
-        run: Compress-Archive -Path $Env:GITHUB_WORKSPACE/src/native/cmake-build-x86 -DestinationPath $Env:GITHUB_WORKSPACE/target/debug-logs.zip
+        run: Compress-Archive -Path $Env:GITHUB_WORKSPACE/src/native/cmake-build-${{ matrix.arch}} -DestinationPath $Env:GITHUB_WORKSPACE/target/debug-logs.zip
 
       - name: Upload Debug logs
         if: ${{ failure() }}
         uses: actions/upload-artifact@v2
         with:
-          name: win32-x86-debug
+          name: win32-${{ matrix.arch}}-debug
           path: target/debug*
 
       - name: Upload Windows x86 natives
         uses: actions/upload-artifact@v2
         with:
-          name: win32-x86
-          path: lib/native/win32-x86
-
-      - name: Install Java 8
-        id: install_java
-        uses: actions/setup-java@v1
-        with:
-          java-version: 8
-          java-package: jdk
-          architecture: x64
-
-      - name: Build natives x64 (static)
-        env:
-          JAVA_HOME: ${{ steps.install_java.ouput.path }}
-        run: |
-          cd $Env:GITHUB_WORKSPACE/src/native/
-          cmake -B cmake-build-x64 -A x64
-          cmake --build cmake-build-x64 --config Release --target install
-
-      - name: Upload Windows x64 natives
-        uses: actions/upload-artifact@v2
-        with:
-          name: win32-x86-64
-          path: lib/native/win32-x86-64
+          name: win32-${{ steps.expand_arch.output.jitsi_arch }}
+          path: lib/native/win32-${{ steps.expand_arch.output.jitsi_arch }}
 
   mac:
     name: Mac Natives
@@ -201,7 +194,7 @@ jobs:
 
       - name: The job has failed
         if: ${{ failure() }}
-        run: tar --exclude *.o -cvJf $GITHUB_WORKSPACE/target/debug-logs.tar.xz $GITHUB_WORKSPACE/src/native/cmake-build 
+        run: tar --exclude *.o -cvJf $GITHUB_WORKSPACE/target/debug-logs.tar.xz $GITHUB_WORKSPACE/src/native/cmake-build
 
       - name: Upload Debug logs
         if: ${{ failure() }}
@@ -279,7 +272,7 @@ jobs:
 
       - name: Package Java with built native libs
         run: mvn -B package -DperformRelease=true -DskipTests
-        
+
       - name: Upload Multi-Platform Jar
         uses: actions/upload-artifact@v2
         with:
