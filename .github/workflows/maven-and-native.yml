@@ -5,9 +5,9 @@ on:
     branches: desktop
 
 jobs:
-  Ubuntu:
+  javatest:
+    name: Java Test
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -17,6 +17,39 @@ jobs:
 
       - name: Show version
         run: git describe --match "v[0-9\.]*" --long --dirty --always
+
+      - name: Cache local Maven repository
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Compile Java for JNI headers
+        run: mvn -B verify
+
+  ubuntu:
+    name: Ubuntu Natives (static)
+    runs-on: ubuntu-latest
+    needs: javatest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          submodules: true
+
+      - name: Show version
+        run: git describe --match "v[0-9\.]*" --long --dirty --always
+
+      - name: Cache local Maven repository
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
 
       - name: Compile Java for JNI headers
         run: mvn -B compile
@@ -43,3 +76,92 @@ jobs:
         with:
           name: linux-x86-64
           path: lib/native/linux-x86-64
+
+  windows:
+    name: Windows Natives
+    runs-on: windows-latest
+    needs: javatest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          submodules: true
+
+      - name: Show version
+        run: git describe --match "v[0-9\.]*" --long --dirty --always
+
+      - name: Cache local Maven repository
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Compile Java for JNI headers
+        run: mvn -B compile
+
+      - name: Build natives x86
+        run: |
+          cd $Env:GITHUB_WORKSPACE/src/native/
+          cmake -B cmake-build-x86 -A Win32
+          cmake --build cmake-build-x86 --config Release --target install
+
+      - name: Upload Windows x86 natives
+        uses: actions/upload-artifact@v1
+        with:
+          name: win32-x86
+          path: lib/native/win32-x86
+
+      - name: Build natives x64 (static)
+        run: |
+          cd $Env:GITHUB_WORKSPACE/src/native/
+          cmake -B cmake-build-x64 -A x64
+          cmake --build cmake-build-x64 --config Release --target install
+
+      - name: Upload Windows x64 natives
+        uses: actions/upload-artifact@v1
+        with:
+          name: win32-x86-64
+          path: lib/native/win32-x86-64
+
+  mac:
+    name: Mac Natives
+    runs-on: macos-latest
+    needs: javatest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          submodules: true
+
+      - name: Cache local Maven repository
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Compile Java for JNI headers
+        run: mvn -B compile
+
+      - name: Build natives
+        run: |
+          cd $GITHUB_WORKSPACE/src/native/
+          cmake -B cmake-build
+          cmake --build cmake-build --config Release --target install --verbose
+
+      - name: Upload Mac natives
+        uses: actions/upload-artifact@v1
+        with:
+          name: darwin
+          path: lib/native/darwin
+
+  multiplatform:
+    name: Multiplatform Jar
+    runs-on: ubuntu-latest
+    needs: [ javatest, ubuntu, windows, mac ]
+    steps:

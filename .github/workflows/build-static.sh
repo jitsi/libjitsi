@@ -26,4 +26,4 @@ cmake -B cmake-build-$ARCH \
   -DUSE_SYSTEM_USRSCTP=OFF \
   -DUSE_SYSTEM_VPX=OFF
 
-cmake --build cmake-build-$ARCH --config Release -t install
+cmake --build cmake-build-$ARCH --config Release --target install
