@@ -92,11 +92,11 @@ jobs:
         shell: bash
         run: |
           if [ "${{ matrix.arch }}" == "x86" ]; then
-            echo "::set-ouput name=cmake_arch::Win32"
-            echo "::set-ouput name=jitsi_arch::x86"
+            echo "::set-output name=cmake_arch::Win32"
+            echo "::set-output name=jitsi_arch::x86"
           else
-            echo "::set-ouput name=cmake_arch::x64"
-            echo "::set-ouput name=jitsi_arch::x86-64"
+            echo "::set-output name=cmake_arch::x64"
+            echo "::set-output name=jitsi_arch::x86-64"
           fi;
 
       - name: Checkout
