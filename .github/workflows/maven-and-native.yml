@@ -129,7 +129,7 @@ jobs:
           git config --global user.email "jitsi-jenkins@jitsi.org"
           git config --global user.name "Jitsi GitHub Action"
           cd $Env:GITHUB_WORKSPACE/src/native/
-          cmake -B cmake-build-${{ matrix.arch}} -A ${{ steps.expand_arch.outputs.cmake_arch }} -DJAVA_HOME=${{ steps.install_java.ouput.path }}
+          cmake -B cmake-build-${{ matrix.arch}} -A ${{ steps.expand_arch.outputs.cmake_arch }} -DJAVA_HOME=${{ steps.install_java.outputs.path }}
           cmake --build cmake-build-${{ matrix.arch}} --config Release --target install
 
       - name: The job has failed
@@ -184,7 +184,7 @@ jobs:
           git config --global user.name "Jitsi GitHub Action"
           brew install yasm
           cd $GITHUB_WORKSPACE/src/native/
-          cmake -B cmake-build -DJAVA_HOME=${{ steps.install_java.ouput.path }}
+          cmake -B cmake-build -DJAVA_HOME=${{ steps.install_java.outputs.path }}
           cmake --build cmake-build --config Release --target install
 
       - name: The job has failed
