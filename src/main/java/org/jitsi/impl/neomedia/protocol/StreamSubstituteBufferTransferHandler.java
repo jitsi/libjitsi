@@ -26,7 +26,6 @@ import javax.media.protocol.*;
  * The purpose is achieved in <code>#transferData(PushBufferStream)</code>
  * where the method argument <code>stream</code> is ignored and the substitute
  * is used instead.
- * </p>
  *
  * @author Lubomir Marinov
  */

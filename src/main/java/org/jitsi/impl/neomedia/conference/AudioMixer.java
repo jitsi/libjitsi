@@ -41,7 +41,6 @@ import org.jitsi.utils.logging.*;
  * {@link #addInDataSource(DataSource)} in the form of input
  * <tt>DataSource</tt>s giving access to one or more input
  * <tt>SourceStreams</tt>.
- * </p>
  * <p>
  * The output audio stream representing the mix of the multiple input audio
  * streams is provided by the <tt>AudioMixer</tt> in the form of a
@@ -50,7 +49,6 @@ import org.jitsi.utils.logging.*;
  * {@link #createOutDataSource()}. The <tt>AudioMixer</tt> is able to provide
  * multiple output audio streams at one and the same time, though, each of them
  * containing the mix of a subset of the input audio streams.
- * </p>
  *
  * @author Lyubomir Marinov
  */

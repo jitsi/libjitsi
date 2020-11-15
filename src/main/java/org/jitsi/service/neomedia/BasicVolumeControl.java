@@ -208,7 +208,6 @@ public class BasicVolumeControl
      * time of this writing and, consequently, they cause the
      * <tt>VolumeChangeListener</tt>s to be leaked, the listeners are referenced
      * using <tt>WeakReference</tt>s.
-     * </p>
      */
     private final List<WeakReference<VolumeChangeListener>>
         volumeChangeListeners

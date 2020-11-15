@@ -111,7 +111,6 @@ public abstract class AbstractBufferCaptureDevice
      * <p>
      * Warning: Caution is advised when directly using the field and access to
      * it is to be synchronized with synchronization root <tt>this</tt>.
-     * </p>
      */
     private AbstractBufferStream<?>[] streams;
 

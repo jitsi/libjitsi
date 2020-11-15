@@ -89,7 +89,6 @@ public abstract class AudioSystem2
      * <b>Note</b>: The <tt>AudioSystem2</tt> class keeps a
      * <tt>WeakReference</tt> to the specified <tt>listener</tt> in order to
      * avoid memory leaks.
-     * </p>
      *
      * @param listener the <tt>UpdateAvailableDeviceListListener</tt> to be
      * notified before and after this <tt>AudioSystem</tt>'s method

@@ -299,7 +299,6 @@ public class SwScale
      * configured to accept input media data.
      * <p>
      * Makes the protected super implementation public.
-     * </p>
      *
      * @return the <tt>Format</tt> in which this <tt>Codec</tt> is currently
      * configured to accept input media data

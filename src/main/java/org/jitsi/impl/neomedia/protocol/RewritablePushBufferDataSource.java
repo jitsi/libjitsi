@@ -34,7 +34,6 @@ import org.jitsi.service.neomedia.*;
  * Because the class wouldn't work for our use case without it,
  * <tt>CaptureDevice</tt> is implemented and is being delegated to the wrapped
  * <tt>DataSource</tt> (if it supports the interface in question).
- * </p>
  *
  * @author Lyubomir Marinov
  */

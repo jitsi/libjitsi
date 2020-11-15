@@ -85,7 +85,6 @@ abstract class AbstractBufferStream<T extends DataSource>
      * <p>
      * <b>Warning</b>: The method is not invoked by the framework, extenders may
      * choose to invoke it.
-     * </p>
      */
     public void close()
     {

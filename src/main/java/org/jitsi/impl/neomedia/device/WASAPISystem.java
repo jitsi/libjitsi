@@ -78,7 +78,6 @@ public class WASAPISystem
      * Generally, the WASAPI integration is designed with
      * <tt>COINIT_MULTITHREADED</tt> in mind. However, it may turn out that it
      * works with <tt>COINIT_APARTMENTTHREADED</tt> as well.
-     * </p>
      *
      * @return the value returned by the invocation of the Windows API function
      * <tt>CoInitializeEx</tt>
@@ -683,8 +682,7 @@ public class WASAPISystem
      * signals that the <tt>AudioFormat</tt> in question has been included in
      * that <tt>formats</tt> or <tt>supportedFormat</tt>s only because it is
      * supported by the voice capture DMO supporting/implementing the acoustic
-     * echo cancellation (AEC) feature. 
-     * </p>
+     * echo cancellation (AEC) feature.
      *
      * @return the <tt>List</tt> of <tt>AudioFormat</tt>s supported by the voice
      * capture DMO that supports/implements the acoustic echo cancellation (AEC)

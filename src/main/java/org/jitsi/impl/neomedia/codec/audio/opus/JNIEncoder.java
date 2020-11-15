@@ -61,7 +61,6 @@ public class JNIEncoder
      * <p>
      * The implementation does support 8, 12, 16, 24 and 48kHz but the lower
      * sample rates are not listed to prevent FMJ from defaulting to them.
-     * </p>
      */
     static final double[] SUPPORTED_INPUT_SAMPLE_RATES
         = new double[] { 48000 };

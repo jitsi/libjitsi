@@ -26,7 +26,6 @@ import javax.media.format.*;
  * <p>
  * Private to <tt>AudioMixerPushBufferStream</tt> but extracted into its own
  * file for the sake of clarity.
- * </p>
  *
  * @author Lyubomir Marinov
  */

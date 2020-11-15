@@ -76,7 +76,6 @@ public class RTCPExtendedReport
          * RFC 3611 defines that the type-specific block contents of an extended
          * report block may be zero bits long if the block type definition
          * permits.
-         * </p>
          *
          * @return the length in <tt>byte</tt>s of this <tt>ReportBlock</tt>,
          * including the header and any padding.

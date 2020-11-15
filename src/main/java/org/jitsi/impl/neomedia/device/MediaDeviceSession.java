@@ -1110,7 +1110,6 @@ public class MediaDeviceSession
      * accord with the rest of the state of this instance. Overall, the method
      * is to be considered private and is to not be invoked outside the
      * <tt>MediaDeviceSession</tt> class.
-     * </p>
      *
      * @return the JMF <tt>Processor</tt> which transcodes the
      * <tt>MediaDevice</tt> of this instance into the format of this instance
@@ -1349,7 +1348,6 @@ public class MediaDeviceSession
      * methods such as {@link #playerConfigureComplete(Processor)} and
      * {@link #playerRealizeComplete(Processor)}. In any case, extenders
      * overriding this method should call the super implementation.
-     * </p>
      *
      * @param ev the <tt>ControllerEvent</tt> specifying the
      * <tt>Controller</tt> which is the source of the event and the very type of

@@ -22,8 +22,8 @@ package org.jitsi.impl.neomedia.codec.audio.g729;
 
 /**
  * Bit stream manipulation routines.
- * <p>prm2bits_ld8k -converts encoder parameter vector into vector of serial bits</p>
- * <p>bits2prm_ld8k - converts serial received bits to  encoder parameter vector</p>
+ * <p>prm2bits_ld8k -converts encoder parameter vector into vector of serial bits
+ * <p>bits2prm_ld8k - converts serial received bits to  encoder parameter vector
  * <pre>
  * The transmitted parameters for 8000 bits/sec are:
  *

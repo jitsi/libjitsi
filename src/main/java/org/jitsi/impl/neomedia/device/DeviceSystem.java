@@ -629,7 +629,6 @@ public abstract class DeviceSystem
      * <b>Note</b>: The method is synchronized on this instance in order to
      * guarantee that the whole initialization procedure (which includes
      * {@link #doInitialize()}) executes once at any given time.
-     * </p>
      *
      * @throws Exception if an error occurs during the initialization of this
      * <tt>DeviceSystem</tt>

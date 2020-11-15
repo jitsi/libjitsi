@@ -37,7 +37,6 @@ import org.jitsi.utils.logging.*;
  * <p>
  * Pretty much private to <tt>AudioMixer</tt> but extracted into its own file
  * for the sake of clarity.
- * </p>
  *
  * @author Lyubomir Marinov
  */

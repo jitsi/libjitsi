@@ -52,7 +52,6 @@ public class DirectShowStream
      * <tt>DirectShowStream</tt> instance may still fail but that will be
      * because the finer-grained properties of the <tt>format</tt> are not
      * supported by that <tt>DirectShowStream</tt> instance.
-     * </p>
      *
      * @param format the <tt>Format</tt> to be checked whether it appears to be
      * suitable for attempts to be set on <tt>DirectShowStream</tt> instances

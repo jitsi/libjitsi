@@ -601,7 +601,6 @@ public class TransportCCEngine
 
         /**
          * {@inheritDoc}
-         * <p></p>
          * If the transport-cc extension is configured, update the
          * transport-wide sequence number (adding a new extension if one doesn't
          * exist already).

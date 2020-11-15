@@ -25,7 +25,6 @@ import org.w3c.dom.*;
  *
  * <p>Utility class used by {@link XMLUtils} and
  * {@link net.java.sip.communicator.slick.runner.SipCommunicatorSlickRunner}.
- * </p>
  *
  * @author Lubomir Marinov
  */
@@ -454,12 +453,12 @@ public class DOMElementWriter
      *
      * <p>Also ensure that we are not including an <tt>]]&gt;</tt>
      * marker by replacing that sequence with
-     * <tt>&amp;#x5d;&amp;#x5d;&amp;gt;</tt>.</p>
+     * <tt>&amp;#x5d;&amp;#x5d;&amp;gt;</tt>.
      *
      * <p>See XML 1.0 2.2 <a
      * href="http://www.w3.org/TR/1998/REC-xml-19980210#charsets">http://www.w3.org/TR/1998/REC-xml-19980210#charsets</a> and
      * 2.7 <a
-     * href="http://www.w3.org/TR/1998/REC-xml-19980210#sec-cdata-sect">http://www.w3.org/TR/1998/REC-xml-19980210#sec-cdata-sect</a>.</p>
+     * href="http://www.w3.org/TR/1998/REC-xml-19980210#sec-cdata-sect">http://www.w3.org/TR/1998/REC-xml-19980210#sec-cdata-sect</a>.
      *
      * @param value the value to encode
      *
@@ -531,7 +530,7 @@ public class DOMElementWriter
      *
      * <p>See XML 1.0 2.2 <a
      * href="http://www.w3.org/TR/1998/REC-xml-19980210#charsets">
-     * http://www.w3.org/TR/1998/REC-xml-19980210#charsets</a>.</p>
+     * http://www.w3.org/TR/1998/REC-xml-19980210#charsets</a>.
      *
      * @since 1.10, Ant 1.5
      *

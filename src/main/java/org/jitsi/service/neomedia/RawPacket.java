@@ -2055,7 +2055,6 @@ public class RawPacket
 
         /**
          * {@inheritDoc}
-         * </p>
          * Returns true if this {@RawPacket} contains another header extension.
          */
         @Override

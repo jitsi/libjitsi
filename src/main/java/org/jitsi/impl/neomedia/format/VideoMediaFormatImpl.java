@@ -188,7 +188,6 @@ public class VideoMediaFormatImpl
      * says that &quot;[w]hen the value of packetization-mode [format parameter]
      * is equal to 0 or packetization-mode is not present, the single NAL mode,
      * as defined in section 6.2 of RFC 3984, MUST be used.&quot;
-     * </p>
      *
      * @see MediaFormatImpl#formatParametersAreEqual(Map, Map)
      */
@@ -213,7 +212,6 @@ public class VideoMediaFormatImpl
      * specific value, an association of the format parameter to the value in
      * question may be added to or removed from the respective <tt>Map</tt>
      * instance for the purposes of determining equality.
-     * </p>
      *
      * @param encoding the encoding (name) related to the two sets of format
      * parameters to be tested for equality
@@ -265,7 +263,6 @@ public class VideoMediaFormatImpl
      * <tt>VideoMediaFormat</tt> reflects the fact that the
      * <tt>packetization-mode</tt> format parameter distinguishes H.264 payload
      * types.
-     * </p>
      *
      * @param fmtps the set of format parameters to match to the format
      * parameters of this <tt>MediaFormat</tt>

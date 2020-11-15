@@ -270,7 +270,6 @@ public interface MediaStream
      * <tt>MediaStream</tt> instance chooses which of the multiple remote SSRCs
      * to be returned by the method, it is advisable to always consider
      * {@link #getRemoteSourceIDs()} first.
-     * </p>
      *
      * @return the synchronization source (SSRC) identifier of the remote peer
      * or <tt>-1</tt> if that identifier is not yet known at this point in the

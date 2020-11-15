@@ -24,7 +24,6 @@ import org.jitsi.service.neomedia.*;
  * libjitsi library in general and the neomedia package in particular.
  * <p>
  * Allows <tt>MediaStream</tt> to optionally utilize {@link SSRCFactory}.
- * </p>
  *
  * @author Lyubomir Marinov
  */

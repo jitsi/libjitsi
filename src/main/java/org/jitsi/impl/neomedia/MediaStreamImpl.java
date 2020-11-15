@@ -2706,7 +2706,6 @@ public class MediaStreamImpl
      * <b>Note</b>: Also resets any previous direction set with
      * {@link #setDirection(MediaDirection)} to the direction of the specified
      * <tt>MediaDevice</tt>.
-     * </p>
      *
      * @param device the <tt>MediaDevice</tt> that this stream should use to
      * play back and capture media
@@ -4061,7 +4060,6 @@ public class MediaStreamImpl
 
     /**
      * {@inheritDoc}
-     * </p>
      * This is absolutely terrible, but we need a RawPacket and the method is
      * used from RTPTranslator, which doesn't work with RawPacket.
      */

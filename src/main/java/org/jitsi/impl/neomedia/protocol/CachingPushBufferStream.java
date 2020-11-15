@@ -34,7 +34,6 @@ import javax.media.protocol.*;
  * different numbers of per-push data units will cause the
  * <tt>PushBufferStream</tt> "play" itself faster than the
  * <tt>CaptureDevice</tt>.
- * </p>
  *
  * @author Lyubomir Marinov
  */

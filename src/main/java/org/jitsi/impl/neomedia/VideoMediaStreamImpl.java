@@ -481,7 +481,6 @@ public class VideoMediaStreamImpl
      * executing asynchronously because it does not know whether it has to wait
      * for the delivery of the <tt>VideoEvent</tt>s and thus it has to default
      * to waiting anyway.
-     * </p>
      */
     private final VideoNotifierSupport videoNotifierSupport
         = new VideoNotifierSupport(this, true);
@@ -626,7 +625,6 @@ public class VideoMediaStreamImpl
      * Adding a listener which has already been added does nothing i.e. it is
      * not added more than once and thus does not receive one and the same
      * <tt>VideoEvent</tt> multiple times.
-     * </p>
      *
      * @param listener the <tt>VideoListener</tt> to be notified when
      * visual/video <tt>Component</tt>s are being added or removed in this

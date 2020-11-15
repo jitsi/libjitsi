@@ -865,7 +865,6 @@ public final class Pa
      * calls to {@link #WriteStream(long, byte[], long)} with one and the
      * same buffer because the JNI access to the bytes of the buffer which is
      * likely to copy the whole buffer is only performed once.
-     * </p>
      *
      * @param stream the pointer to the PortAudio stream to write the samples to
      * @param buffer the buffer containing the samples to be written

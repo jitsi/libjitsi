@@ -147,7 +147,6 @@ public abstract class MediaFormatImpl<T extends Format>
      * specific value, an association of the format parameter to the value in
      * question may be added to or removed from the respective <tt>Map</tt>
      * instance for the purposes of determining equality.
-     * </p>
      *
      * @param encoding the encoding (name) related to the two sets of format
      * parameters to be tested for equality
@@ -342,7 +341,6 @@ public abstract class MediaFormatImpl<T extends Format>
      * specific value, an association of the format parameter to the value in
      * question may be added to or removed from the respective <tt>Map</tt>
      * instance for the purposes of determining equality.
-     * </p>
      *
      * @param fmtps1 the first set of format parameters to be tested for
      * equality
@@ -364,7 +362,6 @@ public abstract class MediaFormatImpl<T extends Format>
      * The default implementation of <tt>MediaFormatImpl</tt> always returns
      * <tt>true</tt> because format parameters in general do not cause the
      * distinction of payload types.
-     * </p>
      */
     public boolean formatParametersMatch(Map<String, String> fmtps)
     {

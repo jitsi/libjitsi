@@ -34,7 +34,6 @@ import org.osgi.framework.*;
  * acquired by the library during its execution). The <tt>getXXXService()</tt>
  * methods may be called only after the <tt>start()</tt> method returns
  * successfully and before the <tt>stop()</tt> method is called.
- * </p>
  * <p>
  * The <tt>libjitsi</tt> library may be utilized both with and without OSGi. If
  * the library detects during the execution of the <tt>start()</tt> method that
@@ -46,7 +45,6 @@ import org.osgi.framework.*;
  * relying on OSGi functionality. In the case of successful detection of OSGi,
  * the library will not register the supported service class instances in the
  * retrieved <tt>BundleContext</tt>.
- * </p>
  *
  * @author Lyubomir Marinov
  */

@@ -33,7 +33,6 @@ public interface SimpleAudioLevelListener
      * RTP and it gives us a signed <tt>byte</tt> for it, and (2) the range of
      * <code>[0, 127]</tt> is pretty good to directly express the sound pressure
      * level decibels as heard by humans in Earth's atmosphere.
-     * </p>
      */
     public static final int MAX_LEVEL = 127;
 
@@ -47,7 +46,6 @@ public interface SimpleAudioLevelListener
      * it gives us a signed <tt>byte</tt> for it, and (2) the range of
      * <code>[0, 127]</tt> is pretty good to directly express the sound pressure
      * level decibels as heard by humans in Earth's atmosphere.
-     * </p>
      */
     public static final int MIN_LEVEL = 0;
 

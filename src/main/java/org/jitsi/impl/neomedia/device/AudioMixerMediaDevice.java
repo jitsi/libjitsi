@@ -109,7 +109,6 @@ public class AudioMixerMediaDevice
      * <b>Note</b>: <tt>localUserAudioLevelListeners</tt> is a copy-on-write
      * storage and access to it is synchronized by
      * {@link #localUserAudioLevelListenersSyncRoot}.
-     * </p>
      */
     private List<SimpleAudioLevelListenerWrapper>
         localUserAudioLevelListeners
