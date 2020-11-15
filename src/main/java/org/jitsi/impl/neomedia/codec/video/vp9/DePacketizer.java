@@ -19,7 +19,7 @@ import org.jitsi.service.neomedia.*;
 
 /**
  * A depacketizer from VP9.
- * See {@link "https://tools.ietf.org/html/draft-ietf-payload-vp9-02"}
+ * See <a href="https://tools.ietf.org/html/draft-ietf-payload-vp9-02">draft-ietf-payload-vp9-02</a>
  *
  * @author George Politis
  */
@@ -63,7 +63,7 @@ public class DePacketizer
 
     /**
      * A class that represents the VP9 Payload Descriptor structure defined
-     * in {@link "https://tools.ietf.org/html/draft-ietf-payload-vp9-02"}
+     * in <a href="ttps://tools.ietf.org/html/draft-ietf-payload-vp9-02">draft-ietf-payload-vp9-02</a>
      */
     public static class VP9PayloadDescriptor
     {

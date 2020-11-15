@@ -153,7 +153,7 @@ import org.jitsi.utils.logging.*;
  * This ZRTPTransformEngine documentation shows the ZRTP specific extensions and
  * describes overloaded methods and a possible different behaviour.
  *
- * @author Werner Dittmann &lt;Werner.Dittmann@t-online.de>
+ * @author Werner Dittmann &lt;Werner.Dittmann@t-online.de&gt;
  */
 public class ZRTPTransformEngine
     extends SinglePacketTransformer
@@ -167,7 +167,7 @@ public class ZRTPTransformEngine
      * one time only. A second request would overwrite the first one and would
      * lead to unexpected results.
      *
-     * @author Werner Dittmann <Werner.Dittmann@t-online.de>
+     * @author Werner Dittmann &lt;Werner.Dittmann@t-online.de&gt;
      */
     private class TimeoutProvider extends Thread
     {
@@ -720,7 +720,7 @@ public class ZRTPTransformEngine
      * The data output stream calls this method to transform outgoing
      * packets.
      *
-     * @see PacketTransformer#transform(RawPacket)
+     * @see SinglePacketTransformer#transform(RawPacket)
      */
     @Override
     public RawPacket transform(RawPacket pkt)
@@ -742,7 +742,7 @@ public class ZRTPTransformEngine
      * The input data stream calls this method to transform
      * incoming packets.
      *
-     * @see PacketTransformer#reverseTransform(RawPacket)
+     * @see SinglePacketTransformer#reverseTransform(RawPacket)
      */
     @Override
     public RawPacket reverseTransform(RawPacket pkt)
@@ -1126,7 +1126,6 @@ public class ZRTPTransformEngine
 
     /**
      *
-     * @param info
      * @see gnu.java.zrtp.ZrtpCallback#zrtpInformEnrollment(
      * gnu.java.zrtp.ZrtpCodes.InfoEnrollment)
      */
@@ -1137,9 +1136,7 @@ public class ZRTPTransformEngine
     }
 
     /**
-     *
-     * @param sas
-     * @see gnu.java.zrtp.ZrtpCallback#signSAS(java.lang.String)
+     * @see gnu.java.zrtp.ZrtpCallback#signSAS(byte[])
      */
     public void signSAS(byte[] sasHash)
     {
@@ -1148,17 +1145,14 @@ public class ZRTPTransformEngine
     }
 
     /**
-     *
-     * @param sas
      * @return false if signature check fails, true otherwise
-     * @see gnu.java.zrtp.ZrtpCallback#checkSASSignature(java.lang.String)
+     * @see gnu.java.zrtp.ZrtpCallback#checkSASSignature(byte[])
      */
     public boolean checkSASSignature(byte[] sasHash)
     {
         return
-            (securityEventManager != null)
-                ? securityEventManager.checkSASSignature(sasHash)
-                : false;
+            securityEventManager != null && securityEventManager
+                .checkSASSignature(sasHash);
     }
 
     /**
@@ -1251,7 +1245,7 @@ public class ZRTPTransformEngine
      *
      * @param  index
      *         Hello hash of the Hello packet identified by index. Index must
-     *         be 0 <= index < SUPPORTED_ZRTP_VERSIONS.
+     *         be 0 &lt;= index &lt; SUPPORTED_ZRTP_VERSIONS.
      *
      * @return the Hello packet hash
      */
@@ -1265,7 +1259,7 @@ public class ZRTPTransformEngine
      *
      * @param  index
      *         Hello hash of the Hello packet identfied by index. Index must
-     *         be 0 <= index < SUPPORTED_ZRTP_VERSIONS.
+     *         be 0 &lt;= index &lt; SUPPORTED_ZRTP_VERSIONS.
      * @return String array containing the version string at offset 0, the Hello
      *         hash value as hex-digits at offset 1. Hello hash is available
      *         immediately after class instantiation. Returns <code>null</code>

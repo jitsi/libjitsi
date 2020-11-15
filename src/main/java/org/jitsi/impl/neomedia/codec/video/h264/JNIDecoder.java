@@ -205,7 +205,7 @@ public class JNIDecoder
      * Get all supported output <tt>Format</tt>s.
      *
      * @param inputFormat input <tt>Format</tt> to determine corresponding
-     * output <tt>Format/tt>s
+     * output <tt>Format</tt>s
      * @return an array of supported output <tt>Format</tt>s
      */
     @Override

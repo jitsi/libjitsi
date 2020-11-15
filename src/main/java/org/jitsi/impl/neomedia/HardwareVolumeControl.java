@@ -179,7 +179,7 @@ public class HardwareVolumeControl
      *
      * @param deviceUID The device ID.
      *
-     * @Return A scalar value between 0 and 1 if everything works fine. -1 if an
+     * @return A scalar value between 0 and 1 if everything works fine. -1 if an
      * error occurred.
      */
     protected float getInputDeviceVolume(String deviceUID)

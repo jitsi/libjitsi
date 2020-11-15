@@ -126,7 +126,7 @@ public class JNIDecoder
     }
 
     /**
-     * @see AbstractCodecExt#doClose()
+     * @see AbstractCodec2#doClose()
      */
     @Override
     protected void doClose()
@@ -154,7 +154,7 @@ public class JNIDecoder
      *
      * @throws ResourceUnavailableException if any of the resources that this
      * <tt>Codec</tt> needs to operate cannot be acquired
-     * @see AbstractCodecExt#doOpen()
+     * @see AbstractCodec2#doOpen()
      */
     @Override
     protected void doOpen()
@@ -172,7 +172,7 @@ public class JNIDecoder
      * @param outputBuffer output <tt>Buffer</tt>
      * @return <tt>BUFFER_PROCESSED_OK</tt> if <tt>inBuffer</tt> has been
      * successfully processed
-     * @see AbstractCodecExt#doProcess(Buffer, Buffer)
+     * @see AbstractCodec2#doProcess(Buffer, Buffer)
      */
     @Override
     protected int doProcess(Buffer inputBuffer, Buffer outputBuffer)
@@ -296,9 +296,9 @@ public class JNIDecoder
      * Get all supported output <tt>Format</tt>s.
      *
      * @param inputFormat input <tt>Format</tt> to determine corresponding output
-     * <tt>Format/tt>s
+     * <tt>Format</tt>s
      * @return array of supported <tt>Format</tt>
-     * @see AbstractCodecExt#getMatchingOutputFormats(Format)
+     * @see AbstractCodec2#getMatchingOutputFormats(Format)
      */
     @Override
     protected Format[] getMatchingOutputFormats(Format inputFormat)
@@ -330,7 +330,7 @@ public class JNIDecoder
      * @return the <tt>Format</tt> of the media data to be input for processing
      * in this <tt>Codec</tt> if <tt>format</tt> is compatible with this
      * <tt>Codec</tt>; otherwise, <tt>null</tt>
-     * @see AbstractCodecExt#setInputFormat(Format)
+     * @see AbstractCodec2#setInputFormat(Format)
      */
     @Override
     public Format setInputFormat(Format format)

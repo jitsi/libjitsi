@@ -26,7 +26,7 @@ import org.jitsi.service.neomedia.*;
  * This class extends the RawPacket class and adds some methods
  * required by the ZRTP transformer.
  *
- * @author Werner Dittmann <Werner.Dittmann@t-online.de>
+ * @author Werner Dittmann &lt;Werner.Dittmann@t-online.de&gt;
  */
 public class ZrtpRawPacket extends RawPacket
 {

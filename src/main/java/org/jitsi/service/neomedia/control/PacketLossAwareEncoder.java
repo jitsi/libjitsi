@@ -26,8 +26,6 @@ public interface PacketLossAwareEncoder extends Control
 {
     /**
      * Tells the encoder to expect <tt>percentage</tt> percent packet loss.
-     *
-     * @return the percentage of expected packet loss
      */
-    public void setExpectedPacketLoss(int percentage);
+    void setExpectedPacketLoss(int percentage);
 }

@@ -541,7 +541,7 @@ public class PulseAudioSystem
      * {@link #waitMainloop()}.
      *
      * @param waitForAccept <tt>true</tt> to not return before the signal is
-     * accepted by a <tt>pa_threaded_mainloop_accept()<tt>; otherwise,
+     * accepted by a <tt>pa_threaded_mainloop_accept()</tt>; otherwise,
      * <tt>false</tt>
      */
     public void signalMainloop(boolean waitForAccept)

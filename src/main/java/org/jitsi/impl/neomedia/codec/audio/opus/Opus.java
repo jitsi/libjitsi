@@ -73,7 +73,7 @@ public class Opus
      */
     public static final int OPUS_OK = 0;
 
-    /**
+    /*
      * Loads the native JNI library.
      */
     static
@@ -172,7 +172,7 @@ public class Opus
      * @param inputOffset Offset to use into the <tt>input</tt> array
      * @param inputFrameSize The number of samples per channel in <tt>input</tt>.
      * @param output Array where the encoded packet will be stored.
-     * @param outputOffset
+     * @param outputOffset Offset to use into the <tt>output</tt> array
      * @param outputLength The number of available bytes in <tt>output</tt>.
      *
      * @return The number of bytes written in <tt>output</tt>, or a negative
@@ -364,7 +364,6 @@ public class Opus
      * encoder's expected packet loss percentage.
      *
      * @param encoder The encoder to use
-     * @param packetLossPerc
      *
      * @return OPUS_OK on success.
      */

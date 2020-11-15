@@ -23,8 +23,7 @@ import org.w3c.dom.*;
 /**
  * Writes a DOM tree to a given Writer.
  *
- * <p>Utility class used by {@link XMLUtils} and
- * {@link net.java.sip.communicator.slick.runner.SipCommunicatorSlickRunner}.
+ * <p>Utility class used by {@link XMLUtils}.
  *
  * @author Lubomir Marinov
  */
@@ -405,7 +404,7 @@ public class DOMElementWriter
     }
 
     /**
-     * Escape &lt;, &gt; &amp; &apos;, &quot; as their entities and
+     * Escape &lt;, &gt; &amp; &amp;apos;, &quot; as their entities and
      * drop characters that are illegal in XML documents.
      *
      * @param value the value to encode
@@ -413,7 +412,7 @@ public class DOMElementWriter
      * @return a String containing the encoded element.
      */
     public String encode(String value) {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         int len = value.length();
         for (int i = 0; i < len; i++)
         {

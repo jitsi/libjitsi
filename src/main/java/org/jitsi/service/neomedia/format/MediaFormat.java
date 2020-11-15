@@ -139,7 +139,7 @@ public interface MediaFormat
      * Returns a <tt>Map</tt> containing parameters specific to this particular
      * <tt>MediaFormat</tt>. The parameters returned here are meant for use in
      * SIP/SDP or XMPP session descriptions where they get transported through
-     * the "fmtp:" attribute or <parameter/> tag respectively.
+     * the "fmtp:" attribute or &lt;parameter/&gt; tag respectively.
      *
      * @return a <tt>Map</tt> containing parameters specific to this particular
      * <tt>MediaFormat</tt>.

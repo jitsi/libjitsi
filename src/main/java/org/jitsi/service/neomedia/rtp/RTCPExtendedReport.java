@@ -211,8 +211,8 @@ public class RTCPExtendedReport
          * The implementation specific adjustment rate of a jitter buffer in
          * adaptive mode. Defined in terms of the approximate time taken to
          * fully adjust to a step change in peak to peak jitter from 30 ms to
-         * 100 ms such that: <tt>adjustment time = 2 * J * frame size (ms)<tt>
-         * where <tt>J = adjustment rate (0-15)<tt>. The parameter is intended
+         * 100 ms such that: <tt>adjustment time = 2 * J * frame size (ms)</tt>
+         * where <tt>J = adjustment rate (0-15)</tt>. The parameter is intended
          * only to provide a guide to the degree of &quot;aggressiveness&quot;
          * of an adaptive jitter buffer and may be estimated. A value of
          * <tt>0</tt> indicates that the adjustment time is unknown for this

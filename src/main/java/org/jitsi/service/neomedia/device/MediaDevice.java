@@ -101,7 +101,7 @@ public interface MediaDevice
      * used for video and settings.
      * @param remotePreset the preset used to set the receive format parameters,
      * used for video and settings.
-     * @param encodingConfiguration the <tt>EncodingConfiguration<tt> instance
+     * @param encodingConfiguration the <tt>EncodingConfiguration</tt> instance
      * to use.
      *
      * @return the list of <tt>MediaFormat</tt>s supported by this device.

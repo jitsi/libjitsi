@@ -47,9 +47,9 @@ public class XMLUtils
      * The string identifying the <tt>DocumentBuilderFactory</tt>feature which
      * controls whether inclusion of external general entities is allowed.
      * See
-     * {@link "http://xerces.apache.org/xerces-j/features.html#external-general-entities"}
+     * <a href="http://xerces.apache.org/xerces-j/features.html#external-general-entities">xerces options</a>
      * and
-     * {@link "http://xerces.apache.org/xerces2-j/features.html#external-general-entities"}
+     * <a href="http://xerces.apache.org/xerces2-j/features.html#external-general-entities">xerces2 options</a>
      */
     private static final String FEATURE_EXTERNAL_GENERAL_ENTITIES
         = "http://xml.org/sax/features/external-general-entities";
@@ -58,9 +58,9 @@ public class XMLUtils
      * The string identifying the <tt>DocumentBuilderFactory</tt>feature which
      * controls whether inclusion of external parameter entities is allowed.
      * See
-     * {@link "http://xerces.apache.org/xerces-j/features.html#external-parameter-entities"}
+     * <a href="http://xerces.apache.org/xerces-j/features.html#external-parameter-entities">xerces options</a>
      * and
-     * {@link "http://xerces.apache.org/xerces2-j/features.html#external-parameter-entities"}
+     * <a href="http://xerces.apache.org/xerces2-j/features.html#external-parameter-entities">xerces2 options</a>
      */
     private static final String FEATURE_EXTERNAL_PARAMETER_ENTITIES
         = "http://xml.org/sax/features/external-parameter-entities";
@@ -70,7 +70,7 @@ public class XMLUtils
      * The string identifying the <tt>DocumentBuilderFactory</tt>feature which
      * controls whether DOCTYPE declaration is allowed.
      * See
-     * {@link "http://xerces.apache.org/xerces2-j/features.html#disallow-doctype-decl"}
+     * <a href="http://xerces.apache.org/xerces2-j/features.html#disallow-doctype-decl">xerces2 options</a>
      */
     private static final String FEATURE_DISSALLOW_DOCTYPE
         = "http://apache.org/xml/features/disallow-doctype-decl";

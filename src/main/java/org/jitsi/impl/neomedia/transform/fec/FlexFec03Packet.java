@@ -63,9 +63,6 @@ public class FlexFec03Packet
 
     /**
      * Create a {@link FlexFec03Packet}
-     * @param buffer
-     * @param offset
-     * @param length
      * @return a {@link FlexFec03Packet} if 'p' is successfully parsed
      * as a {@link FlexFec03Packet}, null otherwise
      */

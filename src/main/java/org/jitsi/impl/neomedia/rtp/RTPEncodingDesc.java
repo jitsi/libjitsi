@@ -83,7 +83,7 @@ public class RTPEncodingDesc
 
     /**
      * The ssrcs associated with this encoding (for example, RTX or FLEXFEC)
-     * Maps ssrc -> type {@link Constants} (rtx, etc.)
+     * Maps ssrc -&gt; type {@link Constants} (rtx, etc.)
      */
     private final Map<Long, String> secondarySsrcs = new HashMap<>();
 

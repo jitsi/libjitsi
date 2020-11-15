@@ -28,7 +28,7 @@ public interface DiagnosticsControl
 {
     /**
      * The constant which expresses a non-existent time in milliseconds for the
-     * purposes of {@link #getMalfuntioningSince()}. Explicitly chosen to be
+     * purposes of {@link #getMalfunctioningSince()}. Explicitly chosen to be
      * <tt>0</tt> rather than <tt>-1</tt> in the name of efficiency.
      */
     public static final long NEVER = 0;

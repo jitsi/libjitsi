@@ -47,7 +47,7 @@ public class MacCoreaudioRenderer
      * A mutual exclusion used to avoid conflict when starting / stopping the
      * stream for this renderer;
      */
-    private Object startStopMutex = new Object();
+    private final Object startStopMutex = new Object();
 
     /**
      * The buffer which stores the incoming data before sending them to
@@ -183,11 +183,11 @@ public class MacCoreaudioRenderer
      * @param playback <tt>true</tt> if the new instance is to perform playback
      * or <tt>false</tt> if the new instance is to sound a notification
      */
-    public MacCoreaudioRenderer(boolean enableVolumeControl)
+    public MacCoreaudioRenderer(boolean playback)
     {
         super(
                 AudioSystem.LOCATOR_PROTOCOL_MACCOREAUDIO,
-                enableVolumeControl
+                playback
                     ? AudioSystem.DataFlow.PLAYBACK
                     : AudioSystem.DataFlow.NOTIFY);
 
@@ -358,7 +358,7 @@ public class MacCoreaudioRenderer
 
     /**
      * Notifies this instance that the value of the
-     * {@link AudioSystem#PROP_PLAYBACK_DEVICE} property of its associated
+     * PROP_PLAYBACK_DEVICE property of its associated
      * <tt>AudioSystem</tt> has changed.
      *
      * @param ev a <tt>PropertyChangeEvent</tt> which specifies details about

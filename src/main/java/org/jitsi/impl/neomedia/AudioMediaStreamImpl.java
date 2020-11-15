@@ -85,7 +85,7 @@ public class AudioMediaStreamImpl
         = Logger.getLogger(AudioMediaStreamImpl.class);
 
     /**
-     * A <tt>PropertyChangeNotifier<tt> which will inform this
+     * A <tt>PropertyChangeNotifier</tt> which will inform this
      * <tt>AudioStream</tt> if a selected audio device (capture, playback or
      * notification device) has changed. We want to listen to these events,
      * especially for those generated after the <tt>AudioSystem</tt> has

@@ -100,7 +100,7 @@ public class RTPTranslatorImpl
                             LOGGER.trace(
                                     obj.getClass().getName() + '.' + methodName
                                         + ": RTCP BYE SSRC/CSRC "
-                                        + Long.toString(ssrc & 0xffffffffl));
+                                        + Long.toString(ssrc & 0xffffffffL));
                         }
                     }
                 }
@@ -1135,8 +1135,6 @@ public class RTPTranslatorImpl
      * Writes an <tt>RTCPFeedbackMessage</tt> into a destination identified by
      * a specific <tt>MediaStream</tt>.
      *
-     * @param controlPayload
-     * @param destination
      * @return <tt>true</tt> if the <tt>controlPayload</tt> was written
      * into the <tt>destination</tt>; otherwise, <tt>false</tt>
      */
@@ -1147,9 +1145,8 @@ public class RTPTranslatorImpl
         RTPConnectorImpl connector = this.connector;
 
         return
-            (connector == null)
-                ? false
-                : connector.writeControlPayload(controlPayload, destination);
+            connector != null && connector
+                .writeControlPayload(controlPayload, destination);
     }
 
     /**

@@ -277,7 +277,7 @@ public class JavaEncoder
      *
      * @param inputFormat the input format to get the matching output formats of
      * @return the output formats matching the specified input format
-     * @see AbstractCodecExt#getMatchingOutputFormats(Format)
+     * @see AbstractCodec2#getMatchingOutputFormats(Format)
      */
     @Override
     protected Format[] getMatchingOutputFormats(Format inputFormat)

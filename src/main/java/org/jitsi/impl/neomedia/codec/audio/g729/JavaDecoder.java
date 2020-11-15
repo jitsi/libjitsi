@@ -99,7 +99,7 @@ public class JavaDecoder
     }
 
     /*
-     * Implements AbstractCodecExt#doClose().
+     * Implements AbstractCodec2#doClose().
      */
     @Override
     protected void doClose()
@@ -118,7 +118,7 @@ public class JavaDecoder
      *
      * @throws ResourceUnavailableException if any of the resources that this
      * <tt>Codec</tt> needs to operate cannot be acquired
-     * @see AbstractCodecExt#doOpen()
+     * @see AbstractCodec2#doOpen()
      */
     @Override
     protected void doOpen()
@@ -130,7 +130,7 @@ public class JavaDecoder
     }
 
     /*
-     * Implements AbstractCodecExt#doProcess(Buffer, Buffer).
+     * Implements AbstractCodec2#doProcess(Buffer, Buffer).
      */
     @Override
     protected int doProcess(Buffer inBuffer, Buffer outBuffer)

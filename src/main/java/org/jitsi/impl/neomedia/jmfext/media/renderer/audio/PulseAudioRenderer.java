@@ -474,7 +474,7 @@ public class PulseAudioRenderer
 
     /**
      * Notifies this instance that the value of the
-     * {@link AudioSystem#PROP_PLAYBACK_DEVICE} property of its associated
+     * PROP_PLAYBACK_DEVICE property of its associated
      * <tt>AudioSystem</tt> has changed.
      *
      * @param ev a <tt>PropertyChangeEvent</tt> which specifies details about

@@ -161,7 +161,7 @@ public class JavaEncoder
     }
 
     /*
-     * Implements AbstractCodecExt#doClose().
+     * Implements AbstractCodec2#doClose().
      */
     @Override
     protected void doClose()
@@ -200,7 +200,7 @@ public class JavaEncoder
     }
 
     /*
-     * Implements AbstractCodecExt#doProcess(Buffer, Buffer).
+     * Implements AbstractCodec2#doProcess(Buffer, Buffer).
      */
     @Override
     protected int doProcess(Buffer inBuffer, Buffer outBuffer)

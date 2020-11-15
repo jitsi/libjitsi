@@ -419,7 +419,7 @@ public class AudioMixerMediaDevice
     }
 
     /**
-     * Gets the <tt>MediaFormat</tt> in which this <t>MediaDevice</tt> captures
+     * Gets the <tt>MediaFormat</tt> in which this <tt>MediaDevice</tt> captures
      * media.
      *
      * @return the <tt>MediaFormat</tt> in which this <tt>MediaDevice</tt>
@@ -968,7 +968,7 @@ public class AudioMixerMediaDevice
         /**
          * The <tt>MediaDeviceSession</tt> of the <tt>AudioMixer</tt> that this
          * instance exposes to a <tt>MediaStream</tt>. While there are multiple
-         * <tt>MediaStreamMediaDeviceSession<tt>s each servicing a specific
+         * <tt>MediaStreamMediaDeviceSession</tt>s each servicing a specific
          * <tt>MediaStream</tt>, they all share and delegate to one and the same
          * <tt>AudioMixerMediaDeviceSession</tt> so that they all contribute to
          * the mix.

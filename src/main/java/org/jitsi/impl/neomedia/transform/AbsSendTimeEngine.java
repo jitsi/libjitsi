@@ -107,7 +107,7 @@ public class AbsSendTimeEngine
      * Sets the 3 bytes at offset <tt>off</tt> in <tt>buf</tt> to the value of
      * {@link System#nanoTime()} converted to the fixed point (6.18) format
      * specified in
-     * {@link "http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time"}.
+     * <a href="http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time">abs-send-time</a>.
      *
      * @param buf the buffer where to write the timestamp.
      * @param off the offset at which to write the timestamp.

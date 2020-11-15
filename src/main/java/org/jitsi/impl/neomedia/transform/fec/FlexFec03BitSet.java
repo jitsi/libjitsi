@@ -50,7 +50,6 @@ public class FlexFec03BitSet
 
     /**
      * Set the bit (set to 1) at the given index
-     * @param bitIndex
      */
     public void set(int bitIndex)
     {
@@ -59,8 +58,6 @@ public class FlexFec03BitSet
 
     /**
      * Get the bit at the given index
-     * @param bitIndex
-     * @return
      */
     public boolean get(int bitIndex)
     {
@@ -69,7 +66,6 @@ public class FlexFec03BitSet
 
     /**
      * Clear the bit (set to 0) at the given index
-     * @param bitIndex
      */
     public void clear(int bitIndex)
     {
@@ -107,7 +103,6 @@ public class FlexFec03BitSet
     /**
      * Remove a bit from the given position.  Existing bits will be moved
      * to the left.
-     * @param bitIndex
      */
     public void removeBit(int bitIndex)
     {
@@ -131,8 +126,6 @@ public class FlexFec03BitSet
 
     /**
      * Parse the value of the given byte buffer into the bitset
-     * @param bytes
-     * @return
      */
     public static FlexFec03BitSet valueOf(byte[] bytes)
     {
@@ -193,7 +186,6 @@ public class FlexFec03BitSet
     /**
      * Writes this bitset to a byte array, where the rightmost bit is treated
      * as the least significant bit.
-     * @return
      */
     public byte[] toByteArray()
     {
@@ -215,7 +207,6 @@ public class FlexFec03BitSet
 
     /**
      * Print the bitmask in a manner where the left-most bit is the LSB
-     * @return
      */
     public String toString()
     {

@@ -1666,7 +1666,6 @@ public class MediaStreamImpl
      * Sets the {@link FECTransformEngine} for this {@link MediaStream}
      * By default, nothing is done with the passed engine, allowing extenders
      * to implement it
-     * @param fecTransformEngine
      */
     protected void setFecTransformEngine(FECTransformEngine fecTransformEngine)
     {
@@ -4142,7 +4141,7 @@ public class MediaStreamImpl
 
     /**
      * {@inheritDoc}
-     * <br/>
+     * <br>
      * Note that the chain is only initialized when a {@link StreamConnector} is
      * set for the {@link MediaStreamImpl} via
      * {@link #setConnector(StreamConnector)} or by passing a non-null connector

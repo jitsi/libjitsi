@@ -50,7 +50,7 @@ public interface SrtpControl
     /**
      * Cleans up this <tt>SrtpControl</tt> and its <tt>TransformEngine</tt>.
      *
-     * @param user the {@Object} which requests the clean-up and is supposedly
+     * @param user the Object which requests the clean-up and is supposedly
      * currently using this {@code SrtpControl} (i.e. has already used
      * {@link #registerUser(Object)}).
      */

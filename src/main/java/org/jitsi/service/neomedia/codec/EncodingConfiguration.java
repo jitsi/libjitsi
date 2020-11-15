@@ -283,7 +283,7 @@ public abstract class EncodingConfiguration
     }
 
     /**
-     * Parses a <tt>Map<String, String></tt> and updates the format preferences
+     * Parses a {@link Map} and updates the format preferences
      * according to it. Does not use a prefix.
      *
      * @param properties The <tt>Map</tt> to parse.
@@ -296,7 +296,7 @@ public abstract class EncodingConfiguration
     }
 
     /**
-     * Parses a <tt>Map<String, String></tt> and updates the format preferences
+     * Parses a {@link Map} and updates the format preferences
      * according to it. For each entry, if it's key does not begin with
      * <tt>prefix</tt>, its ignored. If the key begins with <tt>prefix</tt>,
      * look for an encoding name after the last ".", and interpret the key

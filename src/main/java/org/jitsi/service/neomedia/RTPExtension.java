@@ -46,21 +46,21 @@ public class RTPExtension
     /**
      * The URN identifying the abs-send-time RTP extension.
      * Defined at
-     * {@link "http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time"}
+     * <a href="http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time">abs-send-time</a>
      */
     public static final String ABS_SEND_TIME_URN
             = "http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time";
 
     /**
      * The URN which identifies the framemarking RTP extension defined at
-     * {@link "https://tools.ietf.org/html/draft-ietf-avtext-framemarking-03"}
+     * <a href="https://tools.ietf.org/html/draft-ietf-avtext-framemarking-03">draft-ietf-avtext-framemarking-03</a>
      */
     public static final String FRAME_MARKING_URN
             = "http://tools.ietf.org/html/draft-ietf-avtext-framemarking-07";
 
     /**
      * The URN which identifies the Original Header Block RTP extension defined
-     * in {@link "https://tools.ietf.org/html/draft-ietf-perc-double-02"}.
+     * in <a href="https://tools.ietf.org/html/draft-ietf-perc-double-02">draft-ietf-perc-double-02</a>.
      */
     public static final String ORIGINAL_HEADER_BLOCK_URN
         = "urn:ietf:params:rtp-hdrext:ohb";
@@ -74,14 +74,14 @@ public class RTPExtension
 
     /**
      * The URN which identifies the rtp-stream-id extensions
-     * in {@link "https://tools.ietf.org/html/draft-ietf-mmusic-rid-10"}.
+     * in <a href="https://tools.ietf.org/html/draft-ietf-mmusic-rid-10">draft-ietf-mmusic-rid-10</a>.
      */
     public static final String RTP_STREAM_ID_URN
         = "urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id";
 
     /**
      * The URN which identifies the transmission time-offset extensions
-     * in {@link "https://tools.ietf.org/html/rfc5450"}.
+     * in <a href="https://tools.ietf.org/html/rfc5450">rfc5450</a>.
      */
     public static final String TOF_URN = "urn:ietf:params:rtp-hdrext:toffset";
 

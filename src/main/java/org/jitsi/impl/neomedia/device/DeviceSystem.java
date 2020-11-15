@@ -36,7 +36,7 @@ import org.jitsi.utils.logging.*;
  * registers with FMJ the <tt>CaptureDevice</tt>s it will provide. In addition
  * to providing the devices for the purposes of capture, a <tt>DeviceSystem</tt>
  * also provides the devices on which playback is to be performed i.e. it acts
- * as a <tt>Renderer</tt> factory via its {@link #createRenderer(boolean)}
+ * as a <tt>Renderer</tt> factory via its {@link #createRenderer()}
  * method.
  *
  * @author Lyubomir Marinov
@@ -606,14 +606,13 @@ public abstract class DeviceSystem
     /**
      * Gets the name of the class which implements the <tt>Renderer</tt>
      * interface to render media on a playback or notification device associated
-     * with this <tt>DeviceSystem</tt>. Invoked by
-     * {@link #createRenderer(boolean)}.
+     * with this <tt>DeviceSystem</tt>.
      *
      * @return the name of the class which implements the <tt>Renderer</tt>
      * interface to render media on a playback or notification device associated
      * with this <tt>DeviceSystem</tt> or <tt>null</tt> if no <tt>Renderer</tt>
      * instance is to be created by the <tt>DeviceSystem</tt> implementation or
-     * <tt>createRenderer(boolean) is overridden.
+     * <tt>createRenderer(boolean)</tt> is overridden.
      */
     protected String getRendererClassName()
     {

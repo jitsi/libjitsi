@@ -28,7 +28,6 @@ import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.packetlogging.*;
-import org.jitsi.util.*;
 import org.jitsi.utils.*;
 import org.jitsi.utils.logging.Logger; // Disambiguation.
 import org.jitsi.utils.queue.*;
@@ -463,7 +462,7 @@ public abstract class RTPConnectorOutputStream
             {
                 sendToTarget(packet, target);
 
-                numberOfBytesSent += (long)packet.getLength();
+                numberOfBytesSent += packet.getLength();
 
                 if (logPacket(numberOfPackets))
                 {
@@ -581,9 +580,6 @@ public abstract class RTPConnectorOutputStream
      * Writes a byte[] to this {@link RTPConnectorOutputStream} synchronously (
      * even when {@link #USE_SEND_THREAD} is enabled).
      *
-     * @param buf
-     * @param off
-     * @param len
      * @return the number of bytes written.
      */
     public int syncWrite(byte[] buf, int off, int len)
@@ -595,9 +591,6 @@ public abstract class RTPConnectorOutputStream
      * Writes a byte[] to this {@link RTPConnectorOutputStream} synchronously (
      * even when {@link #USE_SEND_THREAD} is enabled).
      *
-     * @param buf
-     * @param off
-     * @param len
      * @return the number of bytes written.
      */
     private int syncWrite(byte[] buf, int off, int len, Object context)
@@ -811,10 +804,6 @@ public abstract class RTPConnectorOutputStream
 
         /**
          * Adds the given buffer (and its context) to this queue.
-         * @param buf
-         * @param off
-         * @param len
-         * @param context
          */
         private void write(byte[] buf, int off, int len, Object context)
         {

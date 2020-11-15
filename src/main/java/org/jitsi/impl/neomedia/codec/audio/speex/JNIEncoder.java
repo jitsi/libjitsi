@@ -132,7 +132,7 @@ public class JNIEncoder
     }
 
     /**
-     * @see AbstractCodecExt#doClose()
+     * @see AbstractCodec2#doClose()
      */
     @Override
     protected void doClose()
@@ -162,7 +162,7 @@ public class JNIEncoder
      *
      * @throws ResourceUnavailableException if any of the resources that this
      * <tt>Codec</tt> needs to operate cannot be acquired
-     * @see AbstractCodecExt#doOpen()
+     * @see AbstractCodec2#doOpen()
      */
     @Override
     protected void doOpen()
@@ -180,7 +180,7 @@ public class JNIEncoder
      * @param outputBuffer output buffer
      * @return <tt>BUFFER_PROCESSED_OK</tt> if buffer has been successfully
      * processed
-     * @see AbstractCodecExt#doProcess(Buffer, Buffer)
+     * @see AbstractCodec2#doProcess(Buffer, Buffer)
      */
     @Override
     protected int doProcess(Buffer inputBuffer, Buffer outputBuffer)
@@ -389,7 +389,7 @@ public class JNIEncoder
      *
      * @param inputFormat the input format to get the matching output formats of
      * @return the output formats matching the specified input format
-     * @see AbstractCodecExt#getMatchingOutputFormats(Format)
+     * @see AbstractCodec2#getMatchingOutputFormats(Format)
      */
     @Override
     protected Format[] getMatchingOutputFormats(Format inputFormat)
@@ -457,7 +457,7 @@ public class JNIEncoder
      *
      * @param format format to set
      * @return format
-     * @see AbstractCodecExt#setInputFormat(Format)
+     * @see AbstractCodec2#setInputFormat(Format)
      */
     @Override
     public Format setInputFormat(Format format)

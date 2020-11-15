@@ -223,6 +223,7 @@ public class FlexFec03Mask
      * @param baseSeqNum the base sequence number to use for the mask
      * @param protectedSeqNums the sequence numbers this mask should mark
      * as protected
+     * @throws MalformedMaskException when the mask is invalid
      */
     public FlexFec03Mask(int baseSeqNum, List<Integer> protectedSeqNums)
         throws MalformedMaskException

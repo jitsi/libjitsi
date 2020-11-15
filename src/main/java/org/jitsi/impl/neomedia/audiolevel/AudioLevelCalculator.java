@@ -41,7 +41,7 @@ public class AudioLevelCalculator
      *
      * @param samples the samples of the signal to calculate the audio level of
      * @param offset the offset in <tt>samples</tt> in which the samples start
-     * @param length the length in bytes of the signal in <tt>samples<tt>
+     * @param length the length in bytes of the signal in <tt>samples</tt>
      * starting at <tt>offset</tt>
      * @return the audio level of the specified signal
      */

@@ -38,8 +38,8 @@ public class RTPUtils
      * Returns the delta between two RTP sequence numbers, taking into account
      * rollover.  This will return the 'shortest' delta between the two
      * sequence numbers in the form of the number you'd add to b to get a. e.g.:
-     * getSequenceNumberDelta(1, 10) -> -9 (10 + -9 = 1)
-     * getSequenceNumberDelta(1, 65530) -> 7 (65530 + 7 = 1)
+     * getSequenceNumberDelta(1, 10) -&gt; -9 (10 + -9 = 1)
+     * getSequenceNumberDelta(1, 65530) -&gt; 7 (65530 + 7 = 1)
      * @return the delta between two RTP sequence numbers (modulo 2^16).
      */
     public static int getSequenceNumberDelta(int a, int b)

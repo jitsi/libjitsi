@@ -360,7 +360,7 @@ public class AudioMixer
     }
 
     /**
-     * Connects to a specific <tt>DataSource</tt> which this <tt>AudioMixer<tt>
+     * Connects to a specific <tt>DataSource</tt> which this <tt>AudioMixer</tt>
      * will read audio from. The specified <tt>DataSource</tt> is known to exist
      * because of a specific <tt>DataSource</tt> added as an input to this
      * instance i.e. it may be an actual input <tt>DataSource</tt> added to this
@@ -977,7 +977,7 @@ public class AudioMixer
      * whether it matches a specific <tt>Format</tt>
      * @param pattern the <tt>Format</tt> against which the specified
      * <tt>input</tt> is to be matched
-     * @return <tt>true</tt> if the specified <tt>input<tt> matches the
+     * @return <tt>true</tt> if the specified <tt>input</tt> matches the
      * specified <tt>pattern</tt> in the sense of JMF <tt>Format</tt> matching;
      * otherwise, <tt>false</tt>
      */

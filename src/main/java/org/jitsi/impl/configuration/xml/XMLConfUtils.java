@@ -29,7 +29,8 @@ public class XMLConfUtils extends XMLUtils
 
     /**
      * Returns the element which is at the end of the specified
-     * String chain.  <great...grandparent>...<grandparent>.<parent>.<child>
+     * String chain.
+     * &lt;great...grandparent&gt;...&lt;grandparent&gt;.&lt;parent&gt;.&gt;child&lt;
      * @param parent the xml element that is the parent of the root of this
      * chain.
      * @param chain a String array containing the names of all the child's

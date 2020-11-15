@@ -25,7 +25,7 @@ import org.jitsi.impl.neomedia.jmfext.media.protocol.*;
 
 /**
  * Implements {@link PushBufferDataSource} for the purposes of
- * {@link RTPTranslatorImpl} when it does not have a <tt>CaptureDevice</tt> yet
+ * {@link org.jitsi.service.neomedia.RTPTranslator} when it does not have a <tt>CaptureDevice</tt> yet
  * <tt>RTPManager.createSendStream(DataSource, int)</tt> has to be called to
  * have <tt>RTPTranslatorImpl</tt> send packets.
  *

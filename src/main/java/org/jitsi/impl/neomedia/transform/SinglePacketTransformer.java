@@ -26,7 +26,7 @@ import org.jitsi.utils.logging.*;
  * Extends the <tt>PacketTransformer</tt> interface with methods which allow
  * the transformation of a single packet into a single packet.
  *
- * Eases the implementation of <tt>PacketTransformer<tt>-s which transform each
+ * Eases the implementation of <tt>PacketTransformer</tt>-s which transform each
  * packet into a single transformed packet (as opposed to an array of possibly
  * more than one packet).
  *

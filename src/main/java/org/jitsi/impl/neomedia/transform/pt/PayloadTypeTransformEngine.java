@@ -114,7 +114,7 @@ public class PayloadTypeTransformEngine
 
     /**
      * Adds an additional RTP payload type mapping used to override the payload
-     * type of outgoing RTP packets. If an override for <tt>originalPT<tt/>,
+     * type of outgoing RTP packets. If an override for <tt>originalPT</tt>,
      * was already being overridden, this call is simply going to update the
      * override to the new one.
      * <p>

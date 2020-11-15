@@ -33,7 +33,7 @@ public class DSCaptureDevice
          * Notifies this instance that a specific video frame has been
          * captured/grabbed.
          *
-         * @param a pointer to the native <tt>DSCaptureDevice</tt> which is the
+         * @param source a pointer to the native <tt>DSCaptureDevice</tt> which is the
          * source of the notification
          * @param ptr a pointer to the captured/grabbed video frame i.e. to the
          * data of the DirectShow <tt>IMediaSample</tt> 

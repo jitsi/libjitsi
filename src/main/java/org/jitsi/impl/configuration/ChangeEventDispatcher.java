@@ -237,12 +237,9 @@ public class ChangeEventDispatcher
      *                      that is about to change..
      * @param oldValue  The old value of the property.
      * @param newValue  The new value of the property.
-     * @exception PropertyVetoException if the recipient wishes the property
-     *              change to be rolled back.
      */
     public void fireVetoableChange(String propertyName,
                                    Object oldValue, Object newValue)
-        //throws PropertyVetoException
     {
         if (vetoableChangeListeners != null || vetoableChangeChildren != null)
         {
@@ -261,11 +258,8 @@ public class ChangeEventDispatcher
      * No event is fired if old and new are equal and non-null.
      *
      * @param evt  The PropertyChangeEvent to be fired.
-     * @exception PropertyVetoException if at least one of the recipients has
-     * vetoed the change.
      */
     public void fireVetoableChange(PropertyChangeEvent evt)
-        // throws PropertyVetoException
     {
         Object oldValue = evt.getOldValue();
         Object newValue = evt.getNewValue();

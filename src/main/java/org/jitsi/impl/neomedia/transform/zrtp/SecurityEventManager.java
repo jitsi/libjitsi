@@ -29,12 +29,10 @@ import org.jitsi.utils.logging.*;
  * The user callback class for ZRTP4J.
  *
  * This class constructs and sends events to the ZRTP GUI implementation. The
- * <code>showMessage()<code> function implements a specific check to start
+ * <code>showMessage()</code> function implements a specific check to start
  * associated ZRTP multi-stream sessions.
  *
  * Coordinate this callback class with the associated GUI implementation class
- *
- * @see net.java.sip.communicator.impl.gui.main.call.ZrtpSecurityPanel
  *
  * @author Emanuel Onica
  * @author Werner Dittmann

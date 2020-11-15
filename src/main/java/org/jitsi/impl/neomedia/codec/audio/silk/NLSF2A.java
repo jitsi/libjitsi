@@ -20,7 +20,7 @@ import static org.jitsi.impl.neomedia.codec.audio.silk.Typedef.*;
 /**
  * conversion between prediction filter coefficients and LSFs
  * order should be even
- * a piecewise linear approximation maps LSF <-> cos(LSF)
+ * a piecewise linear approximation maps LSF &lt;-&gt; cos(LSF)
  * therefore the result is not accurate LSFs, but the two
  * function are accurate inverses of each other.
  *

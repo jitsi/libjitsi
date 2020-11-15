@@ -167,7 +167,7 @@ public class REDBlockIterator
      * @param buffer the byte buffer that contains the RED payload.
      * @param offset the offset in the buffer where the RED payload begins.
      * @param length the length of the RED payload.
-     * @return {@code true if {@pkt} contains multiple RED blocks; otherwise,
+     * @return {@code true} if {@code pkt} contains multiple RED blocks; otherwise,
      * {@code false}
      */
     public static boolean isMultiBlock(byte[] buffer, int offset, int length)

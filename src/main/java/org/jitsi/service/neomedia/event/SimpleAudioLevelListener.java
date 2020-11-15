@@ -31,7 +31,7 @@ public interface SimpleAudioLevelListener
      * <b>Note</b>: The value of <tt>127</tt> is specifically chosen as the
      * value of <tt>MAX_LEVEL</tt> because (1) we transport the levels within
      * RTP and it gives us a signed <tt>byte</tt> for it, and (2) the range of
-     * <code>[0, 127]</tt> is pretty good to directly express the sound pressure
+     * <tt>[0, 127]</tt> is pretty good to directly express the sound pressure
      * level decibels as heard by humans in Earth's atmosphere.
      */
     public static final int MAX_LEVEL = 127;
@@ -44,7 +44,7 @@ public interface SimpleAudioLevelListener
      * <b>Note</b>: The value of <tt>0</tt> is specifically chosen as the value
      * of <tt>MIN_LEVEL</tt> because (1) we transport the levels within RTP and
      * it gives us a signed <tt>byte</tt> for it, and (2) the range of
-     * <code>[0, 127]</tt> is pretty good to directly express the sound pressure
+     * <tt>[0, 127]</tt> is pretty good to directly express the sound pressure
      * level decibels as heard by humans in Earth's atmosphere.
      */
     public static final int MIN_LEVEL = 0;

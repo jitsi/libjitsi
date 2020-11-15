@@ -24,7 +24,7 @@ import org.jitsi.utils.logging.*;
  * Appends an Original Header Block packet extension to incoming packets.
  * Note that we currently do NOT follow the PERC format, but rather an extended
  * backward compatible format.
- * {@see "https://tools.ietf.org/html/draft-ietf-perc-double-02"}
+ * <a href="https://tools.ietf.org/html/draft-ietf-perc-double-02">draft-ietf-perc-double-02</a>
  *
  * Specifically the format the we currently append is
  * <pre>{@code

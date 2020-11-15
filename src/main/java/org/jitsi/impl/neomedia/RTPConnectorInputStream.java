@@ -201,8 +201,6 @@ public abstract class RTPConnectorInputStream<T extends Closeable>
     /**
      * Initializes a new <tt>RTPConnectorInputStream</tt> which is to receive
      * packet data from a specific UDP socket.
-     *
-     * @param socket
      */
     protected RTPConnectorInputStream(T socket)
     {

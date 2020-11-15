@@ -333,13 +333,13 @@ public class PortAudioRenderer
      * @param playback <tt>true</tt> if the new instance is to perform playback
      * or <tt>false</tt> if the new instance is to sound a notification
      */
-    public PortAudioRenderer(boolean enableVolumeControl)
+    public PortAudioRenderer(boolean playback)
     {
         super(
-                AudioSystem.LOCATOR_PROTOCOL_PORTAUDIO,
-                enableVolumeControl
-                    ? AudioSystem.DataFlow.PLAYBACK
-                    : AudioSystem.DataFlow.NOTIFY);
+            AudioSystem.LOCATOR_PROTOCOL_PORTAUDIO,
+            playback
+                ? AudioSystem.DataFlow.PLAYBACK
+                : AudioSystem.DataFlow.NOTIFY);
 
         /*
          * XXX We will add a PaUpdateAvailableDeviceListListener and will not
@@ -683,7 +683,7 @@ public class PortAudioRenderer
 
     /**
      * Notifies this instance that the value of the
-     * {@link AudioSystem#PROP_PLAYBACK_DEVICE} property of its associated
+     * PROP_PLAYBACK_DEVICE property of its associated
      * <tt>AudioSystem</tt> has changed.
      *
      * @param ev a <tt>PropertyChangeEvent</tt> which specifies details about

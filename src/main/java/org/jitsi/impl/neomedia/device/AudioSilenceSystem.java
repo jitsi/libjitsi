@@ -21,7 +21,7 @@ import javax.media.*;
 import java.util.*;
 
 /**
- * Implements an {@llink AudioSystem} which produces silence without capturing
+ * Implements an {@link AudioSystem} which produces silence without capturing
  * from an actual hardware device. Hence, it is suitable for server-side
  * technologies that do not need to and/or cannot capture speech.
  *

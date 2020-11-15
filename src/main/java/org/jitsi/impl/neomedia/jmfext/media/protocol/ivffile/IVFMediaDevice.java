@@ -46,7 +46,7 @@ public class IVFMediaDevice
      * Initializes a new <tt>IVFMediaDevice</tt> instance which will read
      * the IVF file located at <tt>filename</tt>.
      * 
-     * @param filename the location of the IVF the <tt>IVFStream<tt>
+     * @param filename the location of the IVF the <tt>IVFStream</tt>
      * will read.
      */
     public IVFMediaDevice(String filename)

@@ -368,7 +368,7 @@ public class MediaServiceImpl
     }
 
     /**
-     * {@inheritDocs}
+     * {@inheritDoc}
      */
     public MediaStream createMediaStream(
             StreamConnector connector,

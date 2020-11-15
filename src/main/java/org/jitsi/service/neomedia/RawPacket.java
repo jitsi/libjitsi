@@ -189,8 +189,6 @@ public class RawPacket
     /**
      * Test whether the RTP Marker bit is set
      *
-     * @param baf
-     *
      * @return true if the RTP Marker bit is set, false otherwise.
      */
     public static boolean isPacketMarked(ByteArrayBuffer baf)
@@ -206,9 +204,6 @@ public class RawPacket
     /**
      * Test whether the RTP Marker bit is set
      *
-     * @param buffer
-     * @param offset
-     * @param length
      * @return true if the RTP Marker bit is set, false otherwise.
      */
     public static boolean isPacketMarked(byte[] buffer, int offset, int length)
@@ -808,9 +803,6 @@ public class RawPacket
     /**
      * Returns the number of CSRC identifiers currently included in this packet.
      *
-     * @param buffer
-     * @param offset
-     * @param length
      * @return the CSRC count for this <tt>RawPacket</tt>.
      */
     public static int getCsrcCount(byte[] buffer, int offset, int length)
@@ -837,9 +829,6 @@ public class RawPacket
      * Returns <tt>true</tt> if the extension bit of this packet has been set
      * and <tt>false</tt> otherwise.
      *
-     * @param buffer
-     * @param offset
-     * @param length
      * @return  <tt>true</tt> if the extension bit of this packet has been set
      * and <tt>false</tt> otherwise.
      */
@@ -905,9 +894,6 @@ public class RawPacket
     /**
      * Returns the length of the extensions currently added to this packet.
      *
-     * @param buffer
-     * @param offset
-     * @param length
      * @return the length of the extensions currently added to this packet.
      */
     public static int getExtensionLength(byte[] buffer, int offset, int length)
@@ -976,9 +962,6 @@ public class RawPacket
     /**
      * Get RTP header length from a RTP packet
      *
-     * @param buffer
-     * @param offset
-     * @param length
      * @return RTP header length from source RTP packet
      */
     public static int getHeaderLength(byte[] buffer, int offset, int length)
@@ -1129,10 +1112,6 @@ public class RawPacket
     /**
      * Get RTP payload length from a RTP packet
      *
-     * @param buffer
-     * @param offset
-     * @param length
-     *
      * @return RTP payload length from source RTP packet
      */
     public static int getPayloadLength(byte[] buffer, int offset, int length)
@@ -1142,11 +1121,6 @@ public class RawPacket
 
     /**
      * Get RTP payload length from a RTP packet
-     *
-     * @param buffer
-     * @param offset
-     * @param length
-     * @param removePadding
      *
      * @return RTP payload length from source RTP packet
      */
@@ -1186,10 +1160,6 @@ public class RawPacket
 
     /**
      * Get the RTP payload offset of an RTP packet.
-     *
-     * @param buffer
-     * @param offset
-     * @param length
      *
      * @return the RTP payload offset of an RTP packet.
      */
@@ -1272,10 +1242,6 @@ public class RawPacket
     /**
      * Get RTP sequence number from a RTP packet
      *
-     * @param buffer
-     * @param offset
-     * @param length
-     *
      * @return RTP sequence num from source packet
      */
     public static int getSequenceNumber(byte[] buffer, int offset, int length)
@@ -1304,11 +1270,6 @@ public class RawPacket
 
     /**
      * Set sequence number for an RTP buffer
-     *
-     * @param buffer
-     * @param offset
-     * @param seq
-     *
      */
     public static void setSequenceNumber(byte[] buffer, int offset, int seq)
     {
@@ -1399,9 +1360,6 @@ public class RawPacket
     /**
      * Get RTP SSRC from a RTP packet
      *
-     * @param buffer
-     * @param offset
-     * @param length
      * @return RTP SSRC from source RTP packet
      */
     public static int getSSRC(byte[] buffer, int offset, int length)
@@ -1429,9 +1387,6 @@ public class RawPacket
     /**
      * Returns a {@code long} representation of the SSRC of this RTP packet.
      *
-     * @param buffer
-     * @param offset
-     * @param length
      * @return a {@code long} representation of the SSRC of this RTP packet.
      */
     public static long getSSRCAsLong(byte[] buffer, int offset, int length)
@@ -1606,8 +1561,6 @@ public class RawPacket
     /**
      * Write a short to this packet at the specified offset.
      *
-     * @param off
-     * @param val
      */
     public void writeShort(int off, short val)
     {
@@ -2055,7 +2008,7 @@ public class RawPacket
 
         /**
          * {@inheritDoc}
-         * Returns true if this {@RawPacket} contains another header extension.
+         * Returns true if this {@link RawPacket} contains another header extension.
          */
         @Override
         public boolean hasNext()

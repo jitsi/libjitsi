@@ -38,7 +38,7 @@ public class MediaStreamTarget
 
     /**
      * Initializes a new <tt>MediaStreamTarget</tt> instance with specific
-     * RTP and RTCP <tt>InetSocketAddress<tt>es.
+     * RTP and RTCP <tt>InetSocketAddress</tt>es.
      *
      * @param rtpTarget the <tt>InetSocketAddress</tt> that the new instance is
      * to indicate as a data/RTP address.

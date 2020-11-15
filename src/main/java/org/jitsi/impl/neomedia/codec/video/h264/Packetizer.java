@@ -202,7 +202,7 @@ public class Packetizer
     /**
      * Return the list of formats supported at the output.
      * @param in input <tt>Format</tt> to determine corresponding output
-     * <tt>Format/tt>s
+     * <tt>Format</tt>s
      * @return array of formats supported at output
      */
     @Override

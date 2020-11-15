@@ -24,7 +24,7 @@ import org.jitsi.utils.logging.*;
 
 /**
  * Packetizes VP8 encoded frames in accord with
- * {@link "http://tools.ietf.org/html/draft-ietf-payload-vp8-07"}
+ * <a href="http://tools.ietf.org/html/draft-ietf-payload-vp8-07">draft-ietf-payload-vp8-07</a>
  *
  * Uses the simplest possible scheme, only splitting large packets. Extended
  * bits are never added, and PartID is always set to 0. The only bit that

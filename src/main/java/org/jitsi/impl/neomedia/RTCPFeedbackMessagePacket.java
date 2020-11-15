@@ -54,7 +54,7 @@ public class RTCPFeedbackMessagePacket
     /**
      * The (command) sequence number of this Full Intra Request (FIR) RTCP
      * feedback message as defined by RFC 5104 &quot;Codec Control Messages in
-     * the RTP Audio-Visual Profile with Feedback (AVPF)&quot. The sequence
+     * the RTP Audio-Visual Profile with Feedback (AVPF)&quot;. The sequence
      * number space is unique for each pairing of the SSRC of command source and
      * the SSRC of the command target. The sequence number SHALL be increased by
      * 1 modulo 256 for each new command.  A repetition SHALL NOT increase the
@@ -119,7 +119,7 @@ public class RTCPFeedbackMessagePacket
     /**
      * Gets the (command) sequence number of this Full Intra Request (FIR) RTCP
      * feedback message as defined by RFC 5104 &quot;Codec Control Messages in
-     * the RTP Audio-Visual Profile with Feedback (AVPF)&quot. The sequence
+     * the RTP Audio-Visual Profile with Feedback (AVPF)&quot;. The sequence
      * number space is unique for each pairing of the SSRC of command source and
      * the SSRC of the command target. The sequence number SHALL be increased by
      * 1 modulo 256 for each new command. A repetition SHALL NOT increase the
@@ -183,7 +183,7 @@ public class RTCPFeedbackMessagePacket
     /**
      * Sets the (command) sequence number of this Full Intra Request (FIR) RTCP
      * feedback message as defined by RFC 5104 &quot;Codec Control Messages in
-     * the RTP Audio-Visual Profile with Feedback (AVPF)&quot. The sequence
+     * the RTP Audio-Visual Profile with Feedback (AVPF)&quot;. The sequence
      * number space is unique for each pairing of the SSRC of command source and
      * the SSRC of the command target. The sequence number SHALL be increased by
      * 1 modulo 256 for each new command.

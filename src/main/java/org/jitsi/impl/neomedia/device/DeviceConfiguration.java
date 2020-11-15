@@ -89,13 +89,13 @@ public class DeviceConfiguration
         };
 
     /**
-     * The default value to be used for the {@link #PROP_AUDIO_DENOISE} property
+     * The default value to be used for the PROP_AUDIO_DENOISE property
      * when it does not have a value.
      */
     public static final boolean DEFAULT_AUDIO_DENOISE = true;
 
     /**
-     * The default value to be used for the {@link #PROP_AUDIO_ECHOCANCEL}
+     * The default value to be used for the PROP_AUDIO_ECHOCANCEL
      * property when it does not have a value.
      */
     public static final boolean DEFAULT_AUDIO_ECHOCANCEL = true;
@@ -628,9 +628,7 @@ public class DeviceConfiguration
 
     /**
      * Gets the list of audio capture devices which are available through this
-     * <tt>DeviceConfiguration</tt>, amongst which is
-     * {@link #getAudioCaptureDevice()} and represent acceptable values
-     * for {@link #setAudioCaptureDevice(CaptureDeviceInfo, boolean)}
+     * <tt>DeviceConfiguration</tt>.
      *
      * @return an array of <tt>CaptureDeviceInfo</tt> describing the audio
      *         capture devices available through this

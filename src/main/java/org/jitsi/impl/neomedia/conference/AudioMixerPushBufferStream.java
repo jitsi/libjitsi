@@ -261,7 +261,7 @@ class AudioMixerPushBufferStream
     }
 
     /**
-     * Gets the <tt>BufferControl<tt> of a specific input stream. The returned
+     * Gets the <tt>BufferControl</tt> of a specific input stream. The returned
      * <tt>BufferControl</tt> may be available through its input
      * <tt>DataSource</tt>, its transcoding <tt>DataSource</tt> if any or the
      * very input stream.

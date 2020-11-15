@@ -31,7 +31,7 @@ import org.jitsi.service.neomedia.*;
  * 
  * 
  * rtpdump file can be generated with wireshark from RTP stream, just go to :
- * -> Telephony -> RTP -> Show All Streams
+ * -&gt; Telephony -&gt; RTP -&gt; Show All Streams
  * then select the RTP stream you want to record, and click on "Save As".
  * 
  * If the RTP menu isn't found in the Telephony menu, maybe you can find it in

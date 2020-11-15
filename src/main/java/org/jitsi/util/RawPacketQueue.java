@@ -26,8 +26,7 @@ import org.jitsi.service.neomedia.*;
 public class RawPacketQueue extends PacketQueue<RawPacket>
 {
     /**
-     * Initializes a new {@link RawPacketQueue}. See
-     * {@link PacketQueue#PacketQueue(int, boolean, boolean, String, PacketHandler)}
+     * Initializes a new {@link RawPacketQueue}. See {@link PacketQueue}.
      */
     public RawPacketQueue(int capacity, boolean copy,
                           boolean enableStatistics, String id,
@@ -37,8 +36,7 @@ public class RawPacketQueue extends PacketQueue<RawPacket>
     }
 
     /**
-     * Initializes a new {@link RawPacketQueue}. See
-     * {@link PacketQueue#PacketQueue(boolean, String, PacketHandler)}
+     * Initializes a new {@link RawPacketQueue}. See {@link PacketQueue}.
      */
     public RawPacketQueue(
         boolean enableStatistics, String id,
@@ -48,8 +46,7 @@ public class RawPacketQueue extends PacketQueue<RawPacket>
     }
 
     /**
-     * Initializes a new {@link RawPacketQueue}. See
-     * {@link PacketQueue#PacketQueue()}
+     * Initializes a new {@link RawPacketQueue}. See {@link PacketQueue}.
      */
     public RawPacketQueue()
     {

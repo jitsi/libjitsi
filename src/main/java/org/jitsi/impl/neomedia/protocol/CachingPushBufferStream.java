@@ -552,7 +552,7 @@ public class CachingPushBufferStream
     /**
      * Implements
      * {@link PushBufferStream#setTransferHandler(BufferTransferHandler)}.
-     * Delegates to the wrapped <tt>PushBufferStream<tt> but wraps the specified
+     * Delegates to the wrapped <tt>PushBufferStream</tt> but wraps the specified
      * BufferTransferHandler in order to intercept the calls to
      * {@link BufferTransferHandler#transferData(PushBufferStream)} and read
      * data from the wrapped <tt>PushBufferStream</tt> into the cache during the

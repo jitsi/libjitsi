@@ -105,7 +105,7 @@ public class ZrtpControlImpl
      *
      * @param  index
      *         Hello hash of the Hello packet identfied by index. Index must
-     *         be 0 <= index < SUPPORTED_ZRTP_VERSIONS.
+     *         be 0 &lt;= index &lt; SUPPORTED_ZRTP_VERSIONS.
      * @return String the zrtp hello hash.
      */
     public String getHelloHash(int index)
@@ -118,7 +118,7 @@ public class ZrtpControlImpl
      *
      * @param  index
      *         Hello hash of the Hello packet identfied by index. Index must
-     *         be 0 <= index < SUPPORTED_ZRTP_VERSIONS.
+     *         be 0 &lt;= index &lt; SUPPORTED_ZRTP_VERSIONS.
      * @return String array containing the version string at offset 0, the Hello
      *         hash value as hex-digits at offset 1. Hello hash is available
      *         immediately after class instantiation. Returns <code>null</code>

@@ -32,7 +32,7 @@ class A2NLSF_constants
 /**
  * Conversion between prediction filter coefficients and NLSFs.
  * Requires the order to be an even number.
- * A piecewise linear approximation maps LSF <-> cos(LSF).
+ * A piecewise linear approximation maps LSF &lt;-&gt; cos(LSF).
  * Therefore the result is not accurate NLSFs, but the two.
  * function are accurate inverses of each other.
  *

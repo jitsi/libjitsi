@@ -19,7 +19,7 @@ import org.jitsi.utils.*;
 
 /**
  * A wrapper for the libvpx native library.
- * See {@link "http://www.webmproject.org/docs/"}
+ * See <a href="http://www.webmproject.org/docs/">WebM Project Docs</a>
  *
  * @author Boris Grozev
  */

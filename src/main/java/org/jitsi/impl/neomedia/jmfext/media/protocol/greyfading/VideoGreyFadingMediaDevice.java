@@ -65,7 +65,7 @@ public class VideoGreyFadingMediaDevice
     /**
      * Initializes a new <tt>VideoGreyFadingMediaDevice</tt> with the given
      * dimension and the default framerate. 
-     * @param dimension the dimension (width & height) of the
+     * @param dimension the dimension (width and height) of the
      * <tt>CaptureDevice</tt> behind this <tt>MediaDevice</tt>.
      */
     public VideoGreyFadingMediaDevice(Dimension dimension)
@@ -78,7 +78,7 @@ public class VideoGreyFadingMediaDevice
      * framerate and dimension.
      * @param framerate the framerate of the <tt>CaptureDevice</tt> behind this
      * <tt>MediaDevice</tt>.
-     * @param dimension the dimension (width & height) of the
+     * @param dimension the dimension (width and height) of the
      * <tt>CaptureDevice</tt> behind this <tt>MediaDevice</tt>.
      */
     public VideoGreyFadingMediaDevice(int framerate, Dimension dimension)

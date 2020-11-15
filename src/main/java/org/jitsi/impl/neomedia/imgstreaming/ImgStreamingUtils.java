@@ -62,7 +62,7 @@ public class ImgStreamingUtils
     /**
      * Get raw bytes from ARGB <tt>BufferedImage</tt>.
      *
-     * @param src ARGB <BufferImage</tt>
+     * @param src ARGB <tt>BufferImage</tt>
      * @param output output buffer, if not null and if its length is at least
      * image's (width * height) * 4, method will put bytes in it.
      * @return raw bytes or null if src is not an ARGB

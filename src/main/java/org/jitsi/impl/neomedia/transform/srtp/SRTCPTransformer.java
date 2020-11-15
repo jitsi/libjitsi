@@ -28,7 +28,7 @@ import org.jitsi.utils.logging.*;
  * It encapsulate the encryption / decryption logic for SRTCP packets
  *
  * @author Bing SU (nova.su@gmail.com)
- * @author Werner Dittmann &lt;Werner.Dittmann@t-online.de>
+ * @author Werner Dittmann &lt;Werner.Dittmann@t-online.de&gt;
  */
 public class SRTCPTransformer
     extends SinglePacketTransformer

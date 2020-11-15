@@ -27,8 +27,7 @@ import java.util.*;
 import java.util.concurrent.*;
 
 /**
- * A depacketizer from VP8.
- * See {@link "http://tools.ietf.org/html/draft-ietf-payload-vp8-11"}
+ * A depacketizer from VP8. See <a href="http://tools.ietf.org/html/draft-ietf-payload-vp8-11">draft-ietf-payload-vp8-11</a>
  *
  * @author Boris Grozev
  * @author George Politis
@@ -417,8 +416,8 @@ public class DePacketizer
     }
 
     /**
-     * A class that represents the VP8 Payload Descriptor structure defined
-     * in {@link "http://tools.ietf.org/html/draft-ietf-payload-vp8-10"}
+     * A class that represents the VP8 Payload Descriptor structure defined in
+     * <a href="http://tools.ietf.org/html/draft-ietf-payload-vp8-10">draft-ietf-payload-vp8-10</a>
      */
     public static class VP8PayloadDescriptor
     {
@@ -806,8 +805,8 @@ public class DePacketizer
     }
 
     /**
-     * A class that represents the VP8 Payload Header structure defined
-     * in {@link "http://tools.ietf.org/html/draft-ietf-payload-vp8-10"}
+     * A class that represents the VP8 Payload Header structure defined in <a
+     * href="http://tools.ietf.org/html/draft-ietf-payload-vp8-10">draft-ietf-payload-vp8-10</a>
      */
     public static class VP8PayloadHeader
     {

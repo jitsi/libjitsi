@@ -548,7 +548,6 @@ public class VideoMediaStreamImpl
 
     /**
      * {@inheritDoc}
-     * @param fecTransformEngine
      */
     @Override
     protected void setFecTransformEngine(FECTransformEngine fecTransformEngine)

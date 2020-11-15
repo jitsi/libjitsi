@@ -22,7 +22,7 @@ import org.jitsi.service.neomedia.*;
  * PacketTransformer that delegates the forward/reverse transformation of
  * packets to different packet transformers.
  *
- * @author Werner Dittmann <Werner.Dittmann@t-online.de>
+ * @author Werner Dittmann &lt;Werner.Dittmann@t-online.de&gt;
  */
 public class ZRTCPTransformer
     extends SinglePacketTransformer

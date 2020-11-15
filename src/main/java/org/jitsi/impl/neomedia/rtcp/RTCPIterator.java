@@ -25,7 +25,7 @@ import java.util.*;
 /**
  * An {@code Iterator} for RTCP packets contained in a compound RTCP packet.
  * For a {@code PacketTransformer} that splits compound RTCP packets into
- * individual RTCP packets {@see CompoundPacketEngine}.
+ * individual RTCP packets {@link org.jitsi.impl.neomedia.transform.rtcp.CompoundPacketEngine}.
  *
  * Instances of this class are not thread-safe. If multiple threads access an
  * instance concurrently, it must be synchronized externally.
