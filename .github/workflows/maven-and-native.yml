@@ -33,6 +33,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
         with:
+          fetch-depth: 0
           submodules: true
 
       - name: Cache local Maven repository
@@ -77,6 +78,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
         with:
+          fetch-depth: 0
           submodules: true
 
       - name: Cache local Maven repository
@@ -98,7 +100,7 @@ jobs:
 
       - name: The job has failed
         if: ${{ failure() }}
-        run: Compress-Archive -Path $Env:GITHUB_WORKSPACE/src/native/cmake-build-x86 -Destination-Path $Env:GITHUB_WORKSPACE/target/debug-logs.zip
+        run: Compress-Archive -Path $Env:GITHUB_WORKSPACE/src/native/cmake-build-x86 -DestinationPath $Env:GITHUB_WORKSPACE/target/debug-logs.zip
 
       - name: Upload Debug logs
         if: ${{ failure() }}
@@ -133,6 +135,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
         with:
+          fetch-depth: 0
           submodules: true
 
       - name: Cache local Maven repository
@@ -148,6 +151,7 @@ jobs:
 
       - name: Build natives
         run: |
+          brew install yasm
           cd $GITHUB_WORKSPACE/src/native/
           cmake -B cmake-build
           cmake --build cmake-build --config Release --target install
