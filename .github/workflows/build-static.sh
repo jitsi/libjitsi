@@ -16,7 +16,7 @@ export CXXFLAGS="-$ARCH -fPIC"
 
 cd "$LIBROOT/src/native" || exit 1
 cp x86-linux.cmake vcpkg/triplets
-cmake -B cmake-build-$ARCH \
+cmake -B cmake-build-$ARCH --verbose \
   -DVCPKG_VERBOSE=ON \
   -DCMAKE_C_FLAGS="$CFLAGS" \
   -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
@@ -26,4 +26,4 @@ cmake -B cmake-build-$ARCH \
   -DUSE_SYSTEM_USRSCTP=OFF \
   -DUSE_SYSTEM_VPX=OFF
 
-cmake --build cmake-build-$ARCH --config Release --target install
+cmake --build cmake-build-$ARCH --config Release --target install --verbose
