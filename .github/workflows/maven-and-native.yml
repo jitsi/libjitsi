@@ -129,6 +129,9 @@ jobs:
           git config --global user.email "jitsi-jenkins@jitsi.org"
           git config --global user.name "Jitsi GitHub Action"
           cd $Env:GITHUB_WORKSPACE/src/native/
+          # workaround for https://github.com/microsoft/vcpkg/issues/14511
+          .\vcpkg\bootstrap-vcpkg.bat
+          vcpkg\vcpkg.exe install yasm-tool:x86-windows
           cmake -B cmake-build-${{ matrix.arch}} -A ${{ steps.expand_arch.outputs.cmake_arch }} -DJAVA_HOME=${{ steps.install_java.outputs.path }}
           cmake --build cmake-build-${{ matrix.arch}} --config Release --target install
 
@@ -140,7 +143,7 @@ jobs:
         if: ${{ failure() }}
         uses: actions/upload-artifact@v2
         with:
-          name: win32-${{ matrix.arch}}-debug
+          name: win32-${{ steps.expand_arch.outputs.jitsi_arch }}-debug
           path: target/debug*
 
       - name: Upload Windows x86 natives
