@@ -19,7 +19,6 @@ import static org.jitsi.impl.neomedia.transform.dtls.DtlsUtils.BC_TLS_CRYPTO;
 
 import java.beans.*;
 import java.io.*;
-import java.security.*;
 import java.util.*;
 
 import org.bouncycastle.tls.*;
@@ -315,7 +314,6 @@ public class DtlsPacketTransformer
      * to try to establish a DTLS connection.
      *
      * @param i the number of tries remaining after the current one
-     * @param datagramTransport
      * @return <tt>true</tt> to try to establish a DTLS connection; otherwise,
      * <tt>false</tt>
      */
@@ -819,7 +817,7 @@ public class DtlsPacketTransformer
         {
             Object newValue = getProperties().get(propertyName);
 
-            setRtcpmux((newValue == null) ? false : (Boolean) newValue);
+            setRtcpmux(newValue != null && (Boolean) newValue);
         }
     }
 
@@ -966,10 +964,6 @@ public class DtlsPacketTransformer
 
     /**
      * Runs in {@link #connectThread} to initialize {@link #dtlsTransport}.
-     *
-     * @param dtlsProtocol
-     * @param tlsPeer
-     * @param datagramTransport
      */
     private void runInConnectThread(
             DTLSProtocol dtlsProtocol,
@@ -1134,8 +1128,6 @@ public class DtlsPacketTransformer
     {
         if (this.connector != connector)
         {
-            AbstractRTPConnector oldValue = this.connector;
-
             this.connector = connector;
 
             DatagramTransportImpl datagramTransport = this.datagramTransport;
@@ -1754,6 +1746,9 @@ public class DtlsPacketTransformer
             throw new IllegalStateException("error in calculation of seed for export");
         }
 
-        return TlsUtils.PRF(context, new BcTlsSecret(BC_TLS_CRYPTO, masterSecret), asciiLabel, seed, length).extract();
+        return TlsUtils
+            .PRF(context.getSecurityParametersHandshake(),
+                new BcTlsSecret(BC_TLS_CRYPTO, masterSecret),
+                asciiLabel, seed, length).extract();
     }
 }

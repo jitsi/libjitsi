@@ -15,6 +15,7 @@
  */
 package org.jitsi.impl.neomedia.device;
 
+import java.nio.charset.*;
 import org.jitsi.util.OSUtils;
 import org.jitsi.utils.*;
 import org.jitsi.utils.logging.*;
@@ -39,7 +40,7 @@ public class CoreAudioDevice
      */
     public static boolean isLoaded;
 
-    /**
+    /*
      * Loads CoreAudioDevice if we are using MacOsX or Windows Vista/7/8.
      */
     static
@@ -64,7 +65,7 @@ public class CoreAudioDevice
                 isLoaded = true;
             }
         }
-        catch (NullPointerException npe)
+        catch (NullPointerException | UnsatisfiedLinkError | SecurityException npe)
         {
             /*
              * Swallow whatever exceptions are known to be thrown by
@@ -73,14 +74,6 @@ public class CoreAudioDevice
              * false eventually.
              */
             logger.info("Failed to load CoreAudioDevice library: ", npe);
-        }
-        catch (SecurityException se)
-        {
-            logger.info("Failed to load CoreAudioDevice library: ", se);
-        }
-        catch (UnsatisfiedLinkError ule)
-        {
-            logger.info("Failed to load CoreAudioDevice library: ", ule);
         }
 
         CoreAudioDevice.isLoaded = isLoaded;
@@ -96,10 +89,8 @@ public class CoreAudioDevice
 
         byte[] deviceModelIdentifierBytes
             = getDeviceModelIdentifierBytes(deviceUID);
-        String deviceModelIdentifier
-            = StringUtils.newString(deviceModelIdentifierBytes);
 
-        return deviceModelIdentifier;
+        return newString(deviceModelIdentifierBytes);
     }
 
     public static native byte[] getDeviceModelIdentifierBytes(
@@ -109,9 +100,7 @@ public class CoreAudioDevice
             String deviceUID)
     {
         byte[] deviceNameBytes = getDeviceNameBytes(deviceUID);
-        String deviceName = StringUtils.newString(deviceNameBytes);
-
-        return deviceName;
+        return newString(deviceNameBytes);
     }
 
     public static native byte[] getDeviceNameBytes(
@@ -157,7 +146,19 @@ public class CoreAudioDevice
 
     public static void log(byte[] error)
     {
-        String errorString = StringUtils.newString(error);
+        String errorString = newString(error);
         logger.info(errorString);
+    }
+
+    protected static String newString(byte[] bytes)
+    {
+        if (bytes == null || bytes.length == 0)
+        {
+            return null;
+        }
+        else
+        {
+            return new String(bytes, StandardCharsets.UTF_8);
+        }
     }
 }

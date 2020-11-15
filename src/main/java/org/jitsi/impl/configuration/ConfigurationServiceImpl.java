@@ -20,6 +20,8 @@ import java.io.*;
 import java.util.*;
 import java.util.regex.*;
 
+import org.apache.commons.lang3.*;
+import org.apache.commons.lang3.StringUtils;
 import org.jitsi.impl.configuration.xml.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.fileaccess.*;
@@ -1388,7 +1390,7 @@ public class ConfigurationServiceImpl
             return;
 
         Pattern exclusion = null;
-        if (!StringUtils.isNullOrEmpty(excludePattern))
+        if (StringUtils.isNotEmpty(excludePattern))
         {
             exclusion = Pattern.compile(
                 excludePattern, Pattern.CASE_INSENSITIVE);

@@ -15,8 +15,6 @@
  */
 package org.jitsi.impl.neomedia.device;
 
-import org.jitsi.utils.*;
-
 /**
  * Extension for the JNI link to the MacOsX CoreAudio library.
  *
@@ -52,9 +50,7 @@ public class MacCoreAudioDevice
             throw new NullPointerException("deviceUID");
 
         byte[] transportTypeBytes = getTransportTypeBytes(deviceUID);
-        String transportType = StringUtils.newString(transportTypeBytes);
-
-        return transportType;
+        return newString(transportTypeBytes);
     }
 
     public static native byte[] getTransportTypeBytes(String deviceUID);
@@ -77,10 +73,7 @@ public class MacCoreAudioDevice
     public static String getDefaultInputDeviceUID()
     {
         byte[] defaultInputDeviceUIDBytes = getDefaultInputDeviceUIDBytes();
-        String defaultInputDeviceUID
-            = StringUtils.newString(defaultInputDeviceUIDBytes);
-
-        return defaultInputDeviceUID;
+        return newString(defaultInputDeviceUIDBytes);
     }
 
     public static native byte[] getDefaultInputDeviceUIDBytes();
@@ -88,10 +81,7 @@ public class MacCoreAudioDevice
     public static String getDefaultOutputDeviceUID()
     {
         byte[] defaultOutputDeviceUIDBytes = getDefaultOutputDeviceUIDBytes();
-        String defaultOutputDeviceUID
-            = StringUtils.newString(defaultOutputDeviceUIDBytes);
-
-        return defaultOutputDeviceUID;
+        return newString(defaultOutputDeviceUIDBytes);
     }
 
     public static native byte[] getDefaultOutputDeviceUIDBytes();

@@ -24,6 +24,7 @@ import static org.junit.Assert.*;
 /**
  * @author Boris Grozev
  */
+@SuppressWarnings("deprecation")
 public class RTPUtilsTest
 {
     /**
