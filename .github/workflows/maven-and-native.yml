@@ -93,8 +93,19 @@ jobs:
       - name: Build natives x86
         run: |
           cd $Env:GITHUB_WORKSPACE/src/native/
-          cmake --trace -B cmake-build-x86 -A Win32
-          cmake --build cmake-build-x86 --config Release --target install --trace
+          cmake -B cmake-build-x86 -A Win32
+          cmake --build cmake-build-x86 --config Release --target install
+
+      - name: The job has failed
+        if: ${{ failure() }}
+        run: Compress-Archive -Path $Env:GITHUB_WORKSPACE/src/native/cmake-build-x86 -Destination-Path $Env:GITHUB_WORKSPACE/target/debug-logs.zip
+
+      - name: Upload Debug logs
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: win32-x86-debug
+          path: target/debug*
 
       - name: Upload Windows x86 natives
         uses: actions/upload-artifact@v2
@@ -138,8 +149,19 @@ jobs:
       - name: Build natives
         run: |
           cd $GITHUB_WORKSPACE/src/native/
-          cmake --trace -B cmake-build
-          cmake --build cmake-build --config Release --target install --trace
+          cmake -B cmake-build
+          cmake --build cmake-build --config Release --target install
+
+      - name: The job has failed
+        if: ${{ failure() }}
+        run: tar --exclude *.o -cvJf $GITHUB_WORKSPACE/target/debug-logs.tar.xz $GITHUB_WORKSPACE/src/native/cmake-build 
+
+      - name: Upload Debug logs
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: darwin-debug
+          path: target/debug*
 
       - name: Upload Mac natives
         uses: actions/upload-artifact@v2
