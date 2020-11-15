@@ -63,7 +63,7 @@ jobs:
         run: docker run -v ${{ github.workspace }}:/ghws libjitsi-static:${{ github.sha }} /bin/bash -c "/ghws/.github/workflows/build-static.sh m32 /ghws"
 
       - name: Upload Linux x86 natives
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v2
         with:
           name: linux-x86
           path: lib/native/linux-x86
@@ -72,7 +72,7 @@ jobs:
         run: docker run -v ${{ github.workspace }}:/ghws libjitsi-static:${{ github.sha }} /bin/bash -c "/ghws/.github/workflows/build-static.sh m64 /ghws"
 
       - name: Upload Linux x64 natives
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v2
         with:
           name: linux-x86-64
           path: lib/native/linux-x86-64
@@ -109,7 +109,7 @@ jobs:
           cmake --build cmake-build-x86 --config Release --target install
 
       - name: Upload Windows x86 natives
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v2
         with:
           name: win32-x86
           path: lib/native/win32-x86
@@ -121,7 +121,7 @@ jobs:
           cmake --build cmake-build-x64 --config Release --target install
 
       - name: Upload Windows x64 natives
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v2
         with:
           name: win32-x86-64
           path: lib/native/win32-x86-64
@@ -155,7 +155,7 @@ jobs:
           cmake --build cmake-build --config Release --target install --verbose
 
       - name: Upload Mac natives
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v2
         with:
           name: darwin
           path: lib/native/darwin
@@ -165,3 +165,56 @@ jobs:
     runs-on: ubuntu-latest
     needs: [ javatest, ubuntu, windows, mac ]
     steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          submodules: true
+
+      - name: Cache local Maven repository
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Get Linux x86 natives
+        uses: actions/download-artifact@v2
+        with:
+          name: linux-x86
+          path: lib/native/linux-x86
+
+      - name: Get Linux x64 natives
+        uses: actions/download-artifact@v2
+        with:
+          name: linux-x86-64
+          path: lib/native/linux-x86-64
+
+      - name: Get Windows x86 natives
+        uses: actions/download-artifact@v2
+        with:
+          name: win32-x86
+          path: lib/native/win32-x86
+
+      - name: Get Windows x64 natives
+        uses: actions/download-artifact@v2
+        with:
+          name: win32-x86-64
+          path: lib/native/win32-x86-64
+
+      - name: Get Mac natives
+        uses: actions/download-artifact@v2
+        with:
+          name: darwin
+          path: lib/native/darwin
+
+      - name: Package Java with built native libs
+        run: mvn -B package -DperformRelease=true -DskipTests
+        
+      - name: Upload Multi-Platform Jar
+        uses: actions/upload-artifact@v2
+        with:
+          name: jar
+          path: target/*.jar
+          if-no-files-found: error
