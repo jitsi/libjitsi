@@ -151,7 +151,7 @@ jobs:
       - name: Build natives
         run: |
           cd $GITHUB_WORKSPACE/src/native/
-          cmake -B cmake-build -G Xcode
+          cmake -B cmake-build --verbose
           cmake --build cmake-build --config Release --target install --verbose
 
       - name: Upload Mac natives
