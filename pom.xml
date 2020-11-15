@@ -167,15 +167,15 @@
                <Private-Package>org.jitsi.examples.*,org.jitsi.impl.*</Private-Package>
                <Bundle-Activator>org.jitsi.service.libjitsi.LibJitsiActivator</Bundle-Activator>
                <Bundle-NativeCode>
-                   darwin/libjnawtrenderer.jnilib;
-                   darwin/libjnmaccoreaudio.jnilib;
-                   darwin/libjnopus.jnilib;
-                   darwin/libjnportaudio.jnilib;
-                   darwin/libjnquicktime.jnilib;
-                   darwin/libjnscreencapture.jnilib;
-                   darwin/libjnsctp.jnilib;
-                   darwin/libjnspeex.jnilib;
-                   darwin/libjnvpx.jnilib;osname=Mac OS X;processor=x86-64,
+                   darwin/libjnawtrenderer.dylib;
+                   darwin/libjnmaccoreaudio.dylib;
+                   darwin/libjnopus.dylib;
+                   darwin/libjnportaudio.dylib;
+                   darwin/libjnquicktime.dylib;
+                   darwin/libjnscreencapture.dylib;
+                   darwin/libjnsctp.dylib;
+                   darwin/libjnspeex.dylib;
+                   darwin/libjnvpx.dylib;osname=Mac OS X;processor=x86-64,
                    linux-x86/libjnawtrenderer.so;
                    linux-x86/libjnopus.so;
                    linux-x86/libjnportaudio.so;
