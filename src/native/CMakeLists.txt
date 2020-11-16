@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
 if (WIN32 OR APPLE OR NOT USE_SYSTEM_VPX)
-    set(VCPKG_MANIFEST_INSTALL true)
     set(CMAKE_TOOLCHAIN_FILE ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake
         CACHE STRING "Vcpkg toolchain file")
 endif ()
