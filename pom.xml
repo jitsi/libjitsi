@@ -142,7 +142,6 @@
   </dependencies>
 
   <build>
-    <testSourceDirectory>test</testSourceDirectory>
     <plugins>
       <plugin>
          <groupId>org.apache.felix</groupId>
@@ -255,6 +254,9 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-source-plugin</artifactId>
           <version>3.2.1</version>
+          <configuration>
+            <excludeResources>true</excludeResources>
+          </configuration>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
