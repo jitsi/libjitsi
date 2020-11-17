@@ -164,7 +164,7 @@ public class SctpTransferTest
             }
             else
             {
-                fail("Test data did not get received within "
+                fail("Test data not received within "
                         + timeoutInSeconds + " seconds.");
             }
         }

@@ -48,7 +48,7 @@ public class FlexFec03PacketTest
     // expected values
     private static class FlexFec03PacketCaptureInfo
     {
-        private static final String path = "test/org/jitsi/impl/neomedia/transform/fec/resources/chrome_single_flexfec03_packet.pcap";
+        private static final String path = "chrome_single_flexfec03_packet.pcap";
         private static final long expectedSsrc = 3324210212L;
         private static final long expectedProtectedSsrc = 3280979721L;
         private static final int expectedFlexFecHeaderOffset = 20;
@@ -79,7 +79,7 @@ public class FlexFec03PacketTest
         throws
         IOException
     {
-        Pcap pcap = Pcap.openStream(FlexFec03PacketCaptureInfo.path);
+        Pcap pcap = Pcap.openStream(getClass().getResourceAsStream(FlexFec03PacketCaptureInfo.path));
 
         final int flexFecPt = 107;
 
@@ -98,7 +98,7 @@ public class FlexFec03PacketTest
         throws
         IOException
     {
-        Pcap pcap = Pcap.openStream(FlexFec03PacketCaptureInfo.path);
+        Pcap pcap = Pcap.openStream(getClass().getResourceAsStream(FlexFec03PacketCaptureInfo.path));
         int addedOffset = 50;
 
         final int flexFecPt = 107;

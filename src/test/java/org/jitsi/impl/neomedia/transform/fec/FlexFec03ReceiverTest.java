@@ -26,7 +26,10 @@ import org.powermock.core.classloader.annotations.*;
 import org.powermock.modules.junit4.*;
 
 import java.util.*;
+import org.powermock.reflect.*;
 
+import static org.easymock.EasyMock.anyInt;
+import static org.easymock.EasyMock.anyString;
 import static org.easymock.EasyMock.expect;
 import static org.junit.Assert.*;
 import static org.powermock.api.easymock.PowerMock.*;
@@ -34,30 +37,40 @@ import static org.powermock.api.easymock.PowerMock.*;
 /**
  * @author bbaldino
  */
-@RunWith(PowerMockRunner.class)
 @PrepareForTest(LibJitsi.class)
 public class FlexFec03ReceiverTest
 {
     private ConfigurationService mockConfigurationService;
 
     @Before
-    public void setUp()
+    public void setUp() throws IllegalAccessException
     {
-        PowerMock.mockStatic(LibJitsi.class);
         mockConfigurationService = PowerMock.createMock(ConfigurationService.class);
-        expect(mockConfigurationService.getInt(EasyMock.anyString(), EasyMock.anyInt())).andAnswer(new IAnswer<Integer>() {
-            public Integer answer()
-            {
-                return (Integer)EasyMock.getCurrentArguments()[1];
-            }
+        expect(mockConfigurationService.getInt(anyString(), anyInt()))
+            .andAnswer(() -> (Integer)EasyMock.getCurrentArguments()[1])
+            .anyTimes();
 
-        }).anyTimes();
-        expect(LibJitsi.getConfigurationService()).andReturn(mockConfigurationService).anyTimes();
+        LibJitsi mockLibJitsi = new LibJitsi()
+        {
+            @Override
+            @SuppressWarnings("unchecked")
+            protected <T> T getService(Class<T> serviceClass)
+            {
+                if (serviceClass == ConfigurationService.class)
+                {
+                    return (T) mockConfigurationService;
+                }
+
+                return null;
+            }
+        };
+        Whitebox.getField(LibJitsi.class, "impl").set(null, mockLibJitsi);
     }
 
     @After
-    public void tearDown()
+    public void tearDown() throws IllegalAccessException
     {
+        Whitebox.getField(LibJitsi.class, "impl").set(null, null);
         verifyAll();
     }
 
@@ -170,7 +183,7 @@ public class FlexFec03ReceiverTest
         Exception
     {
         replayAll();
-        FecPacketReader reader = new FecPacketReader("test/org/jitsi/impl/neomedia/transform/fec/resources/chrome_flexfec_and_video_capture.pcap");
+        FecPacketReader reader = new FecPacketReader(getClass().getResourceAsStream("chrome_flexfec_and_video_capture.pcap"));
 
         int videoPt = 98;
         int flexFecPt = 107;
@@ -225,7 +238,7 @@ public class FlexFec03ReceiverTest
         Exception
     {
         replayAll();
-        FecPacketReader reader = new FecPacketReader("test/org/jitsi/impl/neomedia/transform/fec/resources/chrome_flexfec_and_video_capture.pcap");
+        FecPacketReader reader = new FecPacketReader(getClass().getResourceAsStream("chrome_flexfec_and_video_capture.pcap"));
 
         int videoPt = 98;
         int flexFecPt = 107;

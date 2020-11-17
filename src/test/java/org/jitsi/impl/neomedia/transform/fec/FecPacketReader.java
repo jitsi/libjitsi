@@ -40,6 +40,12 @@ public class FecPacketReader
         pcap = Pcap.openStream(file);
     }
 
+    public FecPacketReader(InputStream input)
+        throws IOException
+    {
+        pcap = Pcap.openStream(input);
+    }
+
     private static boolean checkIfComplete(FlexFec03Packet flexFecPacket,
                                            Map<Integer, RawPacket> mediaPackets)
     {
