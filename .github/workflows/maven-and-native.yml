@@ -238,8 +238,7 @@ jobs:
       - name: Set version
         run: |
           VERSION=`git describe --match "v[0-9\.]*" --long --dirty --always`
-          echo $VERSION
-          mvn -B versions:set -DnewVersion=$VERSION -DgenerateBackupPoms=false
+          mvn -B versions:set -DnewVersion=${VERSION:1} -DgenerateBackupPoms=false
 
       - name: Get Linux x86 natives
         uses: actions/download-artifact@v2
@@ -280,3 +279,20 @@ jobs:
           name: jar
           path: target/*.jar
           if-no-files-found: error
+
+      - name: Release to Maven Central
+        if: github.ref == 'refs/heads/master'
+        env:
+          SONATYPE_USER: ${{ secrets.SONATYPE_USER }}
+          SONATYPE_PW: ${{ secrets.SONATYPE_PW }}
+        run: |
+          cat <(echo -e "${{ secrets.GPG_KEY }}") | gpg --batch --import
+          gpg --list-secret-keys --keyid-format LONG
+          mvn \
+            --no-transfer-progress \
+            --batch-mode \
+            -Dgpg.passphrase="${{ secrets.GPG_PW }}" \
+            -DperformRelease=true \
+            -Drelease=true \
+            -DskipTests \
+            deploy
