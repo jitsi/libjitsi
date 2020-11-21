@@ -94,12 +94,12 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-utils</artifactId>
-      <version>v1.0-66-g9f2339f</version>
+      <version>1.0-67-g4032ab6</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-srtp</artifactId>
-      <version>1.0-33-gfe519d1</version>
+      <version>1.0-1-g0a10757</version>
     </dependency>
     <dependency>
       <groupId>org.opentelecoms.sdp</groupId>
@@ -110,7 +110,7 @@
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-lgpl-dependencies</artifactId>
       <optional>true</optional>
-      <version>1.2-1-gfc49658</version>
+      <version>1.2-7-g9d2cdc4</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
