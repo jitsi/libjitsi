@@ -6,7 +6,7 @@
 
   <groupId>org.jitsi</groupId>
   <artifactId>libjitsi</artifactId>
-  <version>1.0-ib-SNAPSHOT</version>
+  <version>1.0-desktop-SNAPSHOT</version>
   <packaging>bundle</packaging>
 
   <name>libjitsi</name>

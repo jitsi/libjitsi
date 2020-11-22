@@ -235,7 +235,15 @@ jobs:
           java-version: 8
           java-package: jdk
 
+      - name: Get Maven Version
+        id: parse_pom
+        run: |
+          sudo apt-get update && sudo apt-get install -y libxml2-utils
+          MVNVER=`xmllint --xpath "/*[local-name()='project']/*[local-name()='version']/text()" pom.xml`
+          echo "::set-output name=version::$MVNVER"
+
       - name: Set version
+        if: github.ref == 'refs/heads/master'
         run: |
           VERSION=`git describe --match "v[0-9\.]*" --long --dirty --always`
           mvn -B versions:set -DnewVersion=${VERSION:1} -DgenerateBackupPoms=false
@@ -281,7 +289,7 @@ jobs:
           if-no-files-found: error
 
       - name: Release to Maven Central
-        if: github.ref == 'refs/heads/master'
+        if: github.ref == 'refs/heads/master' || (endsWith(steps.parse_pom.outputs.version, '-SNAPSHOT') && github.event == 'push')
         env:
           SONATYPE_USER: ${{ secrets.SONATYPE_USER }}
           SONATYPE_PW: ${{ secrets.SONATYPE_PW }}
