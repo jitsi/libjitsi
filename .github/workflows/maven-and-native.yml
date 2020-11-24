@@ -235,18 +235,35 @@ jobs:
           java-version: 8
           java-package: jdk
 
-      - name: Get Maven Version
-        id: parse_pom
+      - name: Fixup version
+        id: version
         run: |
-          sudo apt-get update && sudo apt-get install -y libxml2-utils
-          MVNVER=`xmllint --xpath "/*[local-name()='project']/*[local-name()='version']/text()" pom.xml`
-          echo "::set-output name=version::$MVNVER"
-
-      - name: Set version
-        if: github.ref == 'refs/heads/master'
-        run: |
-          VERSION=`git describe --match "v[0-9\.]*" --long --dirty --always`
-          mvn -B versions:set -DnewVersion=${VERSION:1} -DgenerateBackupPoms=false
+          MVNVER=`mvn help:evaluate -Dexpression=project.version -q -DforceStdout`
+          if [ "${{ github.ref }}" == "refs/heads/master" ]; then
+            TAG_NAME="v${MVNVER/-SNAPSHOT/}"
+            if ! git rev-parse "$TAG_NAME" >/dev/null 2>&1
+            then
+              echo "Creating tag $TAG_NAME"
+              git config --local user.name "$GITHUB_ACTOR via GitHub Action"
+              git config --local user.email "action@github.com"
+              git tag -a "$TAG_NAME" -m "Tagged automatically by GitHub Action ${{ github.workflow }}"
+              git push origin "$TAG_NAME"
+            else
+              echo "Tag: $TAG_NAME already exists"
+            fi
+            VERSION=`git describe --match "v[0-9\.]*" --long --always`
+            VERSION=${VERSION:1}
+          else
+            echo "Not on master"
+            BRANCH=${GITHUB_REF#refs/heads/}
+            VERSION=${MVNVER/-SNAPSHOT/}
+            VERSION=${VERSION/-$BRANCH/}
+            # this may well be what it was before...
+            VERSION=$VERSION-$BRANCH-SNAPSHOT
+          fi
+          echo "Version: $VERSION"
+          echo "::set-output name=version::${VERSION}"
+          mvn -B versions:set -DnewVersion=${VERSION} -DgenerateBackupPoms=false
 
       - name: Get Linux x86 natives
         uses: actions/download-artifact@v2
@@ -289,7 +306,7 @@ jobs:
           if-no-files-found: error
 
       - name: Release to Maven Central
-        if: github.ref == 'refs/heads/master' || (endsWith(steps.parse_pom.outputs.version, '-SNAPSHOT') && github.event == 'push')
+        if: github.ref == 'refs/heads/master' || (endsWith(steps.version.outputs.version, '-SNAPSHOT') && github.event_name == 'push')
         env:
           SONATYPE_USER: ${{ secrets.SONATYPE_USER }}
           SONATYPE_PW: ${{ secrets.SONATYPE_PW }}
