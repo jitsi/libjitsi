@@ -110,7 +110,7 @@
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-lgpl-dependencies</artifactId>
       <optional>true</optional>
-      <version>1.2-7-g9d2cdc4</version>
+      <version>1.2-8-ga3f4e8c</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
