@@ -220,11 +220,17 @@ public abstract class Devices
             {
                 for(String devicePreference : devicePreferences)
                 {
+                    if (devicePreference == null)
+                    {
+                        continue;
+                    }
+
                     for(CaptureDeviceInfo2 activeDevice : activeDevices)
                     {
                         // If we have found the "preferred" device among active
                         // device.
-                        if(devicePreference.equals(activeDevice.getUID()))
+                        if(activeDevice.getUID() != null &&
+                            devicePreference.equals(activeDevice.getUID()))
                         {
                             return activeDevice;
                         }
