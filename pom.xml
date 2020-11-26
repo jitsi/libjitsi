@@ -99,7 +99,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-srtp</artifactId>
-      <version>1.0-1-g0a10757</version>
+      <version>1.0-2-gc816309</version>
     </dependency>
     <dependency>
       <groupId>org.opentelecoms.sdp</groupId>
