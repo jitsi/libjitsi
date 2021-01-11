@@ -20,10 +20,8 @@ import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.junit.*;
-import org.junit.runner.*;
 import org.powermock.api.easymock.*;
 import org.powermock.core.classloader.annotations.*;
-import org.powermock.modules.junit4.*;
 
 import java.util.*;
 import org.powermock.reflect.*;

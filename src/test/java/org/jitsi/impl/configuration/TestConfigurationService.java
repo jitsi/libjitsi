@@ -29,7 +29,6 @@ import java.util.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.junit.*;
-import org.junit.Assert;
 import org.junit.Test;
 
 /**
