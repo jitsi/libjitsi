@@ -464,7 +464,7 @@ public class MediaStreamImpl
 
         synchronized (dynamicRTPPayloadTypes)
         {
-            dynamicRTPPayloadTypes.put(Byte.valueOf(rtpPayloadType), format);
+            dynamicRTPPayloadTypes.put(rtpPayloadType, format);
         }
 
         String encoding = format.getEncoding();
