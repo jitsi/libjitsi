@@ -47,26 +47,16 @@ public class DataSource
     private static final int[] DS_TO_FFMPEG_PIX_FMTS
         = new int[]
                 {
-                    DSFormat.RGB24,
-                    FFmpeg.PIX_FMT_RGB24,
-                    DSFormat.RGB32,
-                    FFmpeg.PIX_FMT_RGB32,
-                    DSFormat.ARGB32,
-                    FFmpeg.PIX_FMT_ARGB,
-                    DSFormat.YUY2,
-                    FFmpeg.PIX_FMT_YUYV422,
-                    DSFormat.MJPG,
-                    FFmpeg.PIX_FMT_YUVJ422P,
-                    DSFormat.UYVY,
-                    FFmpeg.PIX_FMT_UYVY422,
-                    DSFormat.Y411,
-                    FFmpeg.PIX_FMT_UYYVYY411,
-                    DSFormat.Y41P,
-                    FFmpeg.PIX_FMT_YUV411P,
-                    DSFormat.NV12,
-                    FFmpeg.PIX_FMT_NV12,
-                    DSFormat.I420,
-                    FFmpeg.PIX_FMT_YUV420P
+                    DSFormat.RGB24, FFmpeg.PIX_FMT_RGB24,
+                    DSFormat.RGB32, FFmpeg.PIX_FMT_RGB32,
+                    DSFormat.ARGB32, FFmpeg.PIX_FMT_ARGB,
+                    DSFormat.YUY2, FFmpeg.PIX_FMT_YUYV422,
+                    DSFormat.MJPG, FFmpeg.PIX_FMT_YUVJ422P,
+                    DSFormat.UYVY, FFmpeg.PIX_FMT_UYVY422,
+                    DSFormat.Y411, FFmpeg.PIX_FMT_UYYVYY411,
+                    DSFormat.Y41P, FFmpeg.PIX_FMT_YUV411P,
+                    DSFormat.NV12, FFmpeg.PIX_FMT_NV12,
+                    DSFormat.I420, FFmpeg.PIX_FMT_YUV420P
                 };
 
     /**
