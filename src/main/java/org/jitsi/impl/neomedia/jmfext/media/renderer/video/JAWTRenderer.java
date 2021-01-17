@@ -213,21 +213,6 @@ public class JAWTRenderer
     private int height = 0;
 
     /**
-     * The <tt>Runnable</tt> which is executed to bring the invocations of
-     * {@link #reflectInputFormatOnComponent()} into the AWT event dispatching
-     * thread.
-     */
-    private final Runnable reflectInputFormatOnComponentInEventDispatchThread
-        = new Runnable()
-        {
-            @Override
-            public void run()
-            {
-                reflectInputFormatOnComponentInEventDispatchThread();
-            }
-        };
-
-    /**
      * The last known width of the input processed by this
      * <tt>JAWTRenderer</tt>.
      */
@@ -300,25 +285,13 @@ public class JAWTRenderer
 
                 component = (Component) componentConstructor.newInstance(this);
             }
-            catch (ClassNotFoundException cnfe)
+            catch (ClassNotFoundException
+                | IllegalAccessException
+                | InstantiationException
+                | InvocationTargetException
+                | NoSuchMethodException cnfe)
             {
                 reflectiveOperationException = cnfe;
-            }
-            catch (IllegalAccessException iae)
-            {
-                reflectiveOperationException = iae;
-            }
-            catch (InstantiationException ie)
-            {
-                reflectiveOperationException = ie;
-            }
-            catch (InvocationTargetException ite)
-            {
-                reflectiveOperationException = ite;
-            }
-            catch (NoSuchMethodException nsme)
-            {
-                reflectiveOperationException = nsme;
             }
             if (reflectiveOperationException != null)
                 throw new RuntimeException(reflectiveOperationException);
@@ -428,15 +401,7 @@ public class JAWTRenderer
         // synchronized block in order to avoid a deadlock.
         if (addNotify)
         {
-            SwingUtilities.invokeLater(
-                    new Runnable()
-                    {
-                        @Override
-                        public void run()
-                        {
-                            component.addNotify();
-                        }
-                    });
+            SwingUtilities.invokeLater(component::addNotify);
         }
     }
 
@@ -528,7 +493,7 @@ public class JAWTRenderer
         else
         {
             SwingUtilities.invokeLater(
-                    reflectInputFormatOnComponentInEventDispatchThread);
+                this::reflectInputFormatOnComponentInEventDispatchThread);
         }
     }
 
