@@ -115,11 +115,12 @@ public class ByteBuffer
      */
     public synchronized void free()
     {
-        if ((capacity != 0) && (ptr != 0))
+        if (capacity != 0 && ptr != 0)
         {
-            FFmpeg.av_free(ptr);
-            capacity = 0;
+            long ptrCopy = ptr;
             ptr = 0;
+            capacity = 0;
+            FFmpeg.av_free(ptrCopy);
         }
     }
 

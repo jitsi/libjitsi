@@ -38,13 +38,12 @@ public abstract class AbstractFFmpegAudioCodec
      */
     public static String codecIDToString(int codecID)
     {
-        switch (codecID)
+        if (codecID == FFmpeg.CODEC_ID_MP3)
         {
-        case FFmpeg.CODEC_ID_MP3:
             return "CODEC_ID_MP3";
-        default:
-            return "0x" + Long.toHexString(codecID & 0xFFFFFFFFL);
         }
+
+        return "0x" + Long.toHexString(codecID & 0xFFFFFFFFL);
     }
 
     /**

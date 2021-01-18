@@ -561,24 +561,30 @@ public class SwScale
         Class<?> outDataType = outFormat.getDataType();
         Object dst = out.getData();
 
+        // sws_scale needs the pointer into the native array aligned
+        // allocate an array large enough to move the retrieved pointer
+        final int alignBytes = 64;
+        int outTypeNativeSize = 1;
         if (Format.byteArray.equals(outDataType))
         {
-            if ((dst == null) || (((byte[]) dst).length < dstLength))
-                dst = new byte[dstLength];
+            if (dst == null || ((byte[]) dst).length < dstLength + alignBytes)
+                dst = new byte[dstLength + alignBytes];
         }
         else if (Format.intArray.equals(outDataType))
         {
             /* Java int is always 4 bytes. */
+            outTypeNativeSize = 4;
             dstLength = dstLength / 4 + ((dstLength % 4 == 0) ? 0 : 1);
-            if ((dst == null) || (((int[]) dst).length < dstLength))
-                dst = new int[dstLength];
+            if ((dst == null) || ((int[]) dst).length < dstLength)
+                dst = new int[dstLength + alignBytes / outTypeNativeSize];
         }
         else if (Format.shortArray.equals(outDataType))
         {
             /* Java short is always 2 bytes. */
+            outTypeNativeSize = 2;
             dstLength = dstLength / 2 + ((dstLength % 2 == 0) ? 0 : 1);
-            if ((dst == null) || (((short[]) dst).length < dstLength))
-                dst = new short[dstLength];
+            if (dst == null || ((short[]) dst).length < dstLength)
+                dst = new short[dstLength + alignBytes / outTypeNativeSize];
         }
         else
         {
@@ -611,19 +617,26 @@ public class SwScale
                     outWidth, outHeight, dstFmt,
                     FFmpeg.SWS_BICUBIC);
 
+        int errorOrOffset;
         if (srcPicture == 0)
         {
-            FFmpeg.sws_scale(
+            if ((errorOrOffset = FFmpeg.sws_scale(
                     swsContext,
                     src, srcFmt, inWidth, inHeight, 0, inHeight,
-                    dst, dstFmt, outWidth, outHeight);
+                    dst, dstFmt, outWidth, outHeight)) < 0)
+            {
+                return BUFFER_PROCESSED_FAILED;
+            }
         }
         else
         {
-            FFmpeg.sws_scale(
-                    swsContext,
-                    srcPicture, 0, inHeight,
-                    dst, dstFmt, outWidth, outHeight);
+            if ((errorOrOffset = FFmpeg.sws_scale(
+                swsContext,
+                srcPicture, 0, inHeight,
+                dst, dstFmt, outWidth, outHeight)) < 0)
+            {
+                return BUFFER_PROCESSED_FAILED;
+            }
         }
 
         out.setData(dst);
@@ -631,7 +644,7 @@ public class SwScale
         out.setFlags(in.getFlags());
         out.setFormat(outFormat);
         out.setLength(dstLength);
-        out.setOffset(0);
+        out.setOffset(errorOrOffset / outTypeNativeSize);
         out.setSequenceNumber(in.getSequenceNumber());
         out.setTimeStamp(in.getTimeStamp());
 

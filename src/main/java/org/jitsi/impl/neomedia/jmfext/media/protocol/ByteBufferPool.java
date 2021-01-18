@@ -64,9 +64,16 @@ public class ByteBufferPool
      */
     public synchronized ByteBuffer getBuffer(int capacity)
     {
-        // XXX Pad with FF_INPUT_BUFFER_PADDING_SIZE or hell will break loose.
-        capacity += FFmpeg.FF_INPUT_BUFFER_PADDING_SIZE;
+        // From FFmpeg:
+        // The input buffer must be FF_INPUT_BUFFER_PADDING_SIZE larger than
+        // the actual read bytes because some optimized bitstream readers read
+        // 32 or 64 bits at once and could read over the end.
+        if (capacity >= Integer.MAX_VALUE - FFmpeg.FF_INPUT_BUFFER_PADDING_SIZE)
+        {
+            throw new IllegalArgumentException("Requested capacity is too large");
+        }
 
+        capacity += FFmpeg.FF_INPUT_BUFFER_PADDING_SIZE;
         ByteBuffer buffer = null;
 
         for (Iterator<PooledByteBuffer> i = buffers.iterator(); i.hasNext();)
@@ -82,6 +89,15 @@ public class ByteBufferPool
         }
         if (buffer == null)
             buffer = new PooledByteBuffer(capacity, this);
+
+        // From FFmpeg:
+        // The end of the input buffer buf should be set to 0 to ensure that
+        // no overreading happens for damaged MPEG streams.
+        FFmpeg.memset(
+            buffer.getPtr() + buffer.getCapacity() - FFmpeg.FF_INPUT_BUFFER_PADDING_SIZE,
+            (byte) 0,
+            FFmpeg.FF_INPUT_BUFFER_PADDING_SIZE
+        );
         return buffer;
     }
 

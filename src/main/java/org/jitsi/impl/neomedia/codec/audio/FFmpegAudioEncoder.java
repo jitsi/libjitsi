@@ -170,7 +170,7 @@ public class FFmpegAudioEncoder
         byte[] out
             = (outData instanceof byte[]) ? (byte[]) outData : null;
         int outOff = outBuf.getOffset();
-        int minOutLen = Math.max(FFmpeg.FF_MIN_BUFFER_SIZE, inLen);
+        int minOutLen = Math.max(FFmpeg.AV_INPUT_BUFFER_MIN_SIZE, inLen);
 
         if ((out == null) || (out.length - outOff < minOutLen))
         {

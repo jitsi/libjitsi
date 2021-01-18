@@ -30,8 +30,6 @@ public class AVFrame
 {
     public static int read(Buffer buffer, Format format, ByteBuffer data)
     {
-        AVFrameFormat frameFormat = (AVFrameFormat) format;
-
         Object o = buffer.getData();
         AVFrame frame;
 
@@ -43,7 +41,7 @@ public class AVFrame
             buffer.setData(frame);
         }
 
-        return frame.avpicture_fill(data, frameFormat);
+        return frame.avpicture_fill(data, (AVFrameFormat) format);
     }
 
     /**
@@ -111,7 +109,9 @@ public class AVFrame
         if (ret >= 0)
         {
             if (this.data != null)
+            {
                 this.data.free();
+            }
 
             this.data = data;
         }
@@ -147,11 +147,12 @@ public class AVFrame
      */
     public synchronized void free()
     {
-        if (free && (ptr != 0))
+        if (free && ptr != 0)
         {
-            FFmpeg.avcodec_free_frame(ptr);
             free = false;
+            long ptrCopy = ptr;
             ptr = 0;
+            FFmpeg.avcodec_free_frame(ptrCopy);
         }
 
         if (data != null)
