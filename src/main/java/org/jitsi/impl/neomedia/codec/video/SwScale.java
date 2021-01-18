@@ -212,7 +212,7 @@ public class SwScale
     /**
      * Supported output formats.
      */
-    private VideoFormat[] supportedOutputFormats
+    private final VideoFormat[] supportedOutputFormats
         = new VideoFormat[]
                 {
                     new RGBFormat(),

@@ -47,7 +47,7 @@ public class DSCaptureDevice
      * Empty array with <tt>DSFormat</tt> element type. Explicitly defined
      * in order to avoid unnecessary allocations.
      */
-    private static final DSFormat EMPTY_FORMATS[] = new DSFormat[0];
+    private static final DSFormat[] EMPTY_FORMATS = new DSFormat[0];
 
     public static final int S_FALSE = 1;
 

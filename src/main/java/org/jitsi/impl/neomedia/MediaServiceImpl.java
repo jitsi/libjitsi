@@ -1153,7 +1153,7 @@ public class MediaServiceImpl
                 {
                     for (TrackControl trackControl : trackControls)
                     {
-                        Codec codecs[] = null;
+                        Codec[] codecs;
                         SwScale scaler = new SwScale();
 
                         // do not flip desktop
