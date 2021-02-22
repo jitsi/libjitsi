@@ -719,9 +719,9 @@ public class RTPTranslatorImpl
      */
     public long getLocalSSRC(StreamRTPManager streamRTPManager)
     {
-        // if (streamRTPManager == null)
-        //    return localSSRC;
-        // return ((RTPSessionMgr) manager).getLocalSSRC();
+         if (streamRTPManager == null)
+            return localSSRC;
+         return ((RTPSessionMgr) manager).getLocalSSRC();
 
         // XXX(gp) it makes (almost) no sense to use the FMJ SSRC because, at
         // least in the case of jitsi-videobridge, it's not announced to the
@@ -730,7 +730,10 @@ public class RTPTranslatorImpl
         // This makes the ((RTPSessionMgr) manager).getLocalSSRC() useless in
         // 95% of the use cases (hence the "almost" in the beginning of this
         // comment).
-        return localSSRC;
+        //return localSSRC;
+
+        // XXX(damencho) in jigasi we are announcing the ssrc and use it later
+        // to rewrite whatever comes from sip to send it to the bridge with correct ssrc
     }
 
     /**
