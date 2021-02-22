@@ -116,13 +116,6 @@ public class RTPTranslatorImpl
     private RTPConnectorImpl connector;
 
     /**
-     * A local SSRC for this <tt>RTPTranslator</tt>. This overrides the SSRC of
-     * the <tt>RTPManager</tt> and it does not deal with SSRC collisions.
-     * TAG(cat4-local-ssrc-hurricane).
-     */
-    private long localSSRC = -1;
-
-    /**
      * The <tt>ReadWriteLock</tt> which synchronizes the access to and/or
      * modification of the state of this instance. Replaces
      * <tt>synchronized</tt> blocks in order to reduce the number of exclusive
@@ -719,9 +712,19 @@ public class RTPTranslatorImpl
      */
     public long getLocalSSRC(StreamRTPManager streamRTPManager)
     {
-        // if (streamRTPManager == null)
-        //    return localSSRC;
-        // return ((RTPSessionMgr) manager).getLocalSSRC();
+        // XXX(damencho) in jigasi we are announcing the ssrc and use it later
+        // to rewrite whatever comes from sip to send it to the bridge with correct ssrc.
+        // We need one source of truth which is the ssrc from the RTPManager,
+        // as there were few ssrcs used and changed while creating the streams.
+        // When we see the problem: first we announce in signaling the random ssrc from the AudioMediaStreamImpl
+        // member localSourceID, then we change it to -1 from RTPTranslatorImpl.localSSRC and then when actual
+        // send streams are created they use the ssrc from the RTPManager
+        // returning here the ssrc from RTPManager and making sure that AudioMediaStreamImpl
+        // returns also the RTPManager ssrc when using translator unifies all places
+        // to use the same value.
+        if (streamRTPManager == null)
+            return -1;
+         return ((RTPSessionMgr) manager).getLocalSSRC();
 
         // XXX(gp) it makes (almost) no sense to use the FMJ SSRC because, at
         // least in the case of jitsi-videobridge, it's not announced to the
@@ -730,7 +733,7 @@ public class RTPTranslatorImpl
         // This makes the ((RTPSessionMgr) manager).getLocalSSRC() useless in
         // 95% of the use cases (hence the "almost" in the beginning of this
         // comment).
-        return localSSRC;
+        //return localSSRC;
     }
 
     /**
@@ -1031,15 +1034,6 @@ public class RTPTranslatorImpl
             SessionListener listener)
     {
         // TODO Auto-generated method stub
-    }
-
-    /**
-     * Sets the local SSRC for this <tt>RTPTranslatorImpl</tt>.
-     * @param localSSRC the SSRC to set.
-     */
-    public void setLocalSSRC(long localSSRC)
-    {
-        this.localSSRC = localSSRC;
     }
 
     /**
