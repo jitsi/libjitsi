@@ -116,13 +116,6 @@ public class RTPTranslatorImpl
     private RTPConnectorImpl connector;
 
     /**
-     * A local SSRC for this <tt>RTPTranslator</tt>. This overrides the SSRC of
-     * the <tt>RTPManager</tt> and it does not deal with SSRC collisions.
-     * TAG(cat4-local-ssrc-hurricane).
-     */
-    private long localSSRC = -1;
-
-    /**
      * The <tt>ReadWriteLock</tt> which synchronizes the access to and/or
      * modification of the state of this instance. Replaces
      * <tt>synchronized</tt> blocks in order to reduce the number of exclusive
@@ -730,7 +723,7 @@ public class RTPTranslatorImpl
         // returns also the RTPManager ssrc when using translator unifies all places
         // to use the same value.
         if (streamRTPManager == null)
-            return localSSRC;
+            return -1;
          return ((RTPSessionMgr) manager).getLocalSSRC();
 
         // XXX(gp) it makes (almost) no sense to use the FMJ SSRC because, at
@@ -1041,15 +1034,6 @@ public class RTPTranslatorImpl
             SessionListener listener)
     {
         // TODO Auto-generated method stub
-    }
-
-    /**
-     * Sets the local SSRC for this <tt>RTPTranslatorImpl</tt>.
-     * @param localSSRC the SSRC to set.
-     */
-    public void setLocalSSRC(long localSSRC)
-    {
-        this.localSSRC = localSSRC;
     }
 
     /**
