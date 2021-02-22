@@ -719,7 +719,17 @@ public class RTPTranslatorImpl
      */
     public long getLocalSSRC(StreamRTPManager streamRTPManager)
     {
-         if (streamRTPManager == null)
+        // XXX(damencho) in jigasi we are announcing the ssrc and use it later
+        // to rewrite whatever comes from sip to send it to the bridge with correct ssrc.
+        // We need one source of truth which is the ssrc from the RTPManager,
+        // as there were few ssrcs used and changed while creating the streams.
+        // When we see the problem: first we announce in signaling the random ssrc from the AudioMediaStreamImpl
+        // member localSourceID, then we change it to -1 from RTPTranslatorImpl.localSSRC and then when actual
+        // send streams are created they use the ssrc from the RTPManager
+        // returning here the ssrc from RTPManager and making sure that AudioMediaStreamImpl
+        // returns also the RTPManager ssrc when using translator unifies all places
+        // to use the same value.
+        if (streamRTPManager == null)
             return localSSRC;
          return ((RTPSessionMgr) manager).getLocalSSRC();
 
@@ -731,9 +741,6 @@ public class RTPTranslatorImpl
         // 95% of the use cases (hence the "almost" in the beginning of this
         // comment).
         //return localSSRC;
-
-        // XXX(damencho) in jigasi we are announcing the ssrc and use it later
-        // to rewrite whatever comes from sip to send it to the bridge with correct ssrc
     }
 
     /**
