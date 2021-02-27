@@ -178,6 +178,22 @@ public class AudioMediaStreamImpl
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setRTPTranslator(RTPTranslator rtpTranslator)
+    {
+        super.setRTPTranslator(rtpTranslator);
+
+        if (rtpTranslator != null)
+        {
+            // we need this so the getLocalSourceID() is correct
+            // as we can be announcing that ssrc in signaling
+            getRTPManager();
+        }
+    }
+
+    /**
      * Gets the time in milliseconds of the last input activity related to this
      * <tt>AudioMediaStream</tt>. We detect either RTP or RTCP activity.
      *

@@ -3726,6 +3726,20 @@ public class MediaStreamImpl
     public void injectPacket(RawPacket pkt, boolean data, TransformEngine after)
         throws TransmissionFailedException
     {
+        this.injectPacket(pkt,data, after, false);
+    }
+
+    /**
+     * Sends a given RTP or RTCP packet to the remote peer/side.
+     *
+     * @param create <tt>true</tt> to create the <tt>OutputDataStream</tt> which
+     * is to be used to write RTP data to be sent to the remote targets if it
+     * does not exist yet; otherwise, <tt>false</tt>
+     */
+    @SuppressWarnings("unchecked")
+    public void injectPacket(RawPacket pkt, boolean data, TransformEngine after, boolean create)
+        throws TransmissionFailedException
+    {
         try
         {
             if (pkt == null || pkt.getBuffer() == null)
@@ -3743,8 +3757,8 @@ public class MediaStreamImpl
 
             RTPConnectorOutputStream outputStream
                 = data
-                    ? rtpConnector.getDataOutputStream(false)
-                    : rtpConnector.getControlOutputStream(false);
+                    ? rtpConnector.getDataOutputStream(create)
+                    : rtpConnector.getControlOutputStream(create);
 
             // We utilize TransformEngineWrapper so it is possible to have after
             // wrapped. Unless we wrap after, pkt will go through the whole
