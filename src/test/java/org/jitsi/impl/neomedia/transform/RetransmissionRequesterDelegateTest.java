@@ -15,20 +15,21 @@
  */
 package org.jitsi.impl.neomedia.transform;
 
-import org.easymock.*;
 import org.jitsi.impl.neomedia.rtcp.*;
 import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.format.*;
 import org.jitsi.utils.*;
 import org.junit.*;
-import org.powermock.api.easymock.*;
+import org.mockito.*;
 
 import java.util.*;
 
-import static org.easymock.EasyMock.*;
 import static org.junit.Assert.*;
-import static org.powermock.api.easymock.PowerMock.*;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * @author bbaldino
@@ -45,9 +46,7 @@ public class RetransmissionRequesterDelegateTest
 
     protected void setTime(long timeMillis)
     {
-        PowerMock.reset(timeProvider);
-        expect(timeProvider.currentTimeMillis()).andReturn(timeMillis).anyTimes();
-        PowerMock.replay(timeProvider);
+        when(timeProvider.currentTimeMillis()).thenReturn(timeMillis);
     }
 
     protected void verifyNackPacket(RawPacket nackPacket, long ssrc, Integer... nackedSeqNums)
@@ -64,7 +63,7 @@ public class RetransmissionRequesterDelegateTest
 
     protected void expectHasWorkReady(RetransmissionRequesterDelegate retransmissionRequester)
     {
-        assertTrue(retransmissionRequester.getTimeUntilNextRun() == 0);
+        assertEquals(0, retransmissionRequester.getTimeUntilNextRun());
     }
 
     protected void expectNoWorkReady(RetransmissionRequesterDelegate retransmissionRequester)
@@ -75,23 +74,17 @@ public class RetransmissionRequesterDelegateTest
     @Before
     public void setUp()
     {
-        mockStream = PowerMock.createMock(MediaStream.class);
-        timeProvider = PowerMock.createMock(TimeProvider.class);
-        workReadyCallback = PowerMock.createMock(Runnable.class);
+        mockStream = mock(MediaStream.class);
+        timeProvider = mock(TimeProvider.class);
+        workReadyCallback = mock(Runnable.class);
         retransmissionRequester = new RetransmissionRequesterDelegate(mockStream, timeProvider);
 
         retransmissionRequester.setWorkReadyCallback(workReadyCallback);
         retransmissionRequester.setSenderSsrc(SENDER_SSRC);
 
-        MediaFormat mediaFormat = PowerMock.createMock(MediaFormat.class);
-        expect(mockStream.getFormat(PAYLOAD_TYPE)).andReturn(mediaFormat).anyTimes();
-        expect(mediaFormat.getEncoding()).andReturn(Constants.VP8).anyTimes();
-    }
-
-    @After
-    public void tearDown()
-    {
-        verifyAll();
+        MediaFormat mediaFormat = mock(MediaFormat.class);
+        when(mockStream.getFormat(PAYLOAD_TYPE)).thenReturn(mediaFormat);
+        when(mediaFormat.getEncoding()).thenReturn(Constants.VP8);
     }
 
     /**
@@ -104,13 +97,11 @@ public class RetransmissionRequesterDelegateTest
         long ssrc = 12345L;
 
         workReadyCallback.run();
-        PowerMock.expectLastCall();
-
-        Capture<RawPacket> nackPacketCapture = Capture.newInstance();
-        mockStream.injectPacket(capture(nackPacketCapture), eq(false), eq((TransformEngine)null));
-        PowerMock.expectLastCall();
-
-        replayAll();
+        ArgumentCaptor<RawPacket> nackPacketCapture
+            = ArgumentCaptor.forClass(RawPacket.class);
+        doNothing()
+            .when(mockStream)
+            .injectPacket(nackPacketCapture.capture(), eq(false), eq(null));
 
         setTime(0L);
 
@@ -124,7 +115,6 @@ public class RetransmissionRequesterDelegateTest
         retransmissionRequester.run();
         expectNoWorkReady(retransmissionRequester);
 
-        assertTrue(nackPacketCapture.hasCaptured());
         RawPacket capturedNackPacket = nackPacketCapture.getValue();
         verifyNackPacket(capturedNackPacket, ssrc, 11);
     }
@@ -135,11 +125,8 @@ public class RetransmissionRequesterDelegateTest
      */
     @Test
     public void testSequentialPacketsDontGenerateNack()
-        throws TransmissionFailedException
     {
         long ssrc = 12345L;
-
-        replayAll();
 
         setTime(0L);
 
@@ -169,13 +156,12 @@ public class RetransmissionRequesterDelegateTest
         long ssrc = 12345L;
 
         workReadyCallback.run();
-        PowerMock.expectLastCall();
 
-        Capture<RawPacket> nackPacketCapture = Capture.newInstance();
-        mockStream.injectPacket(capture(nackPacketCapture), eq(false), eq((TransformEngine)null));
-        PowerMock.expectLastCall().anyTimes();
-
-        replayAll();
+        ArgumentCaptor<RawPacket> nackPacketCapture
+            = ArgumentCaptor.forClass(RawPacket.class);
+        doNothing()
+            .when(mockStream)
+            .injectPacket(nackPacketCapture.capture(), eq(false), eq(null));
 
         long startTime = 0;
         setTime(startTime);
@@ -192,7 +178,6 @@ public class RetransmissionRequesterDelegateTest
         // should be sent
         expectHasWorkReady(retransmissionRequester);
         retransmissionRequester.run();
-        assertTrue(nackPacketCapture.hasCaptured());
         RawPacket capturedNackPacket = nackPacketCapture.getValue();
         verifyNackPacket(capturedNackPacket, ssrc, 11);
     }
@@ -202,18 +187,10 @@ public class RetransmissionRequesterDelegateTest
      */
     @Test
     public void testRetransmissionTimeout()
-        throws TransmissionFailedException
     {
         long ssrc = 12345L;
 
         workReadyCallback.run();
-        PowerMock.expectLastCall();
-
-        Capture<RawPacket> nackPacketCapture = Capture.newInstance();
-        mockStream.injectPacket(capture(nackPacketCapture), eq(false), eq((TransformEngine)null));
-        PowerMock.expectLastCall().anyTimes();
-
-        replayAll();
 
         long startTime = 0;
         setTime(startTime);
@@ -244,13 +221,11 @@ public class RetransmissionRequesterDelegateTest
         long ssrc = 12345L;
 
         workReadyCallback.run();
-        PowerMock.expectLastCall().times(2);
-
-        Capture<RawPacket> nackPacketCapture = Capture.newInstance();
-        mockStream.injectPacket(capture(nackPacketCapture), eq(false), eq((TransformEngine)null));
-        PowerMock.expectLastCall().anyTimes();
-
-        replayAll();
+        ArgumentCaptor<RawPacket> nackPacketCapture
+            = ArgumentCaptor.forClass(RawPacket.class);
+        doNothing()
+            .when(mockStream)
+            .injectPacket(nackPacketCapture.capture(), eq(false), eq(null));
 
         setTime(0);
 
@@ -263,7 +238,6 @@ public class RetransmissionRequesterDelegateTest
         expectHasWorkReady(retransmissionRequester);
         retransmissionRequester.run();
 
-        assertTrue(nackPacketCapture.hasCaptured());
         RawPacket capturedNackPacket = nackPacketCapture.getValue();
         verifyNackPacket(capturedNackPacket, ssrc, 11, 13, 14);
     }
@@ -279,13 +253,11 @@ public class RetransmissionRequesterDelegateTest
         long ssrc2 = 54321L;
 
         workReadyCallback.run();
-        PowerMock.expectLastCall().times(2);
-
-        Capture<RawPacket> nackPacketCapture = Capture.newInstance(CaptureType.ALL);
-        mockStream.injectPacket(capture(nackPacketCapture), eq(false), eq((TransformEngine)null));
-        PowerMock.expectLastCall().anyTimes();
-
-        replayAll();
+        ArgumentCaptor<RawPacket> nackPacketCapture
+            = ArgumentCaptor.forClass(RawPacket.class);
+        doNothing()
+            .when(mockStream)
+            .injectPacket(nackPacketCapture.capture(), eq(false), eq(null));
 
         setTime(0);
 
@@ -301,12 +273,12 @@ public class RetransmissionRequesterDelegateTest
         expectHasWorkReady(retransmissionRequester);
         retransmissionRequester.run();
 
-        assertEquals(2, nackPacketCapture.getValues().size());
+        assertEquals(2, nackPacketCapture.getAllValues().size());
 
-        RawPacket capturedNackPacket1 = nackPacketCapture.getValues().get(0);
+        RawPacket capturedNackPacket1 = nackPacketCapture.getAllValues().get(0);
         verifyNackPacket(capturedNackPacket1, ssrc1,11);
 
-        RawPacket capturedNackPacket2 = nackPacketCapture.getValues().get(1);
+        RawPacket capturedNackPacket2 = nackPacketCapture.getAllValues().get(1);
         verifyNackPacket(capturedNackPacket2, ssrc2,11);
     }
 
@@ -315,18 +287,10 @@ public class RetransmissionRequesterDelegateTest
      */
     @Test
     public void testBigGapTriggersReset()
-        throws TransmissionFailedException
     {
         long ssrc = 12345L;
 
         workReadyCallback.run();
-        PowerMock.expectLastCall();
-
-        Capture<RawPacket> nackPacketCapture = Capture.newInstance();
-        mockStream.injectPacket(capture(nackPacketCapture), eq(false), eq((TransformEngine)null));
-        PowerMock.expectLastCall();
-
-        replayAll();
 
         setTime(0L);
 
@@ -348,18 +312,10 @@ public class RetransmissionRequesterDelegateTest
      */
     @Test
     public void testReceiveMissingPacket()
-        throws TransmissionFailedException
     {
         long ssrc = 12345L;
 
         workReadyCallback.run();
-        PowerMock.expectLastCall().anyTimes();
-
-        Capture<RawPacket> nackPacketCapture = Capture.newInstance();
-        mockStream.injectPacket(capture(nackPacketCapture), eq(false), eq((TransformEngine)null));
-        PowerMock.expectLastCall().anyTimes();
-
-        replayAll();
 
         long startTime = 0L;
         setTime(startTime);
@@ -387,13 +343,11 @@ public class RetransmissionRequesterDelegateTest
         long ssrc = 12345L;
 
         workReadyCallback.run();
-        PowerMock.expectLastCall().anyTimes();
-
-        Capture<RawPacket> nackPacketCapture = Capture.newInstance();
-        mockStream.injectPacket(capture(nackPacketCapture), eq(false), eq((TransformEngine)null));
-        PowerMock.expectLastCall().anyTimes();
-
-        replayAll();
+        ArgumentCaptor<RawPacket> nackPacketCapture
+            = ArgumentCaptor.forClass(RawPacket.class);
+        doNothing()
+            .when(mockStream)
+            .injectPacket(nackPacketCapture.capture(), eq(false), eq(null));
 
         long startTime = 0L;
         setTime(startTime);
@@ -416,7 +370,6 @@ public class RetransmissionRequesterDelegateTest
         expectHasWorkReady(retransmissionRequester);
         retransmissionRequester.run();
 
-        assertTrue(nackPacketCapture.hasCaptured());
         RawPacket capturedNackPacket = nackPacketCapture.getValue();
         verifyNackPacket(capturedNackPacket, ssrc, 13, 14);
     }

@@ -19,15 +19,12 @@ import org.jitsi.impl.configuration.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.junit.*;
-import org.junit.runner.*;
-import org.junit.runners.*;
 
 /**
  * Just a playground - do not integrate.
  *
  * @author Pawel Domas
  */
-@RunWith(JUnit4.class)
 public class ConfigPrintTest
 {
     @Test

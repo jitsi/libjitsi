@@ -15,38 +15,31 @@
  */
 package org.jitsi.impl.neomedia.transform.fec;
 
-import org.easymock.*;
+import java.lang.reflect.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
 import org.junit.*;
-import org.powermock.api.easymock.*;
-import org.powermock.core.classloader.annotations.*;
 
 import java.util.*;
-import org.powermock.reflect.*;
+import org.mockito.stubbing.*;
 
-import static org.easymock.EasyMock.anyInt;
-import static org.easymock.EasyMock.anyString;
-import static org.easymock.EasyMock.expect;
 import static org.junit.Assert.*;
-import static org.powermock.api.easymock.PowerMock.*;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-/**
- * @author bbaldino
- */
-@PrepareForTest(LibJitsi.class)
 public class FlexFec03ReceiverTest
 {
     private ConfigurationService mockConfigurationService;
 
     @Before
-    public void setUp() throws IllegalAccessException
+    public void setUp() throws Exception
     {
-        mockConfigurationService = PowerMock.createMock(ConfigurationService.class);
-        expect(mockConfigurationService.getInt(anyString(), anyInt()))
-            .andAnswer(() -> (Integer)EasyMock.getCurrentArguments()[1])
-            .anyTimes();
+        mockConfigurationService = mock(ConfigurationService.class);
+        when(mockConfigurationService.getInt(anyString(), anyInt()))
+            .thenAnswer((Answer<Integer>) a -> (int) a.getArgument(1));
 
         LibJitsi mockLibJitsi = new LibJitsi()
         {
@@ -62,14 +55,17 @@ public class FlexFec03ReceiverTest
                 return null;
             }
         };
-        Whitebox.getField(LibJitsi.class, "impl").set(null, mockLibJitsi);
+        Field implField = LibJitsi.class.getDeclaredField("impl");
+        implField.setAccessible(true);
+        implField.set(null, mockLibJitsi);
     }
 
     @After
-    public void tearDown() throws IllegalAccessException
+    public void tearDown() throws Exception
     {
-        Whitebox.getField(LibJitsi.class, "impl").set(null, null);
-        verifyAll();
+        Field implField = LibJitsi.class.getDeclaredField("impl");
+        implField.setAccessible(true);
+        implField.set(null, null);
     }
 
     public class FecCaptureReadResult
@@ -102,9 +98,6 @@ public class FlexFec03ReceiverTest
      * Given a flexfec packet, a COMPLETE set of its protected media packets
      * and the sequence number of the protected packet to 'drop', make sure the
      * dropped packet can be recreated correctly
-     * @param flexFecPacket
-     * @param missingSeqNum
-     * @param protectedMediaPackets
      */
     private void verifyFlexFec(FlexFec03Packet flexFecPacket, int missingSeqNum, List<RawPacket> protectedMediaPackets)
     {
@@ -144,8 +137,6 @@ public class FlexFec03ReceiverTest
     /**
      * For a given flexFecPacket and a map of media packets, verify each one of
      * the protected media packets (one by one) can be recovered if dropped
-     * @param flexFecPacket
-     * @param mediaPackets
      */
     private void verifyFlexFec(FlexFec03Packet flexFecPacket, Map<Integer, RawPacket> mediaPackets)
     {
@@ -173,14 +164,12 @@ public class FlexFec03ReceiverTest
      * media packets which it protects.  It will then feed the fec packets
      * and all the media packets (except for 1) into the FlexFec03Receiver
      * to verify it can correctly recover the withheld packet.
-     * @throws Exception
      */
     @Test
     public void testReverseTransform()
         throws
         Exception
     {
-        replayAll();
         FecPacketReader reader = new FecPacketReader(getClass().getResourceAsStream("chrome_flexfec_and_video_capture.pcap"));
 
         int videoPt = 98;
@@ -228,14 +217,12 @@ public class FlexFec03ReceiverTest
     /**
      * Same as the above test, but re-create packets so that the
      * data in the buffer starts at a non-zero offset
-     * @throws Exception
      */
     @Test
     public void testReverseTransformWithOffset()
         throws
         Exception
     {
-        replayAll();
         FecPacketReader reader = new FecPacketReader(getClass().getResourceAsStream("chrome_flexfec_and_video_capture.pcap"));
 
         int videoPt = 98;
