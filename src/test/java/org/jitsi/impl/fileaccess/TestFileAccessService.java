@@ -17,13 +17,13 @@
  */
 package org.jitsi.impl.fileaccess;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.*;
 import java.util.*;
 import org.jitsi.service.fileaccess.*;
 import org.jitsi.service.libjitsi.*;
-import org.junit.*;
+import org.junit.jupiter.api.*;
 
 public class TestFileAccessService
 {
@@ -54,14 +54,14 @@ public class TestFileAccessService
      */
     private static final String fileName = "fileaccessservice.tst";
 
-    @Before
+    @BeforeEach
     public void beforeEach()
     {
         LibJitsi.start();
         fileAccessService = LibJitsi.getFileAccessService();
     }
 
-    @After
+    @AfterEach
     public void afterEach()
     {
         LibJitsi.stop();
@@ -127,12 +127,13 @@ public class TestFileAccessService
             }
             catch (IOException e)
             {
-                fail("Error creating the temp directory: " + e.getMessage());
+                fail(
+                    "Error creating the temp directory: " + e.getMessage());
             }
 
             files[i] = new File(tempDir, fileName);
-            assertTrue("Error creating file in temp dir", files[i]
-                .createNewFile());
+            assertTrue(files[i]
+                .createNewFile(), "Error creating file in temp dir");
 
             randomData[i] = generateRandomData();
             this.writeFile(files[i], randomData[i]);
@@ -188,20 +189,21 @@ public class TestFileAccessService
         File file = new File(privateDir, fileName);
         if (file.exists())
         {
-            assertTrue("Persistent file exists. Delete attempt failed. "
-                + "Have you ran the tests with other user? "
-                + "Is the file locked?" + file.getAbsolutePath(), file
-                .delete());
+            assertTrue(file
+                .delete(), "Persistent file exists. Delete attempt failed. "
+                    + "Have you ran the tests with other user? "
+                    + "Is the file locked?" + file.getAbsolutePath());
         }
-        assertTrue("Error creating file in dir" + file.getAbsolutePath(),
+        assertTrue(
             file
-                .createNewFile());
+                .createNewFile(),
+            "Error creating file in dir" + file.getAbsolutePath());
         this.writeReadFile(file);
 
         assertTrue(file.delete());
         assertFalse(
-            "Could not clean up created file " + file.getAbsolutePath(),
-            file.exists());
+            file.exists(),
+            "Could not clean up created file " + file.getAbsolutePath());
     }
 
     /*

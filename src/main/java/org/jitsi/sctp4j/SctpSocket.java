@@ -203,7 +203,7 @@ public class SctpSocket
      * on this <tt>SctpSocket</tt>. It does NOT indicate whether
      * {@link Sctp#closeSocket(long)} has been invoked with {@link #ptr}.
      */
-    private boolean closed = false;
+    private volatile boolean closed = false;
 
     /**
      * Callback used to notify about received data.
@@ -337,19 +337,11 @@ public class SctpSocket
      */
     public void close()
     {
-        // The value of the field closed only ever changes from false to true.
-        // Additionally, its reading is always synchronized and combined with
-        // access to the field ptrLockCount governed by logic which binds the
-        // meanings of the two values together. Consequently, the
-        // synchronization with respect to closed is considered consistent.
-        // Allowing the writing outside the synchronized block expedites the
-        // actual closing of ptr.
-        closed = true;
-
         long ptr;
 
         synchronized (this)
         {
+            closed = true;
             if (ptrLockCount == 0)
             {
                 // The actual closing of ptr will not be deferred.
@@ -691,7 +683,7 @@ public class SctpSocket
             else
             {
                 this.ptrLockCount = ptrLockCount;
-                if (closed && (ptrLockCount == 0))
+                if (closed && ptrLockCount == 0)
                 {
                     // The actual closing of ptr was deferred until now.
                     ptr = this.ptr;
@@ -707,6 +699,15 @@ public class SctpSocket
         }
         if (ptr != 0)
             Sctp.closeSocket(ptr);
+    }
+
+    @Override
+    public String toString()
+    {
+        return "SctpSocket{" +
+            "localPort=" + localPort +
+            ", ptr=" + String.format("0x%016x", ptr) +
+            '}';
     }
 
     /**

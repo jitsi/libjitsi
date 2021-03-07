@@ -15,11 +15,11 @@
  */
 package org.jitsi.impl.neomedia.rtcp;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import org.jitsi.service.neomedia.*;
 import org.jitsi.utils.logging.*;
-import org.junit.*;
-
-import static org.junit.Assert.*;
+import org.junit.jupiter.api.*;
 
 /**
  * @author Boris Grozev

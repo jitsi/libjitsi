@@ -17,14 +17,14 @@
  */
 package org.jitsi.util.xml;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import java.io.*;
 
 import javax.xml.parsers.*;
 import javax.xml.transform.stream.*;
 
-import org.junit.*;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.*;
 import org.w3c.dom.*;
 
 
@@ -38,27 +38,16 @@ public class TestXMLUtils
     //property1 values
     private static final String property1 = "p1";
     private static final String property1Value =  "p1.value";
-    private static final String property1Value2 =  "p1.value.2";
-    private static final String property1Path =  "parent.";
 
     //property2 values
     private static final String systemProperty = "SYSTEM_PROPERTY";
     private static final String systemPropertyValue =  "I AM the SyS guy";
-    private static final String systemPropertyValue2 =  "sys guy's new face";
-    private static final String systemPropertyPath =  "parent.";
-
-    //added_property values
-    private static final String addedProperty = "ADDED_PROPERTY";
-    private static final String addedPropertyValue =  "added";
-    private static final String addedPropertyValue2 =  "and then re-aded";
 
     private static final String addedPropertyPath =  "parent.";
 
     //INNER_PROPERTY values
     private static final String innerProperty = "INNER_PROPERTY";
     private static final String innerPropertyValue =  "I am an insider";
-    private static final String innerPropertyValue2 =  "I am a modified inner";
-    private static final String innerPropertyPath =  "parent.innerprops.";
 
     //CDATA_NODE
     private static final String cdataNode = "CDATA_NODE";
@@ -86,7 +75,6 @@ public class TestXMLUtils
         "</sip-communicator>\n";
 
     DocumentBuilderFactory factory  = null;
-    DocumentBuilder        builder  = null;
     Document               document = null;
     Node                   rootNode     = null;
 
@@ -94,7 +82,7 @@ public class TestXMLUtils
      * Create a XML Document that will be used as a fixture in later testing.
      * @throws Exception if sth goes nuts
      */
-    @Before
+    @BeforeEach
     public void setUp() throws Exception
     {
         factory =
@@ -110,15 +98,6 @@ public class TestXMLUtils
     }
 
     /**
-     * Standard JUnit tear down
-     * @throws Exception ... don't know when
-     */
-    @After
-    public void tearDown() throws Exception
-    {
-    }
-
-    /**
      * Tests the find child method over a few nodes of the sample xml string.
      */
     @Test
@@ -130,7 +109,7 @@ public class TestXMLUtils
         Element actualReturn = XMLUtils.findChild(parent, tagName);
 
         //make sure it found the only "parent" child
-        Assert.assertEquals("parent", actualReturn.getTagName());
+        assertEquals("parent", actualReturn.getTagName());
 
         //let's now look for the inneroprs child
         parent = actualReturn;
@@ -138,7 +117,7 @@ public class TestXMLUtils
 
         actualReturn = XMLUtils.findChild(parent, tagName);
         //make sure it found the innerprops child
-        Assert.assertEquals("innerprops", actualReturn.getTagName());
+        assertEquals("innerprops", actualReturn.getTagName());
     }
 
     /**
@@ -153,17 +132,17 @@ public class TestXMLUtils
         Element actualReturn = XMLUtils.findChild(parent, tagName);
 
         //make sure it found the only "parent" child
-        Assert.assertEquals("parent", actualReturn.getTagName());
+        assertEquals("parent", actualReturn.getTagName());
 
         //let's now look for the inneroprs child
         parent = actualReturn;
 
         actualReturn = XMLUtils.findChild(parent, property1);
         //make sure it found the innerprops child
-        Assert.assertEquals(property1, actualReturn.getTagName());
+        assertEquals(property1, actualReturn.getTagName());
 
         //make sure it found the innerprops child
-        Assert.assertEquals(property1Value,
+        assertEquals(property1Value,
             XMLUtils.getAttribute(actualReturn, "value"));
     }
 
@@ -180,7 +159,7 @@ public class TestXMLUtils
         String actualReturn = XMLUtils.getCData(returnedCdataNode);
 
         //compare the returned data with the actual.
-        Assert.assertEquals(cdataNodeContent, actualReturn);
+        assertEquals(cdataNodeContent, actualReturn);
 
         //set, with a new value
         XMLUtils.setCData(returnedCdataNode, cdataNodeContent2);
@@ -190,7 +169,7 @@ public class TestXMLUtils
         actualReturn = XMLUtils.getCData(returnedCdataNode);
 
         //compare the returned data with the actual.
-        Assert.assertEquals(cdataNodeContent2, actualReturn);
+        assertEquals(cdataNodeContent2, actualReturn);
 
     }
 
@@ -207,7 +186,7 @@ public class TestXMLUtils
         String actualReturn = XMLUtils.getText(returnedTextNode);
 
         //compare the returned data with the actual.
-        Assert.assertEquals(textNodeContent, actualReturn);
+        assertEquals(textNodeContent, actualReturn);
 
 
         //set, with a new value
@@ -218,7 +197,7 @@ public class TestXMLUtils
         actualReturn = XMLUtils.getCData(returnedTextNode);
 
         //compare the returned data with the actual.
-        Assert.assertEquals(textNodeContent2, actualReturn);
+        assertEquals(textNodeContent2, actualReturn);
     }
 
 
@@ -235,19 +214,19 @@ public class TestXMLUtils
 
         //now run some of the previous tests to make sure they passe with the
         //newly written string
-        xmlString = new StringBuffer(writtenString).toString();
+        xmlString = writtenString;
         setUp();
         testFindChild();
 
-        xmlString = new StringBuffer(writtenString).toString();
+        xmlString = writtenString;
         setUp();
         testGetAttribute();
 
-        xmlString = new StringBuffer(writtenString).toString();
+        xmlString = writtenString;
         setUp();
         testGetSetCData();
 
-        xmlString = new StringBuffer(writtenString).toString();
+        xmlString = writtenString;
         setUp();
         testGetSetText();
     }

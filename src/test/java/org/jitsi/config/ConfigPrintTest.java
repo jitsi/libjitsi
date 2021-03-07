@@ -18,7 +18,7 @@ package org.jitsi.config;
 import org.jitsi.impl.configuration.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
-import org.junit.*;
+import org.junit.jupiter.api.*;
 
 /**
  * Just a playground - do not integrate.

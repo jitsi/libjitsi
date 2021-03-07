@@ -15,11 +15,10 @@
  */
 package org.jitsi.impl.neomedia.transform.fec;
 
-import org.junit.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.*;
-
-import static org.junit.Assert.*;
+import org.junit.jupiter.api.*;
 
 /**
  * @author bbaldino

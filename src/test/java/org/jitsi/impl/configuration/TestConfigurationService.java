@@ -17,19 +17,14 @@
  */
 package org.jitsi.impl.configuration;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.beans.*;
 import java.util.*;
 
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
-import org.junit.*;
-import org.junit.Test;
+import org.junit.jupiter.api.*;
 
 /**
  * Tests basic ConfiguratioService behaviour.
@@ -94,7 +89,7 @@ public class TestConfigurationService
     /**
      * Generic JUnit setUp method.
      */
-    @Before
+    @BeforeEach
     public void setUp()
     {
         LibJitsi.start();
@@ -106,7 +101,7 @@ public class TestConfigurationService
     /**
      * Generic JUnit tearDown method.
      */
-    @After
+    @AfterEach
     public void tearDown()
     {
         //first remove any remaining listeners
@@ -132,8 +127,8 @@ public class TestConfigurationService
         configurationService.setProperty(propertyName, property);
 
         Object actualReturn = configurationService.getProperty(propertyName);
-        assertEquals("a property was not properly stored",
-            property, actualReturn);
+        assertEquals(
+            property, actualReturn, "a property was not properly stored");
     }
 
     /**
@@ -147,14 +142,14 @@ public class TestConfigurationService
         configurationService.setProperty(propertyName, property);
 
         Object actualReturn = configurationService.getProperty(propertyName);
-        assertEquals("a property was not properly stored",
-            property, actualReturn);
+        assertEquals(
+            property, actualReturn, "a property was not properly stored");
 
         configurationService.removeProperty(propertyName);
         Object actualReturn2 = configurationService.getProperty(propertyName);
 
-        assertNull("a property was not properly removed",
-            actualReturn2);
+        assertNull(
+            actualReturn2, "a property was not properly removed");
     }
 
     /**
@@ -175,14 +170,14 @@ public class TestConfigurationService
         configurationService.setProperty(propertyName, property);
 
         Object actualReturn = configurationService.getProperty(propertyName);
-        assertEquals("a property was not properly stored",
-            property, actualReturn);
+        assertEquals(
+            property, actualReturn, "a property was not properly stored");
 
         configurationService.removeProperty(propertyPrefixName);
         Object actualReturn2 = configurationService.getProperty(propertyName);
 
-        assertNull("a property was not properly removed by prefix",
-            actualReturn2);
+        assertNull(
+            actualReturn2, "a property was not properly removed by prefix");
     }
 
     /**
@@ -199,29 +194,29 @@ public class TestConfigurationService
         configurationService.setProperty(propertyName, property, true);
 
         Object actualReturn = configurationService.getProperty(propertyName);
-        assertEquals("a sys property was not properly stored",
-            property, actualReturn);
+        assertEquals(
+            property, actualReturn, "a sys property was not properly stored");
 
         //now check whether you can also retrieve it from the sys property set.
         actualReturn = System.getProperty(propertyName);
-        assertEquals("a property was not properly stored", property,
-            actualReturn);
+        assertEquals(property,
+            actualReturn, "a property was not properly stored");
 
         //verify that modifying it in the sys property set would affect the
         //value in the configuration service
         property = "second.sys.value";
         System.setProperty(propertyName, property.toString());
         actualReturn = configurationService.getProperty(propertyName);
-        assertEquals("a property was not properly stored", property,
-            actualReturn);
+        assertEquals(property,
+            actualReturn, "a property was not properly stored");
 
         //now make sure  that modifying it in the configurationService would
         //result in the corresponding change in the system property set.
         property = "third.sys.value";
         configurationService.setProperty(propertyName, property.toString());
         actualReturn = System.getProperty(propertyName);
-        assertEquals("a property was not properly stored", property,
-            actualReturn);
+        assertEquals(property,
+            actualReturn, "a property was not properly stored");
     }
 
     /**
@@ -238,24 +233,26 @@ public class TestConfigurationService
         configurationService.setProperty(propertyName, property);
 
         String actualReturn = configurationService.getString(propertyName);
-        assertEquals("getString failed to retrieve a property",
-            property.toString(), actualReturn);
+        assertEquals(
+            property.toString(), actualReturn,
+            "getString failed to retrieve a property");
 
         //verify that setting a non string object would not mess things up
         property = 7121979;
         configurationService.setProperty(propertyName, property);
 
         actualReturn = configurationService.getString(propertyName);
-        assertEquals("getString failed to retrieve a property",
-            property.toString(), actualReturn);
+        assertEquals(
+            property.toString(), actualReturn,
+            "getString failed to retrieve a property");
 
         //verify that setting a whitespace only string would return null
         property = "\t\n ";
         configurationService.setProperty(propertyName, property);
 
         actualReturn = configurationService.getString(propertyName);
-        assertNull("getString did not trim a white space only string",
-            actualReturn);
+        assertNull(
+            actualReturn, "getString did not trim a white space only string");
     }
 
     /**
@@ -282,39 +279,44 @@ public class TestConfigurationService
         List<String> propertyNames
             = configurationService.getPropertyNamesByPrefix(prefix, true);
 
-        assertTrue("Returned list did not contain all property names. "
-                + " MissingPropertyName: " + exactPrefixProp1Name
-            , propertyNames.contains(exactPrefixProp1Name));
+        assertTrue(
+            propertyNames.contains(exactPrefixProp1Name),
+            "Returned list did not contain all property names. "
+                    + " MissingPropertyName: " + exactPrefixProp1Name);
 
-        assertTrue("Returned list did not contain all property names. "
-                + " MissingPropertyName: " + exactPrefixProp2Name
-            , propertyNames.contains(exactPrefixProp2Name));
+        assertTrue(
+            propertyNames.contains(exactPrefixProp2Name),
+            "Returned list did not contain all property names. "
+                    + " MissingPropertyName: " + exactPrefixProp2Name);
 
         assertEquals(
+            2, propertyNames.size(),
             "Returned list contains more properties than expected. "
-                + " List was: " + propertyNames
-            , 2, propertyNames.size());
+                + " List was: " + propertyNames);
 
         //try a broader search
         propertyNames
             = configurationService.getPropertyNamesByPrefix(prefix, false);
 
-        assertTrue("Returned list did not contain all property names. "
-                + " MissingPropertyName: " + exactPrefixProp1Name
-            , propertyNames.contains(exactPrefixProp1Name));
+        assertTrue(
+            propertyNames.contains(exactPrefixProp1Name),
+            "Returned list did not contain all property names. "
+                    + " MissingPropertyName: " + exactPrefixProp1Name);
 
-        assertTrue("Returned list did not contain all property names. "
-                + " MissingPropertyName: " + exactPrefixProp2Name
-            , propertyNames.contains(exactPrefixProp2Name));
+        assertTrue(
+            propertyNames.contains(exactPrefixProp2Name),
+            "Returned list did not contain all property names. "
+                    + " MissingPropertyName: " + exactPrefixProp2Name);
 
-        assertTrue("Returned list did not contain all property names. "
-                + " MissingPropertyName: " + longerPrefixProp3Name
-            , propertyNames.contains(longerPrefixProp3Name));
+        assertTrue(
+            propertyNames.contains(longerPrefixProp3Name),
+            "Returned list did not contain all property names. "
+                    + " MissingPropertyName: " + longerPrefixProp3Name);
 
         assertEquals(
+            3, propertyNames.size(),
             "Returned list contains more properties than expected. "
-                + " List was: " + propertyNames
-            , 3, propertyNames.size());
+                + " List was: " + propertyNames);
 
 
     }
@@ -342,19 +344,19 @@ public class TestConfigurationService
         }
 
         assertNotNull(
-            "No PropertyChangeEvent was delivered upon setProperty",
-            propertyChangeEvent);
+            propertyChangeEvent,
+            "No PropertyChangeEvent was delivered upon setProperty");
 
-        assertNull("oldValue must be null",
-            propertyChangeEvent.getOldValue());
-        assertEquals("newValue is not the value we just set!",
+        assertNull(
+            propertyChangeEvent.getOldValue(), "oldValue must be null");
+        assertEquals(
             propertyValue,
-            propertyChangeEvent.getNewValue()
-        );
-        assertEquals("propertyName is not the value we just set!",
+            propertyChangeEvent.getNewValue(),
+            "newValue is not the value we just set!");
+        assertEquals(
             propertyName,
-            propertyChangeEvent.getPropertyName()
-        );
+            propertyChangeEvent.getPropertyName(),
+            "propertyName is not the value we just set!");
 
         //test setting a new value;
         propertyChangeEvent = null;
@@ -369,15 +371,16 @@ public class TestConfigurationService
         }
 
         assertNotNull(
-            "No PropertyChangeEvent was delivered upon setProperty",
-            propertyChangeEvent);
+            propertyChangeEvent,
+            "No PropertyChangeEvent was delivered upon setProperty");
 
-        assertEquals("incorrect oldValue",
+        assertEquals(
             propertyValue,
-            propertyChangeEvent.getOldValue());
-        assertEquals("newValue is not the value we just set!",
+            propertyChangeEvent.getOldValue(), "incorrect oldValue");
+        assertEquals(
             propertyNewValue,
-            propertyChangeEvent.getNewValue());
+            propertyChangeEvent.getNewValue(),
+            "newValue is not the value we just set!");
 
 
         //test remove
@@ -394,8 +397,9 @@ public class TestConfigurationService
                 + ex.getMessage());
         }
 
-        assertNull("A PropertyChangeEvent after unregistering a listener.",
-                propertyChangeEvent);
+        assertNull(
+            propertyChangeEvent,
+            "A PropertyChangeEvent after unregistering a listener.");
     }
 
     /**
@@ -422,18 +426,20 @@ public class TestConfigurationService
                 + ex.getMessage());
         }
 
-        assertNotNull("No PropertyChangeEvent was delivered "
-                + "to VetoableListeners upon setProperty",
-            propertyChangeEvent);
+        assertNotNull(
+            propertyChangeEvent, "No PropertyChangeEvent was delivered "
+                    + "to VetoableListeners upon setProperty");
 
-        assertNull("oldValue must be null",
-            propertyChangeEvent.getOldValue());
-        assertEquals("newValue is not the value we just set!",
+        assertNull(
+            propertyChangeEvent.getOldValue(), "oldValue must be null");
+        assertEquals(
             propertyValue,
-            propertyChangeEvent.getNewValue());
-        assertEquals("propertyName is not the value we just set!",
+            propertyChangeEvent.getNewValue(),
+            "newValue is not the value we just set!");
+        assertEquals(
             propertyName,
-            propertyChangeEvent.getPropertyName());
+            propertyChangeEvent.getPropertyName(),
+            "propertyName is not the value we just set!");
 
         //test setting a new value;
         propertyChangeEvent = null;
@@ -448,16 +454,17 @@ public class TestConfigurationService
         }
 
         assertNotNull(
+            propertyChangeEvent,
             "No PropertyChangeEvent was delivered to veto listener "
-                + "upon setProperty",
-            propertyChangeEvent);
+                + "upon setProperty");
 
-        assertEquals("incorrect oldValue",
+        assertEquals(
             propertyValue,
-            propertyChangeEvent.getOldValue());
-        assertEquals("newValue is not the value we just set!",
+            propertyChangeEvent.getOldValue(), "incorrect oldValue");
+        assertEquals(
             propertyNewValue,
-            propertyChangeEvent.getNewValue());
+            propertyChangeEvent.getNewValue(),
+            "newValue is not the value we just set!");
 
 
         //test remove
@@ -474,8 +481,9 @@ public class TestConfigurationService
                 + ex.getMessage());
         }
 
-        assertNull("A PropertyChangeEvent after unregistering a listener.",
-                propertyChangeEvent);
+        assertNull(
+            propertyChangeEvent,
+            "A PropertyChangeEvent after unregistering a listener.");
     }
 
     /**
@@ -500,28 +508,30 @@ public class TestConfigurationService
         }
 
         //make sure the exception was thrown
-        assertNotNull("A vetoable change event was not dispatched or an "
-                + "exception was not let through.",
-            exception);
+        assertNotNull(
+            exception, "A vetoable change event was not dispatched or an "
+                    + "exception was not let through.");
 
         //make sure no further event dispatching was done
-        assertNull("A property change event was delivered even after " +
-                "the property change was vetoed.",
-            propertyChangeEvent);
+        assertNull(
+            propertyChangeEvent,
+            "A property change event was delivered even after " +
+                    "the property change was vetoed.");
 
         //make sure the property did not get modified after vetoing the change
-        assertNull("A property was changed even avfter vetoing the change."
-                , configurationService.getProperty(propertyName));
+        assertNull(
+            configurationService.getProperty(propertyName),
+            "A property was changed even avfter vetoing the change.");
 
         // now let's make sure that we have the right order of event dispatching.
         propertyChangeEvent = null;
         configurationService.removeVetoableChangeListener(rudeVetoListener);
 
         ConfigVetoableChangeListener vcListener = event -> assertNull(
+            propertyChangeEvent,
             "propertyChangeEvent was not null which means that it has "
                 + "bean delivered to the propertyChangeListener prior to "
-                + "being delivered to the vetoable change listener.",
-            propertyChangeEvent);
+                + "being delivered to the vetoable change listener.");
 
         try
         {
@@ -558,22 +568,23 @@ public class TestConfigurationService
             propertyName, propertyValue);
 
         assertNull(
+            propertyChangeEvent,
             "setting prop:" + propertyName + " caused an event notif. to " +
-                "listener registered for prop:" + listenedPropertyName,
-            propertyChangeEvent);
+                "listener registered for prop:" + listenedPropertyName);
 
         configurationService.setProperty(
             listenedPropertyName, listenedPropertyValue);
 
-        assertNotNull("No event was dispatched upon modification of prop:"
-                    + listenedPropertyName,
-                propertyChangeEvent);
+        assertNotNull(
+            propertyChangeEvent,
+            "No event was dispatched upon modification of prop:"
+                        + listenedPropertyName);
 
-        assertNull("oldValue must be null",
-            propertyChangeEvent.getOldValue());
-        assertEquals("wrong newValue",
+        assertNull(
+            propertyChangeEvent.getOldValue(), "oldValue must be null");
+        assertEquals(
             listenedPropertyValue,
-            propertyChangeEvent.getNewValue());
+            propertyChangeEvent.getNewValue(), "wrong newValue");
 
         //test that a generic remove only removes the generic listener
         propertyChangeEvent = null;
@@ -583,17 +594,18 @@ public class TestConfigurationService
         configurationService.setProperty(
             listenedPropertyName, listenedPropertyNewValue);
 
-        assertNotNull("No event was dispatched upon modification of prop:"
-                    + listenedPropertyName
-                    + ". The listener was wrongfully removed.",
-                propertyChangeEvent);
+        assertNotNull(
+            propertyChangeEvent,
+            "No event was dispatched upon modification of prop:"
+                        + listenedPropertyName
+                        + ". The listener was wrongfully removed.");
 
-        assertEquals("wrong oldValue",
+        assertEquals(
             listenedPropertyValue,
-            propertyChangeEvent.getOldValue());
-        assertEquals("wrong newValue",
+            propertyChangeEvent.getOldValue(), "wrong oldValue");
+        assertEquals(
             listenedPropertyNewValue,
-            propertyChangeEvent.getNewValue());
+            propertyChangeEvent.getNewValue(), "wrong newValue");
 
         //make sure that removing the listener properly - really removes it.
         propertyChangeEvent = null;
@@ -604,9 +616,8 @@ public class TestConfigurationService
         configurationService.setProperty(listenedPropertyName, propertyValue);
 
         assertNull(
-            "An event was wrongfully dispatched after removing a listener",
-            propertyChangeEvent
-        );
+            propertyChangeEvent,
+            "An event was wrongfully dispatched after removing a listener");
 
     }
 
@@ -635,22 +646,23 @@ public class TestConfigurationService
             propertyName, propertyValue);
 
         assertNull(
+            propertyChangeEvent,
             "setting prop:" + propertyName + " caused an event notif. to " +
-                "listener registered for prop:" + listenedPropertyName,
-            propertyChangeEvent);
+                "listener registered for prop:" + listenedPropertyName);
 
         configurationService.setProperty(
             listenedPropertyName, listenedPropertyValue);
 
-        assertNotNull("No event was dispatched upon modification of prop:"
-                    + listenedPropertyName,
-                propertyChangeEvent);
+        assertNotNull(
+            propertyChangeEvent,
+            "No event was dispatched upon modification of prop:"
+                        + listenedPropertyName);
 
-        assertNull("oldValue must be null",
-            propertyChangeEvent.getOldValue());
-        assertEquals("wrong newValue",
+        assertNull(
+            propertyChangeEvent.getOldValue(), "oldValue must be null");
+        assertEquals(
             listenedPropertyValue,
-            propertyChangeEvent.getNewValue());
+            propertyChangeEvent.getNewValue(), "wrong newValue");
 
         //test that a generic remove only removes the generic listener
         propertyChangeEvent = null;
@@ -660,17 +672,18 @@ public class TestConfigurationService
         configurationService.setProperty(
             listenedPropertyName, listenedPropertyNewValue);
 
-        assertNotNull("No event was dispatched upon modification of prop:"
-                    + listenedPropertyName
-                    + ". The listener was wrongfully removed.",
-                propertyChangeEvent);
+        assertNotNull(
+            propertyChangeEvent,
+            "No event was dispatched upon modification of prop:"
+                        + listenedPropertyName
+                        + ". The listener was wrongfully removed.");
 
-        assertEquals("wrong oldValue",
+        assertEquals(
             listenedPropertyValue,
-            propertyChangeEvent.getOldValue());
-        assertEquals("wrong newValue",
+            propertyChangeEvent.getOldValue(), "wrong oldValue");
+        assertEquals(
             listenedPropertyNewValue,
-            propertyChangeEvent.getNewValue());
+            propertyChangeEvent.getNewValue(), "wrong newValue");
 
         //make sure that removing the listener properly - really removes it.
         propertyChangeEvent = null;
@@ -682,9 +695,8 @@ public class TestConfigurationService
             listenedPropertyName, listenedPropertyValue);
 
         assertNull(
-            "An event was wrongfully dispatched after removing a listener",
-            propertyChangeEvent
-        );
+            propertyChangeEvent,
+            "An event was wrongfully dispatched after removing a listener");
 
         //make sure that adding a generic listener, then adding a custom prop
         //listener, then removing it - would not remove the generic listener.
@@ -699,19 +711,20 @@ public class TestConfigurationService
         configurationService.setProperty(
             listenedPropertyName, listenedPropertyNewValue);
 
-        assertNotNull("No event was dispatched upon modification of prop:"
-                    + listenedPropertyName
-                    + ". The global listener was wrongfully removed.",
-                propertyChangeEvent);
+        assertNotNull(
+            propertyChangeEvent,
+            "No event was dispatched upon modification of prop:"
+                        + listenedPropertyName
+                        + ". The global listener was wrongfully removed.");
 
-        assertEquals("wrong propertyName",
+        assertEquals(
             listenedPropertyName,
-            propertyChangeEvent.getPropertyName());
-        assertEquals("wrong oldValue",
+            propertyChangeEvent.getPropertyName(), "wrong propertyName");
+        assertEquals(
             listenedPropertyValue,
-            propertyChangeEvent.getOldValue());
-        assertEquals("wrong newValue",
+            propertyChangeEvent.getOldValue(), "wrong oldValue");
+        assertEquals(
             listenedPropertyNewValue,
-            propertyChangeEvent.getNewValue());
+            propertyChangeEvent.getNewValue(), "wrong newValue");
     }
 }

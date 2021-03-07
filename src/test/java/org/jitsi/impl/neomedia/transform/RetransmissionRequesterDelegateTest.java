@@ -20,12 +20,12 @@ import org.jitsi.service.neomedia.*;
 import org.jitsi.service.neomedia.codec.*;
 import org.jitsi.service.neomedia.format.*;
 import org.jitsi.utils.*;
-import org.junit.*;
+import org.junit.jupiter.api.*;
 import org.mockito.*;
 
 import java.util.*;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
@@ -71,7 +71,7 @@ public class RetransmissionRequesterDelegateTest
         assertTrue(retransmissionRequester.getTimeUntilNextRun() > 0);
     }
 
-    @Before
+    @BeforeEach
     public void setUp()
     {
         mockStream = mock(MediaStream.class);

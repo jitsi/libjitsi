@@ -1,15 +1,15 @@
 package org.jitsi.impl.neomedia.transform.fec;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import io.pkts.*;
 import io.pkts.packet.*;
 import io.pkts.protocol.*;
 import org.jitsi.service.neomedia.*;
-import org.junit.*;
 
 import java.io.*;
 import java.util.*;
-
-import static org.junit.Assert.*;
+import org.junit.jupiter.api.*;
 
 public class FlexFec03PacketTest
 {

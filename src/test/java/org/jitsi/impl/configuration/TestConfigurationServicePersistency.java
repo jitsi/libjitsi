@@ -17,16 +17,17 @@
  */
 package org.jitsi.impl.configuration;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.*;
 import java.nio.charset.*;
+import java.nio.file.*;
 import javax.xml.parsers.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.util.xml.*;
-import org.junit.*;
-import org.junit.rules.*;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.io.*;
 import org.w3c.dom.*;
 
 /**
@@ -112,9 +113,6 @@ public class TestConfigurationServicePersistency
             "    </parent>" + "\n" +
             "</sip-communicator>\n";
 
-    private static final String ourConfFileName
-        = "test.persistency.sip-communicator.xml";
-
     /**
      * the configuration file itself (created and deleted for every test)
      */
@@ -125,20 +123,20 @@ public class TestConfigurationServicePersistency
      */
     private ConfigurationService configurationService = null;
 
-    @Rule
-    public TemporaryFolder testFolder = new TemporaryFolder();
+    @TempDir
+    public Path testFolder;
 
     /**
      * Generic JUnit setUp method.
      *
      * @throws Exception if anything goes wrong.
      */
-    @Before
+    @BeforeEach
     public void setUp() throws Exception
     {
         LibJitsi.start();
         configurationService = LibJitsi.getConfigurationService();
-        confFile = testFolder.newFile();
+        confFile = testFolder.resolve("configfile").toFile();
         System.setProperty(
             ConfigurationService.PNAME_CONFIGURATION_FILE_NAME,
             confFile.getAbsolutePath());
@@ -155,7 +153,7 @@ public class TestConfigurationServicePersistency
     /**
      * Generic JUnit tearDown method.
      */
-    @After
+    @AfterEach
     public void tearDown()
     {
         configurationService.purgeStoredConfiguration();
@@ -176,44 +174,47 @@ public class TestConfigurationServicePersistency
         Object returnedValueObj =
             configurationService.getProperty(property1Path
                 + property1);
-        assertNotNull("configuration not properly loaded",
-            returnedValueObj);
-        assertTrue("returned prop is not a String",
-            returnedValueObj instanceof String);
+        assertNotNull(
+            returnedValueObj, "configuration not properly loaded");
+        assertTrue(
+            returnedValueObj instanceof String, "returned prop is not a String");
         String returnedValue = returnedValueObj.toString();
 
-        assertEquals("configuration not properly loaded",
-            property1Value, returnedValue);
+        assertEquals(
+            property1Value, returnedValue, "configuration not properly loaded");
 
         returnedValueObj =
             configurationService.getProperty(systemPropertyPath
                 + systemProperty);
-        assertNotNull("configuration not properly loaded",
-            returnedValueObj);
-        assertTrue("returned prop is not a String",
-            returnedValueObj instanceof String);
+        assertNotNull(
+            returnedValueObj, "configuration not properly loaded");
+        assertTrue(
+            returnedValueObj instanceof String, "returned prop is not a String");
 
         //check whether this property was resolved in System.properties
         returnedValue = System.getProperty(systemPropertyPath + systemProperty);
-        assertNotNull("A system property was not resolved", returnedValue);
-        assertEquals("A system property was not resolved",
-            systemPropertyValue, returnedValue);
+        assertNotNull(returnedValue, "A system property was not resolved");
+        assertEquals(
+            systemPropertyValue, returnedValue,
+            "A system property was not resolved");
 
         returnedValue = returnedValueObj.toString();
-        assertEquals("configuration not properly loaded",
-            systemPropertyValue, returnedValue);
+        assertEquals(
+            systemPropertyValue, returnedValue,
+            "configuration not properly loaded");
 
         //check whether inner properties are properly loaded
         returnedValueObj =
             configurationService.getProperty(innerPropertyPath
                 + innerProperty);
-        assertNotNull("configuration not properly loaded",
-            returnedValueObj);
-        assertTrue("returned prop is not a String",
-            returnedValueObj instanceof String);
+        assertNotNull(
+            returnedValueObj, "configuration not properly loaded");
+        assertTrue(
+            returnedValueObj instanceof String, "returned prop is not a String");
         returnedValue = returnedValueObj.toString();
-        assertEquals("configuration not properly loaded",
-            innerPropertyValue, returnedValue);
+        assertEquals(
+            innerPropertyValue, returnedValue,
+            "configuration not properly loaded");
     }
 
     /**
@@ -243,51 +244,55 @@ public class TestConfigurationServicePersistency
         Object returnedValueObj =
             configurationService.getProperty(property1Path
                 + property1);
-        assertNotNull("configuration not properly loaded",
-            returnedValueObj);
-        assertTrue("returned prop is not a String",
-            returnedValueObj instanceof String);
+        assertNotNull(
+            returnedValueObj, "configuration not properly loaded");
+        assertTrue(
+            returnedValueObj instanceof String, "returned prop is not a String");
         String returnedValue = returnedValueObj.toString();
 
-        assertEquals("configuration not properly reloaded",
-            property1Value2, returnedValue);
+        assertEquals(
+            property1Value2, returnedValue,
+            "configuration not properly reloaded");
 
         //check whether systemproperties are properly reresolved
         returnedValueObj =
             configurationService.getProperty(systemPropertyPath
                 + systemProperty);
-        assertNotNull("configuration not properly reloaded",
-            returnedValueObj);
-        assertTrue("returned prop is not a String",
-            returnedValueObj instanceof String);
+        assertNotNull(
+            returnedValueObj, "configuration not properly reloaded");
+        assertTrue(
+            returnedValueObj instanceof String, "returned prop is not a String");
         returnedValue = returnedValueObj.toString();
-        assertEquals("configuration not properly reloaded",
-            systemPropertyValue2, returnedValue);
+        assertEquals(
+            systemPropertyValue2, returnedValue,
+            "configuration not properly reloaded");
 
         //make sure that the property was re-resolved in System.properties
         returnedValue = System.getProperty(systemPropertyPath + systemProperty);
-        assertNotNull("A system property was not resolved", returnedValue);
-        assertEquals("A system property was not resolved",
-            systemPropertyValue2, returnedValue);
+        assertNotNull(returnedValue, "A system property was not resolved");
+        assertEquals(
+            systemPropertyValue2, returnedValue,
+            "A system property was not resolved");
 
         //verify that the inner property is also reloaded
         returnedValueObj =
             configurationService.getProperty(innerPropertyPath
                 + innerProperty);
-        assertNotNull("configuration not properly reloaded",
-            returnedValueObj);
-        assertTrue("returned prop is not a String",
-            returnedValueObj instanceof String);
+        assertNotNull(
+            returnedValueObj, "configuration not properly reloaded");
+        assertTrue(
+            returnedValueObj instanceof String, "returned prop is not a String");
         returnedValue = returnedValueObj.toString();
-        assertEquals("configuration not properly reloaded",
-            innerPropertyValue2, returnedValue);
+        assertEquals(
+            innerPropertyValue2, returnedValue,
+            "configuration not properly reloaded");
 
         //make sure the property we added in the beginning is not there anymore.
         returnedValueObj =
             configurationService.getProperty(addedPropertyPath
                 + addedProperty);
-        assertNull("reload didn't remove newly added properties",
-            returnedValueObj);
+        assertNull(
+            returnedValueObj, "reload didn't remove newly added properties");
     }
 
     /**
@@ -347,13 +352,16 @@ public class TestConfigurationServicePersistency
         String xmlInnerPropertyValue =
             XMLUtils.getAttribute(innerPropertyNode, "value");
 
-        assertEquals("property1 was incorrectly stored",
-            property1Value2, xmlProp1Value);
-        assertEquals("System property was incorrectly stored",
-            systemPropertyValue2, xmlProp2Value);
-        assertEquals("The added property was incorrectly stored",
-            addedPropertyValue2, xmlAddedPropertyValue);
-        assertEquals("The inner property was incorrectly stored",
-            innerPropertyValue2, xmlInnerPropertyValue);
+        assertEquals(
+            property1Value2, xmlProp1Value, "property1 was incorrectly stored");
+        assertEquals(
+            systemPropertyValue2, xmlProp2Value,
+            "System property was incorrectly stored");
+        assertEquals(
+            addedPropertyValue2, xmlAddedPropertyValue,
+            "The added property was incorrectly stored");
+        assertEquals(
+            innerPropertyValue2, xmlInnerPropertyValue,
+            "The inner property was incorrectly stored");
     }
 }

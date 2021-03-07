@@ -15,14 +15,13 @@
  */
 package org.jitsi.sctp4j;
 
-import org.junit.*;
-import static org.junit.Assert.*;
-
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.condition.*;
 
-import static org.junit.Assert.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Transfer tests.
@@ -66,7 +65,7 @@ public class SctpTransferTest
      */
     private final double ERROR_RATE = 0.1;
 
-    @Before
+    @BeforeEach
     public void setUp()
     {
         Sctp.init();
@@ -75,7 +74,7 @@ public class SctpTransferTest
         peerB = Sctp.createSocket(portB);
     }
 
-    @After
+    @AfterEach
     public void tearDown()
         throws IOException
     {
@@ -94,10 +93,9 @@ public class SctpTransferTest
 
     /**
      * Tests the transfer with random link failures and packet loss.
-     *
-     * @throws Exception
      */
     @Test
+    @DisabledOnOs(OS.WINDOWS)
     public void testSocketBrokenLink()
         throws Exception
     {
@@ -110,19 +108,12 @@ public class SctpTransferTest
         peerB.connect(portA);
 
         byte[] toSendA = createRandomData(2*1024);
-        for(int i=0; i < ITERATIONS; i++)
+        for (int i = 0; i < ITERATIONS; i++)
         {
             System.out.println("Testing broken link, iteration " + (i+1)
                     + " of " + ITERATIONS + ". NOTE: IOExceptions may be "
                     + "visible during this test, and are expected.");
-            try
-            {
-                testTransferPart(peerA, peerB, toSendA, SECONDS_TO_WAIT);
-            }
-            catch (Exception e)
-            {
-                throw new RuntimeException(e);
-            }
+            testTransferPart(peerA, peerB, toSendA, SECONDS_TO_WAIT);
         }
     }
 
@@ -134,44 +125,21 @@ public class SctpTransferTest
         throws Exception
     {
         final CountDownLatch dataReceivedLatch = new CountDownLatch(1);
-        boolean noTimeoutOccurred;
         receiver.setDataCallback(
-            new SctpDataCallback()
-            {
-                @Override
-                public void onSctpPacket(
-                        byte[] data,
-                        int sid,
-                        int ssn,
-                        int tsn,
-                        long ppid,
-                        int context,
-                        int flags)
-                {
-                    receivedData = data;
-                    dataReceivedLatch.countDown();
-                }
+            (data, sid, ssn, tsn, ppid, context, flags) -> {
+                receivedData = data;
+                dataReceivedLatch.countDown();
             });
 
         sender.send(testData, true, 0, 0);
-        try
+        if (dataReceivedLatch.await(timeoutInSeconds, TimeUnit.SECONDS))
         {
-            noTimeoutOccurred
-                = dataReceivedLatch.await(timeoutInSeconds, TimeUnit.SECONDS);
-            if (noTimeoutOccurred)
-            {
-                assertArrayEquals(testData, receivedData);
-            }
-            else
-            {
-                fail("Test data not received within "
-                        + timeoutInSeconds + " seconds.");
-            }
+            assertArrayEquals(testData, receivedData);
         }
-        catch (InterruptedException ie)
+        else
         {
-            fail("Test was interrupted: " + ie.toString());
-            throw ie;
+            fail("Test data not received within "
+                    + timeoutInSeconds + " seconds.");
         }
     }
 }

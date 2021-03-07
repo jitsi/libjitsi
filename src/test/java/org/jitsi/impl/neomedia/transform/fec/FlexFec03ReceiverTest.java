@@ -19,12 +19,12 @@ import java.lang.reflect.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.service.neomedia.*;
-import org.junit.*;
 
 import java.util.*;
+import org.junit.jupiter.api.*;
 import org.mockito.stubbing.*;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -34,7 +34,7 @@ public class FlexFec03ReceiverTest
 {
     private ConfigurationService mockConfigurationService;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception
     {
         mockConfigurationService = mock(ConfigurationService.class);
@@ -60,7 +60,7 @@ public class FlexFec03ReceiverTest
         implField.set(null, mockLibJitsi);
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception
     {
         Field implField = LibJitsi.class.getDeclaredField("impl");
@@ -68,7 +68,7 @@ public class FlexFec03ReceiverTest
         implField.set(null, null);
     }
 
-    public class FecCaptureReadResult
+    public static class FecCaptureReadResult
     {
         Set<FlexFec03Packet> flexFecPackets = new HashSet<>();
         Map<Integer, RawPacket> mediaPackets;
@@ -181,7 +181,8 @@ public class FlexFec03ReceiverTest
 
         if (fecCaptureReadResult.flexFecPackets.isEmpty())
         {
-            fail("Unable to find a fec packet with all of its corresponding media packets");
+            fail(
+                "Unable to find a fec packet with all of its corresponding media packets");
         }
 
         for (FlexFec03Packet flexFecPacket : fecCaptureReadResult.flexFecPackets)
@@ -234,7 +235,8 @@ public class FlexFec03ReceiverTest
 
         if (fecCaptureReadResult.flexFecPackets.isEmpty())
         {
-            fail("Unable to find a fec packet with all of its corresponding media packets");
+            fail(
+                "Unable to find a fec packet with all of its corresponding media packets");
         }
 
         addOffsetToPackets(50, fecCaptureReadResult);

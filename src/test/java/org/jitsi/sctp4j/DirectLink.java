@@ -15,6 +15,7 @@
  */
 package org.jitsi.sctp4j;
 
+import java.util.concurrent.*;
 import org.jitsi.utils.logging.*;
 
 import java.io.*;
@@ -56,19 +57,24 @@ public class DirectLink
         throws IOException
     {
         final SctpSocket dest = s == this.a ? this.b : this.a;
-        new Thread(new Runnable()
-        {
-            public void run()
+        CompletableFuture.runAsync(() -> {
+            try
             {
-                try
-                {
-                    dest.onConnIn(packet, 0, packet.length);
-                }
-                catch (IOException e)
-                {
-                    logger.error(e, e);
-                }
+                dest.onConnIn(packet, 0, packet.length);
             }
-        }).start();
+            catch (IOException e)
+            {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    @Override
+    public String toString()
+    {
+        return "DirectLink{" +
+            "a=" + a +
+            ", b=" + b +
+            '}';
     }
 }

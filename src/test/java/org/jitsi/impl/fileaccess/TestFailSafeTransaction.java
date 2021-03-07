@@ -18,14 +18,14 @@
 
 package org.jitsi.impl.fileaccess;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.*;
 import java.nio.file.*;
 import org.jitsi.service.fileaccess.*;
 import org.jitsi.service.libjitsi.*;
-import org.junit.*;
-import org.junit.rules.*;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.io.*;
 
 /**
  * Tests for the fail safe transactions
@@ -39,8 +39,8 @@ public class TestFailSafeTransaction
      */
     private FileAccessService fileAccessService = null;
 
-    @Rule
-    public TemporaryFolder testFolder = new TemporaryFolder();
+    @TempDir
+    public Path testFolder;
 
     /**
      * Test data to write in the original file
@@ -59,14 +59,14 @@ public class TestFailSafeTransaction
      */
     private static final String wrongData = "all the file is damaged now !";
 
-    @Before
+    @BeforeEach
     public void beforeEach()
     {
         LibJitsi.start();
         fileAccessService = LibJitsi.getFileAccessService();
     }
 
-    @After
+    @AfterEach
     public void afterEach()
     {
         LibJitsi.stop();
@@ -79,7 +79,7 @@ public class TestFailSafeTransaction
     public void testCommit() throws IOException
     {
         // setup a temp file
-        File temp = testFolder.newFile();
+        File temp = testFolder.resolve("file").toFile();
         try (FileOutputStream out = new FileOutputStream(temp))
         {
             out.write(origData.getBytes());
@@ -95,9 +95,9 @@ public class TestFailSafeTransaction
         }
 
         // file content
-        assertEquals("the file content isn't correct",
+        assertEquals(
             origData + addedData,
-            getFileContent(temp));
+            getFileContent(temp), "the file content isn't correct");
     }
 
     /**
@@ -107,7 +107,7 @@ public class TestFailSafeTransaction
     public void testRollback() throws IOException
     {
         // setup a temp file
-        File temp = testFolder.newFile();
+        File temp = testFolder.resolve("file").toFile();
         byte[] origDataBytes = origData.getBytes();
         try (FileOutputStream out = new FileOutputStream(temp))
         {
@@ -127,9 +127,9 @@ public class TestFailSafeTransaction
         trans.rollback();
 
         // file content
-        assertEquals("the file content isn't correct",
+        assertEquals(
             origData,
-            getFileContent(temp));
+            getFileContent(temp), "the file content isn't correct");
     }
 
     /**
@@ -139,7 +139,7 @@ public class TestFailSafeTransaction
     public void testCommitOnReOpen() throws IOException
     {
         // setup a temp file
-        File temp = testFolder.newFile();
+        File temp = testFolder.resolve("file").toFile();
         try (FileOutputStream out = new FileOutputStream(temp))
         {
             out.write(origData.getBytes());
@@ -162,9 +162,9 @@ public class TestFailSafeTransaction
         trans.rollback();
 
         // file content
-        assertEquals("the file content isn't correct",
+        assertEquals(
             origData + addedData,
-            getFileContent(temp));
+            getFileContent(temp), "the file content isn't correct");
     }
 
     /**
@@ -174,7 +174,7 @@ public class TestFailSafeTransaction
     public void testRollbackOnFailure() throws IOException
     {
         // setup a temp file
-        File temp = testFolder.newFile();
+        File temp = testFolder.resolve("file").toFile();
         byte[] origDataBytes = origData.getBytes();
         try (FileOutputStream out = new FileOutputStream(temp))
         {
@@ -200,9 +200,9 @@ public class TestFailSafeTransaction
         trans2.restoreFile();
 
         // file content
-        assertEquals("the file content isn't correct",
+        assertEquals(
             origData,
-            getFileContent(temp));
+            getFileContent(temp), "the file content isn't correct");
     }
 
     private String getFileContent(File temp) throws IOException

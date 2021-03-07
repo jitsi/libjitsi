@@ -15,9 +15,9 @@
  */
 package org.jitsi.impl.neomedia.rtp;
 
-import org.junit.*;
+import static org.junit.jupiter.api.Assertions.*;
 
-import static org.junit.Assert.*;
+import org.junit.jupiter.api.*;
 
 /**
  * @author George Politis

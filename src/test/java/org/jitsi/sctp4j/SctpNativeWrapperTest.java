@@ -15,20 +15,18 @@
  */
 package org.jitsi.sctp4j;
 
-import org.junit.*;
-import org.junit.runner.*;
-import org.junit.runners.*;
+import static org.junit.jupiter.api.Assertions.*;
+
+import org.junit.jupiter.api.*;
 
 import java.io.*;
 
-import static org.junit.Assert.fail;
 
 /**
  * Test for SCTP native wrapper.
  *
  * @author Pawel Domas
  */
-@RunWith(JUnit4.class)
 public class SctpNativeWrapperTest
 {
     /**
@@ -36,7 +34,7 @@ public class SctpNativeWrapperTest
      */
     private SctpSocket testSocket;
 
-    @Before
+    @BeforeEach
     public void setUp()
     {
         Sctp.init();
@@ -44,7 +42,7 @@ public class SctpNativeWrapperTest
         testSocket = Sctp.createSocket(5000);
     }
 
-    @After
+    @AfterEach
     public void tearDown()
         throws IOException
     {
@@ -63,80 +61,27 @@ public class SctpNativeWrapperTest
         testSocket.close();
 
         // SctpSocket.send
-        testIOException(new IOExceptionRun()
-        {
-            @Override
-            public void run()
-                throws IOException
-            {
-                testSocket.send(new byte[]{1,2,3}, false, 1, 1);
-            }
-        });
+        assertThrows(IOException.class, 
+            () -> testSocket.send(new byte[]{1,2,3}, false, 1, 1));
 
         // SctpSocket.accept
-        testIOException(new IOExceptionRun()
-        {
-            @Override
-            public void run()
-                throws IOException
-            {
-                testSocket.accept();
-            }
-        });
+        assertThrows(IOException.class, () -> testSocket.accept());
 
         // SctpSocket.listen
-        testIOException(new IOExceptionRun()
-        {
-            @Override
-            public void run()
-                throws IOException
-            {
-                testSocket.listen();
-            }
-        });
+        assertThrows(IOException.class, () -> testSocket.listen());
 
         // SctpSocket.connect
-        testIOException(new IOExceptionRun()
-        {
-            @Override
-            public void run()
-                throws IOException
-            {
-                testSocket.connect(5001);
-            }
-        });
+        assertThrows(IOException.class, () -> testSocket.connect(5001));
 
         // SctpSocket.onConnIn
-        testIOException(new IOExceptionRun()
-        {
-            @Override
-            public void run()
-                throws IOException
-            {
-                testSocket.onConnIn(new byte[]{1, 2, 3, 4, 5}, 0, 5);
-            }
-        });
+        assertThrows(IOException.class,
+            () -> testSocket.onConnIn(new byte[]{1, 2, 3, 4, 5}, 0, 5));
     }
 
-    private void testIOException(IOExceptionRun methodRunCode)
-    {
-        try
-        {
-            methodRunCode.run();
-
-            // No IOException
-            fail("expected IOException");
-        }
-        catch (IOException e)
-        {
-            // Success
-        }
-    }
-
-    @Test(expected = NullPointerException.class)
+    @Test
     public void testNPEinConstructor()
     {
-        new SctpSocket(0, 0);
+        assertThrows(NullPointerException.class, () -> new SctpSocket(0, 0));
     }
 
     /**
@@ -151,7 +96,7 @@ public class SctpNativeWrapperTest
         try
         {
             testSocket.onConnIn(null, 0, 0);
-            fail("No NPE onConnIn called with null");
+            Assertions.fail("No NPE onConnIn called with null");
         }
         catch (NullPointerException npe)
         {
@@ -161,7 +106,7 @@ public class SctpNativeWrapperTest
         try
         {
             testSocket.onConnIn(new byte[]{}, 0, 0);
-            fail("No illegal argument exception");
+            Assertions.fail("No illegal argument exception");
         }
         catch (IllegalArgumentException e)
         {
@@ -171,7 +116,7 @@ public class SctpNativeWrapperTest
         try
         {
             testSocket.onConnIn(new byte[]{ 1, 2, 3}, -1, 3);
-            fail("No illegal argument exception");
+            Assertions.fail("No illegal argument exception");
         }
         catch (IllegalArgumentException e)
         {
@@ -183,7 +128,7 @@ public class SctpNativeWrapperTest
         try
         {
             testSocket.onConnIn(new byte[]{ 1, 2, 3}, 2, 2);
-            fail("No illegal argument exception");
+            Assertions.fail("No illegal argument exception");
         }
         catch (IllegalArgumentException e)
         {
@@ -200,13 +145,8 @@ public class SctpNativeWrapperTest
         throws IOException, InterruptedException
     {
         testSocket.setNotificationListener(
-            new SctpSocket.NotificationListener()
-        {
-            @Override
-            public void onSctpNotification(SctpSocket socket,
-                                           SctpNotification notification)
-            {
-                /**
+            (socket, notification) -> {
+                /*
                  * Notification is fired after usrsctp processed network packet
                  * which means we have native "on_network_in" on current stack.
                  * We own permission to SctpSocket monitor
@@ -230,8 +170,7 @@ public class SctpNativeWrapperTest
                 {
                     socket.close();
                 }
-            }
-        });
+            });
 
         SctpSocket s2 = Sctp.createSocket(5001);
 
@@ -245,17 +184,5 @@ public class SctpNativeWrapperTest
         Thread.sleep(500);
 
         s2.close();
-    }
-
-    /**
-     * Interface used to test whether enclosed code
-     * will throw an <tt>IOException</tt>.
-     */
-    private interface IOExceptionRun
-    {
-        /**
-         * Runs the code that shall throw <tt>IOException</tt>.
-         */
-        public void run() throws IOException;
     }
 }
