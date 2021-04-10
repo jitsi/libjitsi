@@ -3740,6 +3740,12 @@ public class MediaStreamImpl
     public void injectPacket(RawPacket pkt, boolean data, TransformEngine after, boolean create)
         throws TransmissionFailedException
     {
+        if (!isStarted())
+        {
+            // if stream is not started do not inject packet.
+            return;
+        }
+
         try
         {
             if (pkt == null || pkt.getBuffer() == null)
