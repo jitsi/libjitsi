@@ -577,14 +577,6 @@ public class ZRTPTransformEngine
         zrtpEngine
             = new ZRtp(zf.getZid(), this, clientIdString, config, mitmMode);
 
-        if (timeoutProvider == null)
-        {
-            timeoutProvider = new TimeoutProvider("ZRTP");
-            // XXX Daemon only if timeoutProvider is a global singleton.
-            // timeoutProvider.setDaemon(true);
-            timeoutProvider.start();
-        }
-
         enableZrtp = autoEnable;
         return true;
     }
@@ -630,6 +622,15 @@ public class ZRTPTransformEngine
     {
         if (zrtpEngine != null)
         {
+            // start the thread only when zrtp is used
+            if (timeoutProvider == null)
+            {
+                timeoutProvider = new TimeoutProvider("ZRTP");
+                // XXX Daemon only if timeoutProvider is a global singleton.
+                // timeoutProvider.setDaemon(true);
+                timeoutProvider.start();
+            }
+
             zrtpEngine.startZrtpEngine();
             started = true;
 
