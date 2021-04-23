@@ -35,6 +35,7 @@ import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.impl.neomedia.format.*;
 import org.jitsi.impl.neomedia.recording.*;
 import org.jitsi.impl.neomedia.rtp.translator.*;
+import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.impl.neomedia.transform.dtls.*;
 import org.jitsi.impl.neomedia.transform.sdes.*;
 import org.jitsi.impl.neomedia.transform.zrtp.*;
@@ -766,6 +767,8 @@ public class MediaServiceImpl
             return new SDesControlImpl();
         case ZRTP:
             return new ZrtpControlImpl();
+        case NULL:
+            return new NullSrtpControl();
         default:
             return null;
         }
