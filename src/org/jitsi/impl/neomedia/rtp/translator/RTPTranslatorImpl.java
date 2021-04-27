@@ -51,6 +51,12 @@ public class RTPTranslatorImpl
         = Logger.getLogger(RTPTranslatorImpl.class);
 
     /**
+     * A boolean that indicates that this instance has been disposed in order to prevent
+     * adding new receive/send streams.
+     */
+    private boolean disposed;
+
+    /**
      * Logs information about an RTCP packet using {@link #LOGGER} for debugging
      * purposes.
      *
@@ -356,7 +362,10 @@ public class RTPTranslatorImpl
         lock.lock();
         try
         {
-
+        if (disposed)
+        {
+            throw new IllegalStateException("disposed");
+        }
         SendStreamDesc sendStreamDesc = null;
 
         for (SendStreamDesc s : sendStreams)
@@ -562,6 +571,9 @@ public class RTPTranslatorImpl
         Lock lock = _lock.writeLock();
 
         lock.lock();
+
+        disposed = true;
+
         try
         {
 
@@ -858,6 +870,11 @@ public class RTPTranslatorImpl
         lock.lock();
         try
         {
+
+        if (disposed)
+        {
+            throw new IllegalStateException("disposed");
+        }
 
         for (StreamRTPManagerDesc s : streamRTPManagers)
         {
