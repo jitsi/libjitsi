@@ -6,4 +6,4 @@ find_path(opus_INCLUDE_DIR
 find_library(opus_LIBRARY NAMES opus)
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(Opus opus_INCLUDE_DIR opus_LIBRARY)
+find_package_handle_standard_args(opus opus_INCLUDE_DIR opus_LIBRARY)
