@@ -220,7 +220,7 @@ public abstract class Devices
             {
                 for(String devicePreference : devicePreferences)
                 {
-                    if (devicePreference == null)
+                    if (devicePreference == null || "null".equals(devicePreference))
                     {
                         continue;
                     }
@@ -318,6 +318,10 @@ public abstract class Devices
             = (device == null)
                 ? NoneAudioSystem.LOCATOR_PROTOCOL
                 : device.getUID();
+        if (selectedDeviceIdentifier == null)
+        {
+            return;
+        }
 
         // Sorts the user preferences to put the selected device on top.
         addToDevicePreferences(

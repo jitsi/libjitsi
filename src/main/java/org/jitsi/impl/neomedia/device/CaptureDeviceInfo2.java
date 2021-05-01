@@ -186,13 +186,18 @@ public class CaptureDeviceInfo2
     }
 
     /**
-     * Returns the device UID (unique identifier) of this instance.
+     * Returns the device UID (unique identifier) of this instance,
+     * if available. If unavailable (e.g. because the device system
+     * does not have persistent names, like ALSA) it falls back to
+     * {@link #getModelIdentifier()}.
      *
      * @return the device UID (unique identifier) of this instance
      */
     public String getUID()
     {
-        return uid;
+        return uid != null
+            ? uid
+            : getModelIdentifier();
     }
 
     /**
