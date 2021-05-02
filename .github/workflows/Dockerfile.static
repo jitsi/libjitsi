@@ -21,7 +21,7 @@ RUN apt-get update && \
      openjdk-8-jdk \
      openjdk-8-jdk:i386 \
      unzip \
-     yasm \
+     nasm \
      && \
     rm -rf /var/lib/apt/lists/*
 

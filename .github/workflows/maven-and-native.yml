@@ -138,18 +138,15 @@ jobs:
           git config --global user.email "jitsi-jenkins@jitsi.org"
           git config --global user.name "Jitsi GitHub Action"
           cd $Env:GITHUB_WORKSPACE/src/native/
-          # workaround for https://github.com/microsoft/vcpkg/issues/14511
-          .\vcpkg\bootstrap-vcpkg.bat
-          mkdir -p cmake-build-${{ matrix.arch}}\vcpkg_installed
-          vcpkg\vcpkg.exe --feature-flags=-manifests --x-install-root=cmake-build-${{ matrix.arch}}\vcpkg_installed install yasm-tool:x86-windows yasm-tool-helper:x86-windows yasm-tool-helper:x64-windows
-          vcpkg\vcpkg.exe --feature-flags=-manifests --x-install-root=cmake-build-${{ matrix.arch}}\vcpkg_installed install libvpx:${{ matrix.arch}}-windows
           $java_home = "${{ steps.install_java.outputs.path }}".Replace("\\", "/")
-          cmake -B cmake-build-${{ matrix.arch}} -A ${{ steps.expand_arch.outputs.cmake_arch }} -DJAVA_HOME=$java_home -DVCPKG_MANIFEST_INSTALL=false
+          cmake -B cmake-build-${{ matrix.arch}} -A ${{ steps.expand_arch.outputs.cmake_arch }} -DJAVA_HOME=$java_home
           cmake --build cmake-build-${{ matrix.arch}} --config Release --target install --parallel
 
-      - name: The job has failed
+      - name: Gather logs on failure
         if: ${{ failure() }}
-        run: Compress-Archive -Path $Env:GITHUB_WORKSPACE/src/native/cmake-build-${{ matrix.arch}} -DestinationPath $Env:GITHUB_WORKSPACE/target/debug-logs.zip
+        run: |
+          Compress-Archive -Path $Env:GITHUB_WORKSPACE/src/native/cmake-build-${{ matrix.arch}} -DestinationPath $Env:GITHUB_WORKSPACE/target/debug-logs.zip
+          Compress-Archive -Path $Env:GITHUB_WORKSPACE/src/native/vcpkg/buildtrees -DestinationPath $Env:GITHUB_WORKSPACE/target/debug-vcpkg.zip
 
       - name: Upload Debug logs
         if: ${{ failure() }}
@@ -197,7 +194,7 @@ jobs:
         run: |
           git config --global user.email "jitsi-jenkins@jitsi.org"
           git config --global user.name "Jitsi GitHub Action"
-          brew install yasm
+          brew install nasm
           cd $GITHUB_WORKSPACE/src/native/
           cmake -B cmake-build -DJAVA_HOME=${{ steps.install_java.outputs.path }}
           cmake --build cmake-build --config Release --target install --parallel
