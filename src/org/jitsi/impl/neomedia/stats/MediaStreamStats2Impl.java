@@ -336,6 +336,15 @@ public class MediaStreamStats2Impl
     }
 
     /**
+     * Clears ssrc from receiver stats.
+     * @param ssrc the ssrc to process.
+     */
+    public void removeReceiveSsrc(long ssrc)
+    {
+        receiveSsrcStats.remove(ssrc);
+    }
+
+    /**
      * An {@link TrackStats} implementation which aggregates values for
      * a collection of {@link TrackStats} instances.
      */
