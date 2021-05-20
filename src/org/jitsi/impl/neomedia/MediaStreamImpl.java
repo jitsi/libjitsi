@@ -2473,6 +2473,9 @@ public class MediaStreamImpl
 
         if (toRemove != null)
             removeReceiveStream(toRemove);
+
+        // handle removal of ssrc from stats
+        this.mediaStreamStatsImpl.removeReceiveSsrc(ssrc);
     }
 
     /**
