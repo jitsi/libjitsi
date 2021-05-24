@@ -68,4 +68,10 @@ public interface MediaStreamStats2
      * @return all per-SSRC statistics for the receive direction.
      */
     Collection<? extends ReceiveTrackStats> getAllReceiveStats();
+
+    /**
+     * Clears send ssrc stats.
+     * @param ssrc the ssrc to clear.
+     */
+    void clearSendSsrc(long ssrc);
 }
