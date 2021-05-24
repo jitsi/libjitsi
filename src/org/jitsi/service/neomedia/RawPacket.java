@@ -107,6 +107,11 @@ public class RawPacket
     private HeaderExtensions headerExtensions;
 
     /**
+     * A flag to skip packet statistics for this packet.
+     */
+    private boolean skipStats = false;
+
+    /**
      * Initializes a new empty <tt>RawPacket</tt> instance.
      */
     public RawPacket()
@@ -1886,6 +1891,24 @@ public class RawPacket
 
         buffer[offset] |= 0x80;
         return true;
+    }
+
+    /**
+     * Whether to skip packet statistics.
+     * @return returns true if we want to skip stats for this packet.
+     */
+    public boolean isSkipStats()
+    {
+        return skipStats;
+    }
+
+    /**
+     * Changes the skipStats flag.
+     * @param skipStats the new value.
+     */
+    public void setSkipStats(boolean skipStats)
+    {
+        this.skipStats = skipStats;
     }
 
     /**
