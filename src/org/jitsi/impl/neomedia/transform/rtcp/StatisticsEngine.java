@@ -1252,7 +1252,8 @@ public class StatisticsEngine
             mediaStreamStats.rtpPacketSent(
                 pkt.getSSRCAsLong(),
                 pkt.getSequenceNumber(),
-                pkt.getLength());
+                pkt.getLength(),
+                pkt.isSkipStats());
 
             return pkt;
         }

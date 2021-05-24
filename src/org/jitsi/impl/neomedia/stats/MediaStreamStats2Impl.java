@@ -118,8 +118,13 @@ public class MediaStreamStats2Impl
      * @param seq the RTP sequence number of the packet.
      * @param length the length in bytes of the packet.
      */
-    public void rtpPacketSent(long ssrc, int seq, int length)
+    public void rtpPacketSent(long ssrc, int seq, int length, boolean skipStats)
     {
+        if (skipStats)
+        {
+            return;
+        }
+
         synchronized (sendStats)
         {
             getSendStats(ssrc).rtpPacketSent(seq, length);
