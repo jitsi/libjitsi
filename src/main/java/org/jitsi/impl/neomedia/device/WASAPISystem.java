@@ -174,17 +174,7 @@ public class WASAPISystem
      */
     public static int getSampleSizeInBytes(AudioFormat format)
     {
-        int sampleSizeInBits = format.getSampleSizeInBits();
-
-        switch (sampleSizeInBits)
-        {
-        case 8:
-            return 1;
-        case 16:
-            return 2;
-        default:
-            return sampleSizeInBits / 8;
-        }
+        return format.getSampleSizeInBits() / 8;
     }
 
     /**

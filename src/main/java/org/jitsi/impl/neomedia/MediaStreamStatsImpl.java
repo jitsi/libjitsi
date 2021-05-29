@@ -856,7 +856,7 @@ public class MediaStreamStatsImpl
     {
         int nbDiscarded = 0;
         for(JitterBufferControl pqc : getJitterBufferControls())
-            nbDiscarded =+ pqc.getDiscarded();
+            nbDiscarded += pqc.getDiscarded();
         return nbDiscarded;
     }
 
@@ -871,7 +871,7 @@ public class MediaStreamStatsImpl
     {
         int nbDiscardedFull = 0;
         for(JitterBufferControl pqc : getJitterBufferControls())
-            nbDiscardedFull =+ pqc.getDiscardedFull();
+            nbDiscardedFull += pqc.getDiscardedFull();
         return nbDiscardedFull;
     }
 
@@ -886,7 +886,7 @@ public class MediaStreamStatsImpl
     {
         int nbDiscardedLate = 0;
         for(JitterBufferControl pqc : getJitterBufferControls())
-            nbDiscardedLate =+ pqc.getDiscardedLate();
+            nbDiscardedLate += pqc.getDiscardedLate();
         return nbDiscardedLate;
     }
 
@@ -901,7 +901,7 @@ public class MediaStreamStatsImpl
     {
         int nbDiscardedReset = 0;
         for(JitterBufferControl pqc : getJitterBufferControls())
-            nbDiscardedReset =+ pqc.getDiscardedReset();
+            nbDiscardedReset += pqc.getDiscardedReset();
         return nbDiscardedReset;
     }
 
@@ -916,7 +916,7 @@ public class MediaStreamStatsImpl
     {
         int nbDiscardedShrink = 0;
         for(JitterBufferControl pqc : getJitterBufferControls())
-            nbDiscardedShrink =+ pqc.getDiscardedShrink();
+            nbDiscardedShrink += pqc.getDiscardedShrink();
         return nbDiscardedShrink;
     }
 

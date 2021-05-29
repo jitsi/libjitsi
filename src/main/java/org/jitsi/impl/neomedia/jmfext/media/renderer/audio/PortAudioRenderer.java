@@ -373,9 +373,7 @@ public class PortAudioRenderer
                     stream = 0;
                     started = false;
                     flags &= ~(FLAG_OPEN | FLAG_STARTED);
-
-                    if (writeIsMalfunctioningSince != DiagnosticsControl.NEVER)
-                        setWriteIsMalfunctioning(false);
+                    setWriteIsMalfunctioning(false);
                 }
                 catch (PortAudioException paex)
                 {
@@ -676,8 +674,7 @@ public class PortAudioRenderer
                     * framesPerBuffer;
 
             // Pa_WriteStream has not been invoked yet.
-            if (writeIsMalfunctioningSince != DiagnosticsControl.NEVER)
-                setWriteIsMalfunctioning(false);
+            setWriteIsMalfunctioning(false);
         }
     }
 
@@ -745,14 +742,13 @@ public class PortAudioRenderer
     {
         synchronized (this)
         {
-            if (!started || (stream == 0))
+            if (!started || stream == 0)
             {
                 /*
                  * The execution is somewhat abnormal but it is not because of a
                  * malfunction in Pa_WriteStream.
                  */
-                if (writeIsMalfunctioningSince != DiagnosticsControl.NEVER)
-                    setWriteIsMalfunctioning(false);
+                setWriteIsMalfunctioning(false);
 
                 return BUFFER_PROCESSED_OK;
             }
@@ -796,15 +792,13 @@ public class PortAudioRenderer
                 if (errorCode == Pa.paNoError)
                 {
                     // Pa_WriteStream appears to function normally.
-                    if (writeIsMalfunctioningSince != DiagnosticsControl.NEVER)
-                        setWriteIsMalfunctioning(false);
+                    setWriteIsMalfunctioning(false);
                 }
                 else if ((Pa.paTimedOut == errorCode)
                         || (Pa.HostApiTypeId.paMME.equals(hostApiType)
                                 && (Pa.MMSYSERR_NODRIVER == errorCode)))
                 {
-                    if (writeIsMalfunctioningSince == DiagnosticsControl.NEVER)
-                        setWriteIsMalfunctioning(true);
+                    setWriteIsMalfunctioning(true);
                     yield = true;
                 }
             }
@@ -917,11 +911,15 @@ public class PortAudioRenderer
             if (writeIsMalfunctioningSince == DiagnosticsControl.NEVER)
             {
                 writeIsMalfunctioningSince = System.currentTimeMillis();
-                PortAudioSystem.monitorFunctionalHealth(diagnosticsControl);
             }
         }
         else
-            writeIsMalfunctioningSince = DiagnosticsControl.NEVER;
+        {
+            if (writeIsMalfunctioningSince != DiagnosticsControl.NEVER)
+            {
+                writeIsMalfunctioningSince = DiagnosticsControl.NEVER;
+            }
+        }
     }
 
     /**
@@ -931,7 +929,7 @@ public class PortAudioRenderer
      */
     public synchronized void start()
     {
-        if (!started && (stream != 0))
+        if (!started && stream != 0)
         {
             try
             {
@@ -952,7 +950,7 @@ public class PortAudioRenderer
     public synchronized void stop()
     {
         waitWhileStreamIsBusy();
-        if (started && (stream != 0))
+        if (started && stream != 0)
         {
             try
             {
@@ -961,8 +959,7 @@ public class PortAudioRenderer
                 flags &= ~FLAG_STARTED;
 
                 bufferLeft = null;
-                if (writeIsMalfunctioningSince != DiagnosticsControl.NEVER)
-                    setWriteIsMalfunctioning(false);
+                setWriteIsMalfunctioning(false);
             }
             catch (PortAudioException paex)
             {
@@ -978,8 +975,6 @@ public class PortAudioRenderer
      */
     private void waitWhileStreamIsBusy()
     {
-        boolean interrupted = false;
-
         while (streamIsBusy)
         {
             try
@@ -988,10 +983,9 @@ public class PortAudioRenderer
             }
             catch (InterruptedException iex)
             {
-                interrupted = true;
+                Thread.currentThread().interrupt();
+                return;
             }
         }
-        if (interrupted)
-            Thread.currentThread().interrupt();
     }
 }

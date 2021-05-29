@@ -58,18 +58,14 @@ public class PortAudioStream
      */
     public static void yield()
     {
-        boolean interrupted = false;
-
         try
         {
             Thread.sleep(Pa.DEFAULT_MILLIS_PER_BUFFER);
         }
         catch (InterruptedException ie)
         {
-            interrupted = true;
-        }
-        if (interrupted)
             Thread.currentThread().interrupt();
+        }
     }
 
     /**
@@ -91,65 +87,6 @@ public class PortAudioStream
      * <tt>PullBufferStream</tt>.
      */
     private String deviceID;
-
-    /**
-     * The <tt>DiagnosticsControl</tt> implementation of this instance which
-     * allows the diagnosis of the functional health of <tt>Pa_ReadStream</tt>.
-     */
-    private final DiagnosticsControl diagnosticsControl
-        = new DiagnosticsControl()
-        {
-            /**
-             * {@inheritDoc}
-             *
-             * <tt>PortAudioStream</tt>'s <tt>DiagnosticsControl</tt>
-             * implementation does not provide its own user interface and always
-             * returns <tt>null</tt>.
-             */
-            public java.awt.Component getControlComponent()
-            {
-                return null;
-            }
-
-            /**
-             * {@inheritDoc}
-             */
-            public long getMalfunctioningSince()
-            {
-                return readIsMalfunctioningSince;
-            }
-
-            /**
-             * {@inheritDoc}
-             *
-             * Returns the identifier of the PortAudio device read through this
-             * <tt>PortAudioStream</tt>.
-             */
-            @Override
-            public String toString()
-            {
-                String id = PortAudioStream.this.deviceID;
-                String name = null;
-
-                if (deviceID != null)
-                {
-                    int index
-                        = Pa.getDeviceIndex(
-                                id,
-                                /* minInputChannels */ 1,
-                                /* minOutputChannels */ 0);
-
-                    if (index != Pa.paNoDevice)
-                    {
-                        long info = Pa.GetDeviceInfo(index);
-
-                        if (info != 0)
-                            name = Pa.DeviceInfo_getName(info);
-                    }
-                }
-                return name;
-            }
-        };
 
     /**
      * The last-known <tt>Format</tt> of the media data made available by this
@@ -785,7 +722,6 @@ public class PortAudioStream
             if (readIsMalfunctioningSince == NEVER)
             {
                 readIsMalfunctioningSince = System.currentTimeMillis();
-                PortAudioSystem.monitorFunctionalHealth(diagnosticsControl);
             }
         }
         else

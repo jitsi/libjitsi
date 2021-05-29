@@ -344,8 +344,7 @@ public class MediaUtils
             }
 
             // By default, packetization-mode=1 is enabled.
-            if ((cfg == null)
-                || cfg.getBoolean(
+            if (cfg.getBoolean(
                 "net.java.sip.communicator.impl.neomedia"
                     + ".codec.video.h264.packetization-mode-1.enabled",
                 true))

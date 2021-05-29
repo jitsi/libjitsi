@@ -132,22 +132,6 @@ public class PortAudioSystem
         return supportedSampleRate;
     }
 
-    /**
-     * Places a specific <tt>DiagnosticsControl</tt> under monitoring of its
-     * functional health because of a malfunction in its procedure/process. The
-     * monitoring will automatically cease after the procedure/process resumes
-     * executing normally or is garbage collected.
-     *
-     * @param diagnosticsControl the <tt>DiagnosticsControl</tt> to be placed
-     * under monitoring of its functional health because of a malfunction in its
-     * procedure/process
-     */
-    public static void monitorFunctionalHealth(
-            DiagnosticsControl diagnosticsControl)
-    {
-        // TODO Auto-generated method stub
-    }
-
     private Runnable devicesChangedCallback;
 
     /**

@@ -179,11 +179,6 @@ public class WASAPIRenderer
     }
 
     /**
-     * The duration in milliseconds of the endpoint buffer.
-     */
-    private long bufferDuration;
-
-    /**
      * The indicator which determines whether the audio stream represented by
      * this instance, {@link #iAudioClient} and {@link #iAudioRenderClient} is
      * busy and, consequently, its state should not be modified. For example,
@@ -620,8 +615,7 @@ public class WASAPIRenderer
             int sampleSizeInBits = 16;
             int channels = 2;
 
-            if ((sampleRate == Format.NOT_SPECIFIED)
-                    && (Constants.AUDIO_SAMPLE_RATES.length != 0))
+            if (sampleRate == Format.NOT_SPECIFIED)
                 sampleRate = Constants.AUDIO_SAMPLE_RATES[0];
             return
                 WASAPISystem.getFormatsToInitializeIAudioClient(
@@ -938,8 +932,9 @@ public class WASAPIRenderer
 
                         int dstSampleRate = (int) dstFormat.getSampleRate();
 
-                        bufferDuration
-                            = numBufferFrames * 1000L / dstSampleRate;
+                        // The duration in milliseconds of the endpoint buffer.
+                        long bufferDuration =
+                            numBufferFrames * 1000L / dstSampleRate;
                         /*
                          * We will very likely be inefficient if we fail to
                          * synchronize with the scheduling period of the audio
@@ -1005,7 +1000,7 @@ public class WASAPIRenderer
                          */
                         srcBufferLength = srcBuffer.length;
 
-                        writeIsMalfunctioningSince = DiagnosticsControl.NEVER;
+                        setWriteIsMalfunctioning(false);
                         writeIsMalfunctioningTimeout
                             = 2 * Math.max(bufferDuration, devicePeriod);
 
@@ -1202,9 +1197,7 @@ public class WASAPIRenderer
                          * not be malfunctioning, it depends on the interval of
                          * time that the state remains unchanged.
                          */
-                        if (writeIsMalfunctioningSince
-                                == DiagnosticsControl.NEVER)
-                            setWriteIsMalfunctioning(true);
+                        setWriteIsMalfunctioning(true);
                     }
                     else
                     {
@@ -1237,9 +1230,7 @@ public class WASAPIRenderer
                              * occurred so it does not look like the writing to
                              * the render endpoint buffer is malfunctioning.
                              */
-                            if (writeIsMalfunctioningSince
-                                    != DiagnosticsControl.NEVER)
-                                setWriteIsMalfunctioning(false);
+                            setWriteIsMalfunctioning(false);
                         }
                         else
                         {
@@ -1250,9 +1241,7 @@ public class WASAPIRenderer
                              * has occurred so it is possible that the writing
                              * to the render endpoint buffer is malfunctioning.
                              */
-                            if (writeIsMalfunctioningSince
-                                    == DiagnosticsControl.NEVER)
-                                setWriteIsMalfunctioning(true);
+                            setWriteIsMalfunctioning(true);
                         }
                     }
                 }
@@ -1384,9 +1373,7 @@ public class WASAPIRenderer
                             popFromSrcBuffer(written);
                         }
 
-                        if (writeIsMalfunctioningSince
-                                != DiagnosticsControl.NEVER)
-                            setWriteIsMalfunctioning(false);
+                        setWriteIsMalfunctioning(false);
                     }
                 }
 
@@ -1437,8 +1424,6 @@ public class WASAPIRenderer
         if (((ret & INPUT_BUFFER_NOT_CONSUMED) == INPUT_BUFFER_NOT_CONSUMED)
                 && (sleep > 0))
         {
-            boolean interrupted = false;
-
             synchronized (this)
             {
                 /*
@@ -1455,11 +1440,9 @@ public class WASAPIRenderer
                 }
                 catch (InterruptedException ie)
                 {
-                    interrupted = true;
+                    Thread.currentThread().interrupt();
                 }
             }
-            if (interrupted)
-                Thread.currentThread().interrupt();
         }
         return ret;
     }
@@ -1612,9 +1595,7 @@ public class WASAPIRenderer
                             else
                                 resamplerOutBuffer.setLength(bufLength);
 
-                            if (writeIsMalfunctioningSince
-                                    != DiagnosticsControl.NEVER)
-                                setWriteIsMalfunctioning(false);
+                            setWriteIsMalfunctioning(false);
                         }
                     }
                 }
@@ -1698,10 +1679,18 @@ public class WASAPIRenderer
         if (writeIsMalfunctioning)
         {
             if (writeIsMalfunctioningSince == DiagnosticsControl.NEVER)
+            {
                 writeIsMalfunctioningSince = System.currentTimeMillis();
+            }
         }
         else
-            writeIsMalfunctioningSince = DiagnosticsControl.NEVER;
+        {
+            if (writeIsMalfunctioningSince != DiagnosticsControl.NEVER)
+            {
+                writeIsMalfunctioningSince = DiagnosticsControl.NEVER;
+                logger.info("WASAPI restored");
+            }
+        }
     }
 
     /**
@@ -1764,9 +1753,10 @@ public class WASAPIRenderer
 
                 if ((eventHandle != 0) && (this.eventHandleCmd == null))
                 {
-                    Runnable eventHandleCmd
+                    Runnable newEventHandleCmd
                         = new Runnable()
                         {
+                            @Override
                             public void run()
                             {
                                 runInEventHandleCmd(this);
@@ -1782,14 +1772,14 @@ public class WASAPIRenderer
                                 = Executors.newSingleThreadExecutor();
                         }
 
-                        this.eventHandleCmd = eventHandleCmd;
-                        eventHandleExecutor.execute(eventHandleCmd);
+                        this.eventHandleCmd = newEventHandleCmd;
+                        eventHandleExecutor.execute(newEventHandleCmd);
                         submitted = true;
                     }
                     finally
                     {
                         if (!submitted
-                                && eventHandleCmd.equals(this.eventHandleCmd))
+                                && newEventHandleCmd.equals(this.eventHandleCmd))
                             this.eventHandleCmd = null;
                     }
                 }
@@ -1837,8 +1827,7 @@ public class WASAPIRenderer
                 started = false;
 
                 waitWhileEventHandleCmd();
-
-                writeIsMalfunctioningSince = DiagnosticsControl.NEVER;
+                setWriteIsMalfunctioning(false);
             }
             catch (HResultException hre)
             {
@@ -1858,49 +1847,42 @@ public class WASAPIRenderer
      */
     private String toString(MediaLocator locator)
     {
-        String s;
-
         if (locator == null)
-            s = "null";
-        else
         {
-            s = null;
-            /*
-             * Try to not throw any exceptions because the purpose is to produce
-             * at least some identification of the specified MediaLocator even
-             * if not the most complete.
-             */
-            try
-            {
-                String id = locator.getRemainder();
-
-                if (id != null)
-                {
-                    CaptureDeviceInfo2 cdi2
-                        = audioSystem.getDevice(dataFlow, locator);
-
-                    if (cdi2 != null)
-                    {
-                        String name = cdi2.getName();
-
-                        if ((name != null) && !id.equals(name))
-                            s = id + " with friendly name " + name;
-                    }
-                    if (s == null)
-                        s = id;
-                }
-            }
-            catch (Throwable t)
-            {
-                if (t instanceof InterruptedException)
-                    Thread.currentThread().interrupt();
-                else if (t instanceof ThreadDeath)
-                    throw (ThreadDeath) t;
-            }
-            if (s == null)
-                s = locator.toString();
+            return "null";
         }
-        return s;
+
+        /*
+         * Try to not throw any exceptions because the purpose is to produce
+         * at least some identification of the specified MediaLocator even
+         * if not the most complete.
+         */
+        try
+        {
+            String id = locator.getRemainder();
+            if (id != null)
+            {
+                CaptureDeviceInfo2 cdi2
+                    = audioSystem.getDevice(dataFlow, locator);
+
+                if (cdi2 != null)
+                {
+                    String name = cdi2.getName();
+                    if (name != null && !id.equals(name))
+                    {
+                        return id + " with friendly name " + name;
+                    }
+                }
+
+                return id;
+            }
+        }
+        catch (Exception e)
+        {
+            logger.warn("Could not get detailed device locator info", e);
+        }
+
+        return locator.toString();
     }
 
     /**
@@ -1909,8 +1891,6 @@ public class WASAPIRenderer
      */
     private synchronized void waitWhileBusy()
     {
-        boolean interrupted = false;
-
         while (busy)
         {
             try
@@ -1919,11 +1899,10 @@ public class WASAPIRenderer
             }
             catch (InterruptedException ie)
             {
-                interrupted = true;
+                Thread.currentThread().interrupt();
+                return;
             }
         }
-        if (interrupted)
-            Thread.currentThread().interrupt();
     }
 
     /**
@@ -1935,8 +1914,6 @@ public class WASAPIRenderer
         if (eventHandle == 0)
             throw new IllegalStateException("eventHandle");
 
-        boolean interrupted = false;
-
         while (eventHandleCmd != null)
         {
             try
@@ -1945,10 +1922,9 @@ public class WASAPIRenderer
             }
             catch (InterruptedException ie)
             {
-                interrupted = true;
+                Thread.currentThread().interrupt();
+                return;
             }
         }
-        if (interrupted)
-            Thread.currentThread().interrupt();
     }
 }

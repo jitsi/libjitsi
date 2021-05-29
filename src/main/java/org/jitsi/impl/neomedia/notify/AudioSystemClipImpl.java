@@ -20,6 +20,7 @@ import java.io.*;
 import javax.media.*;
 import javax.media.format.*;
 
+import net.sf.fmj.media.*;
 import org.jitsi.impl.neomedia.codec.audio.speex.*;
 import org.jitsi.impl.neomedia.device.*;
 import org.jitsi.service.audionotifier.*;
@@ -257,7 +258,7 @@ public class AudioSystemClipImpl
                     do
                     {
                         rendererProcess = renderer.process(rendererBuffer);
-                        if (rendererProcess == Renderer.BUFFER_PROCESSED_FAILED)
+                        if (rendererProcess == PlugIn.BUFFER_PROCESSED_FAILED)
                         {
                             logger.error(
                                     "Failed to render audio stream " + uri);
@@ -266,8 +267,8 @@ public class AudioSystemClipImpl
                         }
                     }
                     while ((rendererProcess
-                                & Renderer.INPUT_BUFFER_NOT_CONSUMED)
-                            == Renderer.INPUT_BUFFER_NOT_CONSUMED);
+                                & PlugIn.INPUT_BUFFER_NOT_CONSUMED)
+                            == PlugIn.INPUT_BUFFER_NOT_CONSUMED);
                 }
             }
             catch (IOException ioex)

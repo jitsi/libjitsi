@@ -255,7 +255,7 @@ public abstract class RTPConnectorOutputStream
      * Initializes a new <tt>RTPConnectorOutputStream</tt> which is to send
      * packet data out through a specific socket.
      */
-    public RTPConnectorOutputStream()
+    protected RTPConnectorOutputStream()
     {
         if (USE_SEND_THREAD)
         {
@@ -783,15 +783,7 @@ public abstract class RTPConnectorOutputStream
                 queueStats = new QueueStatistics();
             }
 
-            sendThread
-                = new Thread()
-            {
-                @Override
-                public void run()
-                {
-                    runInSendThread();
-                }
-            };
+            sendThread = new Thread(this::runInSendThread);
             sendThread.setDaemon(true);
             sendThread.setName(Queue.class.getName() + ".sendThread");
 

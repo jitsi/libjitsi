@@ -100,9 +100,9 @@ public class DiscardTransformEngine
             rewriter.rewriteRTP(
                 !dropPkt, pkt.getBuffer(), pkt.getOffset(), pkt.getLength());
 
-            if (logger.isDebugEnabled())
+            if (logger.isTraceEnabled())
             {
-                logger.debug((dropPkt ? "discarding " : "passing through ")
+                logger.trace((dropPkt ? "discarding " : "passing through ")
                     + " RTP ssrc=" + pkt.getSSRCAsLong() + ", seqnum="
                     + pkt.getSequenceNumber() + ", ts=" + pkt.getTimestamp()
                     + ", streamHashCode=" + stream.hashCode());

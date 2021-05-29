@@ -370,7 +370,7 @@ public abstract class AudioSystem
                     renderer = null;
                 }
 
-                if (superCreateRenderer && (renderer == null))
+                if (superCreateRenderer)
                     renderer = super.createRenderer();
             }
         }
