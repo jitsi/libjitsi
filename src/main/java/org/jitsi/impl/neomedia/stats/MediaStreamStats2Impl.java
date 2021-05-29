@@ -39,6 +39,11 @@ public class MediaStreamStats2Impl
         = new ConcurrentHashMap<>();
 
     /**
+     * Hold per-SSRC time after which we can clean them.
+     */
+    private final Map<Long, Long> sendSsrcStatsToClean = new ConcurrentHashMap<>();
+
+    /**
      * Global (aggregated) statistics for received streams.
      */
     private final AggregateReceiveTrackStats receiveStats
@@ -117,9 +122,15 @@ public class MediaStreamStats2Impl
      * @param ssrc the SSRC of the packet.
      * @param seq the RTP sequence number of the packet.
      * @param length the length in bytes of the packet.
+     * @param skipStats whether to skip this packet.
      */
-    public void rtpPacketSent(long ssrc, int seq, int length)
+    public void rtpPacketSent(long ssrc, int seq, int length, boolean skipStats)
     {
+        if (skipStats)
+        {
+            return;
+        }
+
         synchronized (sendStats)
         {
             getSendStats(ssrc).rtpPacketSent(seq, length);
@@ -140,6 +151,29 @@ public class MediaStreamStats2Impl
         {
             getSendStats(ssrc).rtcpReceiverReportReceived(fractionLost);
         }
+
+        this.cleanSendStatsOld();
+    }
+
+    /**
+     * Clean old send stats.
+     */
+    private void cleanSendStatsOld()
+    {
+        if (this.sendSsrcStatsToClean.isEmpty())
+        {
+            return;
+        }
+
+        long now = System.currentTimeMillis();
+        this.sendSsrcStatsToClean.entrySet().stream().forEach(entry ->
+        {
+            if (entry.getValue() > now)
+            {
+                sendSsrcStats.remove(entry.getKey());
+                sendSsrcStatsToClean.remove(entry.getKey());
+            }
+        });
     }
 
     /**
@@ -333,6 +367,24 @@ public class MediaStreamStats2Impl
     public Collection<? extends ReceiveTrackStats> getAllReceiveStats()
     {
         return receiveSsrcStats.values();
+    }
+
+    /**
+     * Clears ssrc from receiver stats.
+     * @param ssrc the ssrc to process.
+     */
+    public void removeReceiveSsrc(long ssrc)
+    {
+        receiveSsrcStats.remove(ssrc);
+    }
+
+    /**
+     * Schedules ssrc for clear from the send stats per ssrc.
+     * @param ssrc the ssrc to clear.
+     */
+    public void clearSendSsrc(long ssrc)
+    {
+        sendSsrcStatsToClean.put(ssrc, System.currentTimeMillis() + INTERVAL);
     }
 
     /**

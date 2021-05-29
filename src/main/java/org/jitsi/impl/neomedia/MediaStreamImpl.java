@@ -407,14 +407,9 @@ public class MediaStreamImpl
             setDevice(device);
         }
 
-        // If you change the default behavior (initiates a ZrtpControlImpl if
-        // the srtpControl attribute is null), please accordingly modify the
-        // CallPeerMediaHandler.initStream function.
-        this.srtpControl
-                = (srtpControl == null)
-                    ? NeomediaServiceUtils.getMediaServiceImpl()
-                            .createSrtpControl(SrtpControlType.ZRTP)
-                    : srtpControl;
+        this.srtpControl = (srtpControl == null)
+            ? NeomediaServiceUtils.getMediaServiceImpl().createSrtpControl(SrtpControlType.NULL)
+            : srtpControl;
 
         this.srtpControl.registerUser(this);
         this.mediaStreamStatsImpl = new MediaStreamStats2Impl(this);
@@ -2477,6 +2472,9 @@ public class MediaStreamImpl
 
         if (toRemove != null)
             removeReceiveStream(toRemove);
+
+        // handle removal of ssrc from stats
+        this.mediaStreamStatsImpl.removeReceiveSsrc(ssrc);
     }
 
     /**
