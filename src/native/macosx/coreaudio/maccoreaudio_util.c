@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "MacCoreaudio_util.h"
+#include "maccoreaudio_util.h"
 
 #include "device.h"
 

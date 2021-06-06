@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "org_jitsi_impl_neomedia_codec_audio_speex_Speex.h"
+#include <org_jitsi_impl_neomedia_codec_audio_speex_Speex.h>
 
 #include <speex/speex.h>
 #include <speex/speex_resampler.h>

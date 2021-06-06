@@ -63,17 +63,6 @@
 - (void)setFrameFromJAWTDrawingSurfaceInfo:(JAWT_DrawingSurfaceInfo *)dsi;
 @end /* JAWTRendererLayer */
 
-/*
- * JAWT version 1.7 does not define the type JAWT_MacOSXDrawingSurfaceInfo.
- */
-#ifdef JAWT_VERSION_1_7
-// Legacy NSView-based rendering
-typedef struct JAWT_MacOSXDrawingSurfaceInfo {
-    NSView *cocoaViewRef; // the view is guaranteed to be valid only for the duration of Component.paint method
-}
-JAWT_MacOSXDrawingSurfaceInfo;
-#endif /* #ifdef JAWT_VERSION_1_7 */
-
 void
 JAWTRenderer_addNotify
     (JNIEnv *env, jclass clazz, jlong handle, jobject component)
@@ -117,60 +106,26 @@ JAWTRenderer_paint
 
     autoreleasePool = [[NSAutoreleasePool alloc] init];
 
-    /*
-     * The native peer of the AWT Canvas that is the component of this
-     * JAWTRenderer should be a JAWTRendererLayer.
-     */
-    if (JAWT_MACOSX_USE_CALAYER == (version & JAWT_MACOSX_USE_CALAYER))
-    {
-        id<JAWT_SurfaceLayers> surfaceLayers
-            = (id<JAWT_SurfaceLayers>) (dsi->platformInfo);
-        CALayer *layer = surfaceLayers.layer;
+    id<JAWT_SurfaceLayers> surfaceLayers
+        = (id<JAWT_SurfaceLayers>) (dsi->platformInfo);
+    CALayer *layer = surfaceLayers.layer;
 
-        if (layer && [layer isKindOfClass:[JAWTRendererLayer class]])
-        {
-            thizLayer = (JAWTRendererLayer *) layer;
-        }
-        else
-        {
-            thizLayer = [JAWTRendererLayer layer];
-            if (thizLayer)
-            {
-                [thizLayer setFrameFromJAWTDrawingSurfaceInfo:dsi];
-                surfaceLayers.layer = thizLayer;
-                [thizLayer autorelease];
-            }
-            else
-            {
-                wantsPaint = JNI_FALSE;
-            }
-        }
+    if (layer && [layer isKindOfClass:[JAWTRendererLayer class]])
+    {
+        thizLayer = (JAWTRendererLayer *) layer;
     }
     else
     {
-        NSView *view
-            = ((JAWT_MacOSXDrawingSurfaceInfo *) (dsi->platformInfo))
-                ->cocoaViewRef;
-        CALayer *layer = [view layer];
-
-        if (layer && [layer isKindOfClass:[JAWTRendererLayer class]])
+        thizLayer = [JAWTRendererLayer layer];
+        if (thizLayer)
         {
-            thizLayer = (JAWTRendererLayer *) layer;
+            [thizLayer setFrameFromJAWTDrawingSurfaceInfo:dsi];
+            surfaceLayers.layer = thizLayer;
+            [thizLayer autorelease];
         }
         else
         {
-            thizLayer = [JAWTRendererLayer layer];
-            if (thizLayer)
-            {
-                [thizLayer setFrameFromJAWTDrawingSurfaceInfo:dsi];
-                [view setLayer:thizLayer];
-                [view setWantsLayer:YES];
-                [thizLayer autorelease];
-            }
-            else
-            {
-                wantsPaint = JNI_FALSE;
-            }
+            wantsPaint = JNI_FALSE;
         }
     }
 

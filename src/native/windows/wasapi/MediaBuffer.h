@@ -17,12 +17,47 @@
 #ifndef _ORG_JITSI_IMPL_NEOMEDIA_JMFEXT_MEDIA_PROTOCOL_WASAPI_MEDIABUFFER_
 #define _ORG_JITSI_IMPL_NEOMEDIA_JMFEXT_MEDIA_PROTOCOL_WASAPI_MEDIABUFFER_
 
-#include "MinGW_dmo.h" /* IMediaBuffer */
+#include <dmo.h>
+
+class CMediaBuffer final : public IMediaBuffer {
+private:
+    LONG ref_count_;
+    DWORD max_length_;
+    DWORD length_;
+    BYTE *buffer_;
+
+    explicit CMediaBuffer(DWORD maxLength) :
+            ref_count_(1),
+            max_length_(maxLength),
+            length_(0),
+            buffer_(nullptr) {
+        buffer_ = new BYTE[maxLength];
+    }
+
+    ~CMediaBuffer() {
+        delete[] buffer_;
+    }
+
+public:
+    static STDMETHODIMP Create(long maxLen, IMediaBuffer **ppBuffer);
+
+    STDMETHODIMP QueryInterface(const IID &riid, void **ppvObject) override;
+
+    STDMETHODIMP_(ULONG) CMediaBuffer::AddRef() override;
+
+    STDMETHODIMP_(ULONG) CMediaBuffer::Release() override;
+
+    STDMETHODIMP CMediaBuffer::GetBufferAndLength(BYTE **ppBuffer, DWORD *pcbLength) override;
+
+    STDMETHODIMP CMediaBuffer::GetMaxLength(DWORD *pcbMaxLength) override;
+
+    STDMETHODIMP CMediaBuffer::SetLength(DWORD cbLength) override;
+
+    DWORD pop(BYTE *buffer, DWORD length);
+
+    DWORD push(BYTE *buffer, DWORD length);
+};
 
 typedef struct MediaBuffer MediaBuffer;
-
-MediaBuffer *MediaBuffer_alloc(DWORD maxLength);
-DWORD MediaBuffer_pop(MediaBuffer *thiz, BYTE *buffer, DWORD length);
-DWORD MediaBuffer_push(MediaBuffer *thiz, BYTE *buffer, DWORD length);
 
 #endif /* #ifndef _ORG_JITSI_IMPL_NEOMEDIA_JMFEXT_MEDIA_PROTOCOL_WASAPI_MEDIABUFFER_ */

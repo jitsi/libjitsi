@@ -17,30 +17,30 @@
 #include "org_jitsi_impl_neomedia_quicktime_QTSampleBuffer.h"
 
 #import <Foundation/NSAutoreleasePool.h>
-#import <QTKit/QTFormatDescription.h>
-#import <QTKit/QTSampleBuffer.h>
+#import <AVFoundation/AVFoundation.h>
 #include <stdint.h>
 
 JNIEXPORT jbyteArray JNICALL
 Java_org_jitsi_impl_neomedia_quicktime_QTSampleBuffer_bytesForAllSamples
     (JNIEnv *jniEnv, jclass clazz, jlong ptr)
 {
-    QTSampleBuffer *sampleBuffer;
+    CMSampleBufferRef sampleBuffer;
     NSAutoreleasePool *autoreleasePool;
     NSUInteger lengthForAllSamples;
     jbyteArray jBytesForAllSamples;
 
-    sampleBuffer = (QTSampleBuffer *) (intptr_t) ptr;
+    sampleBuffer = (CMSampleBufferRef) (intptr_t) ptr;
     autoreleasePool = [[NSAutoreleasePool alloc] init];
 
-    lengthForAllSamples = [sampleBuffer lengthForAllSamples];
+    lengthForAllSamples = CMSampleBufferGetTotalSampleSize(sampleBuffer);
     if (lengthForAllSamples)
     {
         jBytesForAllSamples
             = (*jniEnv)->NewByteArray(jniEnv, lengthForAllSamples);
         if (jBytesForAllSamples)
         {
-            jbyte *bytesForAllSamples = [sampleBuffer bytesForAllSamples];
+            // TODO check for planar data like Chromium and https://github.com/BelledonneCommunications/mediastreamer2/pull/10/files ?
+            jbyte *bytesForAllSamples = CMSampleBufferGetImageBuffer(sampleBuffer);
 
             (*jniEnv)
                 ->SetByteArrayRegion(
@@ -62,17 +62,9 @@ JNIEXPORT jlong JNICALL
 Java_org_jitsi_impl_neomedia_quicktime_QTSampleBuffer_formatDescription
     (JNIEnv *jniEnv, jclass clazz, jlong ptr)
 {
-    QTSampleBuffer *sampleBuffer;
-    NSAutoreleasePool *autoreleasePool;
-    QTFormatDescription *formatDescription;
-
-    sampleBuffer = (QTSampleBuffer *) (intptr_t) ptr;
-    autoreleasePool = [[NSAutoreleasePool alloc] init];
-
-    formatDescription = [sampleBuffer formatDescription];
-    if (formatDescription)
-        [formatDescription retain];
-
-    [autoreleasePool release];
+    CMSampleBufferRef sampleBuffer
+            = (CMSampleBufferRef) (intptr_t) ptr;
+    CMFormatDescriptionRef formatDescription
+            = CMSampleBufferGetFormatDescription(sampleBuffer);
     return (jlong) (intptr_t) formatDescription;
 }

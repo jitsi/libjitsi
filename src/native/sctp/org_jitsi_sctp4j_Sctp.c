@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "org_jitsi_sctp4j_Sctp.h"
+#include <org_jitsi_sctp4j_Sctp.h>
 
 #include <errno.h>
 #include <stdint.h>

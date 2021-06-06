@@ -50,7 +50,9 @@ typedef struct _MacCoreaudio_Stream
     int outBufferLength;
 
     /* Input streams only. */
+#ifdef COREAUDIO_AEC
     LibJitsi_WebRTC_AEC *aec;
+#endif
     unsigned char isEchoCancel;
 } MacCoreaudio_Stream;
 

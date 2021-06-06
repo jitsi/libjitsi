@@ -17,24 +17,27 @@
 #include "org_jitsi_impl_neomedia_quicktime_QTCaptureDeviceInput.h"
 
 #import <Foundation/NSException.h>
-#import <QTKit/QTCaptureDevice.h>
-#import <QTKit/QTCaptureDeviceInput.h>
-#include <stdint.h>
+#import <AVFoundation/AVFoundation.h>
 
 JNIEXPORT jlong JNICALL
 Java_org_jitsi_impl_neomedia_quicktime_QTCaptureDeviceInput_deviceInputWithDevice
     (JNIEnv *jniEnv, jclass clazz, jlong devicePtr)
 {
-    QTCaptureDevice *device;
+    NSError *error = nil;
+    AVCaptureDevice *device;
     NSAutoreleasePool *autoreleasePool;
     id deviceInput;
 
-    device = (QTCaptureDevice *) (intptr_t) devicePtr;
+    device = (AVCaptureDevice *) (intptr_t) devicePtr;
     autoreleasePool = [[NSAutoreleasePool alloc] init];
 
     @try
     {
-        deviceInput = [QTCaptureDeviceInput deviceInputWithDevice:device];
+        deviceInput = [AVCaptureDeviceInput deviceInputWithDevice:device error:&error];
+        if (error)
+        {
+            return 0l;
+        }
     }
     @catch (NSException *ex)
     {

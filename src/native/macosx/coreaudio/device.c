@@ -88,14 +88,14 @@ OSStatus MacCoreaudio_initConverter(MacCoreaudio_Stream * stream);
 
 OSStatus MacCoreaudio_freeConverter(MacCoreaudio_Stream * stream);
 
-inline UInt32 CalculateLPCMFlags (
+UInt32 CalculateLPCMFlags (
         UInt32 inValidBitsPerChannel,
         UInt32 inTotalBitsPerChannel,
         bool inIsFloat,
         bool inIsBigEndian,
         bool inIsNonInterleaved);
 
-inline void FillOutASBDForLPCM(
+void FillOutASBDForLPCM(
         AudioStreamBasicDescription * outASBD,
         Float64 inSampleRate,
         UInt32 inChannelsPerFrame,
@@ -139,6 +139,7 @@ OSStatus MacCoreaudio_writeOutputStream(
         AudioBufferList* outOutputData,
         const AudioTimeStamp* inOutputTime,
         void* inClientData);
+#ifdef COREAUDIO_AEC
 void MacCoreaudio_writeOutputStreamToAECStream(
         MacCoreaudio_Stream *src,
         UInt32 outBufferSize,
@@ -146,6 +147,7 @@ void MacCoreaudio_writeOutputStreamToAECStream(
 void MacCoreaudio_writeOutputStreamToAECStreams(
         MacCoreaudio_Stream *stream,
         UInt32 outBufferSize);
+#endif
 
 OSStatus MacCoreaudio_getStreamVirtualFormat(
         AudioStreamID stream,
@@ -171,7 +173,9 @@ OSStatus MacCoreaudio_converterComplexInputDataProc(
         AudioStreamPacketDescription** ioDataPacketDescription,
         void* inUserData);
 
+#ifdef COREAUDIO_AEC
 int MacCoreaudio_getAECCorrespondingRate(int rate);
+#endif
 
 OSStatus MacCoreaudio_initDeviceFormat(
         const char * deviceUID,
@@ -197,6 +201,7 @@ OSStatus MacCoreaudio_convert(
         int outBufferLength,
         AudioStreamBasicDescription outFormat);
 
+#ifdef COREAUDIO_AEC
 void MacCoreaudio_addAECStream(MacCoreaudio_Stream *stream);
 void MacCoreaudio_removeAECStream(MacCoreaudio_Stream *stream);
 
@@ -204,6 +209,7 @@ unsigned int MacCoreaudio_aecStreamCapacity = 0;
 unsigned int MacCoreaudio_aecStreamCount = 0;
 pthread_mutex_t MacCoreaudio_aecStreamMutex = PTHREAD_MUTEX_INITIALIZER;
 MacCoreaudio_Stream **MacCoreaudio_aecStreams = NULL;
+#endif
 
 /**
  * Returns if the audio device is an input device.
@@ -993,8 +999,10 @@ Float64 MacCoreaudio_getNominalSampleRate(
     }
 
     // The echo canceler must be set to met capture device requirement.
+#ifdef COREAUDIO_AEC
     if(!isOutputStream && isEchoCancel)
         rate = MacCoreaudio_getAECCorrespondingRate(rate);
+#endif
 
     return rate;
 }
@@ -1063,11 +1071,13 @@ OSStatus MacCoreaudio_getAvailableNominalSampleRates(
     (*maxRate) = minMaxRate.mMaximum;
 
     // The echo canceller must be set to met capture device requirement.
+#ifdef COREAUDIO_AEC
     if(!isOutputStream && isEchoCancel)
     {
         (*minRate) = MacCoreaudio_getAECCorrespondingRate(*minRate);
         (*maxRate) = MacCoreaudio_getAECCorrespondingRate(*maxRate);
     }
+#endif
 
     return noErr;
 }
@@ -1495,6 +1505,7 @@ MacCoreaudio_startStream(
     }
 
     // Init AEC
+#ifdef COREAUDIO_AEC
     stream->isEchoCancel = isEchoCancel;
     if(!isOutputStream && isEchoCancel)
     {
@@ -1542,6 +1553,7 @@ MacCoreaudio_startStream(
     }
     else
         stream->aec = NULL;
+#endif
 
     // Init the converter.
     FillOutASBDForLPCM(
@@ -1593,6 +1605,7 @@ MacCoreaudio_startStream(
         return NULL;
     }
 
+#ifdef COREAUDIO_AEC
     /*
      * Input/capture streams with acoustic echo cancellation (AEC) enabled are
      * registered globally so that output/render streams with AEC enabled can
@@ -1600,10 +1613,12 @@ MacCoreaudio_startStream(
      */
     if (stream->aec)
         MacCoreaudio_addAECStream(stream);
+#endif
 
     return stream;
 }
 
+#ifdef COREAUDIO_AEC
 void
 MacCoreaudio_addAECStream(MacCoreaudio_Stream *stream)
 {
@@ -1637,6 +1652,7 @@ MacCoreaudio_addAECStream(MacCoreaudio_Stream *stream)
         pthread_mutex_unlock(&MacCoreaudio_aecStreamMutex);
     }
 }
+#endif
 
 /**
  * Stops the stream for the given device.
@@ -1658,6 +1674,7 @@ void MacCoreaudio_stopStream(const char *deviceUID, MacCoreaudio_Stream *stream)
                 strerror(errno));
     }
 
+#ifdef COREAUDIO_AEC
     if(stream->aec)
     {
         MacCoreaudio_removeAECStream(stream);
@@ -1666,6 +1683,7 @@ void MacCoreaudio_stopStream(const char *deviceUID, MacCoreaudio_Stream *stream)
         LibJitsi_WebRTC_AEC_free(stream->aec);
         stream->aec = NULL;
     }
+#endif
 
     if (stream->ioProcId)
     {
@@ -1738,6 +1756,7 @@ void MacCoreaudio_stopStream(const char *deviceUID, MacCoreaudio_Stream *stream)
     free(stream);
 }
 
+#ifdef COREAUDIO_AEC
 void
 MacCoreaudio_removeAECStream(MacCoreaudio_Stream *stream)
 {
@@ -1768,6 +1787,7 @@ MacCoreaudio_removeAECStream(MacCoreaudio_Stream *stream)
         pthread_mutex_unlock(&MacCoreaudio_aecStreamMutex);
     }
 }
+#endif
 
 /**
  * Callback called when the input device has provided some data.
@@ -1794,8 +1814,6 @@ MacCoreaudio_readInputStream(
 
         if(stream->ioProcId != 0)
         {
-            LibJitsi_WebRTC_AEC *aec = stream->aec;
-
             for(i = 0; i < inData->mNumberBuffers; ++i)
             {
                 UInt32 ioPropertyDataSize = sizeof(UInt32);
@@ -1803,6 +1821,8 @@ MacCoreaudio_readInputStream(
                 if(inData->mBuffers[i].mData != NULL
                         && inData->mBuffers[i].mDataByteSize > 0)
                 {
+#ifdef COREAUDIO_AEC
+                    LibJitsi_WebRTC_AEC *aec = stream->aec;
                     if(aec)
                     {
                         LibJitsi_WebRTC_AEC_lock(aec, 0);
@@ -1942,6 +1962,7 @@ MacCoreaudio_readInputStream(
                         LibJitsi_WebRTC_AEC_unlock(aec, 0);
                     }
                     else // Stream without AEC
+#endif
                     {
                         UInt32 outTmpLength = inData->mBuffers[0].mDataByteSize;
                         AudioConverterGetProperty(
@@ -2086,12 +2107,14 @@ MacCoreaudio_writeOutputStream(
                 return err;
             }
 
+#ifdef COREAUDIO_AEC
             if (stream->isEchoCancel)
             {
                 MacCoreaudio_writeOutputStreamToAECStreams(
                         stream,
                         outConverterInBufferSize);
             }
+#endif
         }
 
         if(pthread_mutex_unlock(&stream->mutex) != 0)
@@ -2147,6 +2170,7 @@ MacCoreaudio_writeOutputStream(
     return noErr;
 }
 
+#ifdef COREAUDIO_AEC
 void
 MacCoreaudio_writeOutputStreamToAECStream(
         MacCoreaudio_Stream *src,
@@ -2255,6 +2279,7 @@ MacCoreaudio_writeOutputStreamToAECStreams(
         pthread_mutex_unlock(&MacCoreaudio_aecStreamMutex);
     }
 }
+#endif
 
 /**
  * Returns the stream virtual format for a given stream.
@@ -2314,6 +2339,7 @@ OSStatus MacCoreaudio_initConverter(MacCoreaudio_Stream *stream)
                     &stream->deviceFormat,
                     &stream->outConverter);
     }
+#ifdef COREAUDIO_AEC
     else if (stream->aec)
     {
         err
@@ -2330,6 +2356,7 @@ OSStatus MacCoreaudio_initConverter(MacCoreaudio_Stream *stream)
                         &stream->outConverter);
         }
     }
+#endif
     else
     {
         err
@@ -2360,6 +2387,7 @@ OSStatus MacCoreaudio_freeConverter(MacCoreaudio_Stream * stream)
 {
     OSStatus err = noErr;
 
+#ifdef COREAUDIO_AEC
     if(stream->aecConverter)
     {
         if((err = AudioConverterDispose(stream->aecConverter)) != noErr)
@@ -2371,6 +2399,8 @@ OSStatus MacCoreaudio_freeConverter(MacCoreaudio_Stream * stream)
         }
         stream->aecConverter = NULL;
     }
+#endif
+
     if (stream->outConverter)
     {
         if((err = AudioConverterDispose(stream->outConverter)) != noErr)
@@ -2400,7 +2430,7 @@ OSStatus MacCoreaudio_freeConverter(MacCoreaudio_Stream * stream)
  *
  * @return A UInt32 value containing the calculated format flags.
  */
-inline UInt32 CalculateLPCMFlags (
+UInt32 CalculateLPCMFlags (
         UInt32 inValidBitsPerChannel,
         UInt32 inTotalBitsPerChannel,
         bool inIsFloat,
@@ -2429,7 +2459,7 @@ inline UInt32 CalculateLPCMFlags (
  * @param inIsBigEndian Use true if the samples are big endian.
  * @param inIsNonInterleaved Use true if the samples are non-interleaved.
  */
-inline void FillOutASBDForLPCM(
+void FillOutASBDForLPCM(
         AudioStreamBasicDescription * outASBD,
         Float64 inSampleRate,
         UInt32 inChannelsPerFrame,
@@ -2633,8 +2663,10 @@ OSStatus MacCoreaudio_converterComplexInputDataProc(
         else
             mBytesPerPacket = stream->deviceFormat.mBytesPerPacket;
     }
+#ifdef COREAUDIO_AEC
     else // if (stream->step == 1) only for AEC.
         mBytesPerPacket = stream->aecFormat.mBytesPerPacket;
+#endif
     UInt32 nbPackets = stream->audioBuffer.mDataByteSize / mBytesPerPacket;
     UInt32 length = (nbPackets - *ioNumberDataPackets) * mBytesPerPacket;
 
@@ -2654,6 +2686,7 @@ OSStatus MacCoreaudio_converterComplexInputDataProc(
     return 0;
 }
 
+#ifdef COREAUDIO_AEC
 /**
  * Returns the rate used by the echo canceler for a given provided rate.
  *
@@ -2684,6 +2717,7 @@ int MacCoreaudio_getAECCorrespondingRate(int rate)
 
     return aecRate;
 }
+#endif
 
 /**
  * Initializes the device format for a given device UID.

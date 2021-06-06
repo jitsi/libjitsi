@@ -18,85 +18,40 @@
 
 #import <Foundation/NSAutoreleasePool.h>
 #import <Foundation/NSGeometry.h>
-#import <Foundation/NSString.h>
-#import <Foundation/NSValue.h>
-#import <QTKit/QTFormatDescription.h>
-#include <stdint.h>
+#import <AVFoundation/AVFoundation.h>
+#import <CoreMedia/CoreMedia.h>
 
 JNIEXPORT jobject JNICALL
-Java_org_jitsi_impl_neomedia_quicktime_QTFormatDescription_sizeForKey
-    (JNIEnv *jniEnv, jclass clazz, jlong ptr, jstring key)
+Java_org_jitsi_impl_neomedia_quicktime_QTFormatDescription_size
+    (JNIEnv *jniEnv, jclass clazz, jlong ptr)
 {
-    const char *cKey;
     jobject size = NULL;
-
-    cKey = (const char *) (*jniEnv)->GetStringUTFChars(jniEnv, key, NULL);
-    if (cKey)
+    jclass dimensionClass = (*jniEnv)->FindClass(jniEnv, "java/awt/Dimension");
+    if (dimensionClass)
     {
-        QTFormatDescription *formatDescription;
-        NSAutoreleasePool *autoreleasePool;
-        NSString *oKey;
-        NSValue *attribute;
+        AVCaptureDeviceFormat *captureDeviceFormat = (AVCaptureDeviceFormat *) (intptr_t) ptr;
+        NSAutoreleasePool *autoreleasePool = [[NSAutoreleasePool alloc] init];
+        CMVideoDimensions attribute = CMVideoFormatDescriptionGetDimensions(captureDeviceFormat.formatDescription);
 
-        formatDescription = (QTFormatDescription *) (intptr_t) ptr;
-        autoreleasePool = [[NSAutoreleasePool alloc] init];
-
-        oKey = [NSString stringWithUTF8String:cKey];
-        (*jniEnv)->ReleaseStringUTFChars(jniEnv, key, cKey);
-
-        attribute = [formatDescription attributeForKey:oKey];
-        if (attribute)
-        {
-            NSSize oSize;
-            jclass dimensionClass;
-
-            oSize = [attribute sizeValue];
-
-            dimensionClass = (*jniEnv)->FindClass(jniEnv, "java/awt/Dimension");
-            if (dimensionClass)
-            {
-                jmethodID dimensionCtorMethodID;
-
-                dimensionCtorMethodID
-                    = (*jniEnv)
-                        ->GetMethodID(
-                            jniEnv,
-                            dimensionClass,
-                            "<init>",
-                            "(II)V");
-                if (dimensionCtorMethodID)
-                    size
-                        = (*jniEnv)
-                            ->NewObject(
-                                jniEnv,
-                                dimensionClass,
-                                dimensionCtorMethodID,
-                                (jint) oSize.width,
-                                (jint) oSize.height);
-            }
-        }
+        jmethodID dimensionCtorMethodID
+            = (*jniEnv)
+                ->GetMethodID(
+                    jniEnv,
+                    dimensionClass,
+                    "<init>",
+                    "(II)V");
+        if (dimensionCtorMethodID)
+            size
+                = (*jniEnv)
+                    ->NewObject(
+                        jniEnv,
+                        dimensionClass,
+                        dimensionCtorMethodID,
+                        (jint) attribute.width,
+                        (jint) attribute.height);
 
         [autoreleasePool release];
     }
+
     return size;
-}
-
-JNIEXPORT jstring JNICALL
-Java_org_jitsi_impl_neomedia_quicktime_QTFormatDescription_VideoEncodedPixelsSizeAttribute
-    (JNIEnv *jniEnv, jclass clazz)
-{
-    NSAutoreleasePool *autoreleasePool;
-    jstring jstr;
-
-    autoreleasePool = [[NSAutoreleasePool alloc] init];
-
-    jstr
-        = (*jniEnv)
-            ->NewStringUTF(
-                jniEnv,
-                [QTFormatDescriptionVideoEncodedPixelsSizeAttribute
-                    UTF8String]);
-
-    [autoreleasePool release];
-    return jstr;
 }

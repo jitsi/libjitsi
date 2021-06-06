@@ -1,0 +1,29 @@
+FROM ubuntu:bionic
+
+RUN dpkg --add-architecture i386
+RUN apt-get update && \
+    apt-get install -y \
+     build-essential \
+     curl \
+     g++-multilib \
+     gcc-multilib \
+     git \
+     libasound-dev \
+     libasound-dev:i386 \
+     libpulse-dev \
+     libpulse-dev:i386 \
+     libx11-dev \
+     libx11-dev:i386 \
+     libxext-dev \
+     libxext-dev:i386 \
+     libxv-dev \
+     libxv-dev:i386 \
+     openjdk-8-jdk \
+     openjdk-8-jdk:i386 \
+     unzip \
+     nasm \
+     && \
+    rm -rf /var/lib/apt/lists/*
+
+ADD https://github.com/Kitware/CMake/releases/download/v3.18.4/cmake-3.18.4-Linux-x86_64.sh /opt/cmake.sh
+RUN chmod +x /opt/cmake.sh && /opt/cmake.sh --skip-license --prefix=/usr --exclude-subdir
