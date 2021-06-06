@@ -283,7 +283,7 @@ public class JNIDecoder
                 = Opus.decoder_get_nb_samples(decoder, in, inOffset, inLength);
             if (frameSizeInSamplesPerChannel < 0)
             {
-                return INPUT_BUFFER_NOT_CONSUMED;
+                return BUFFER_PROCESSED_FAILED;
             }
 
             byte[] out

@@ -40,7 +40,7 @@ public class CsrcAudioLevelDispatcher
     private static final ExecutorService threadPool
         = ExecutorUtils.newCachedThreadPool(
             true,
-            CsrcAudioLevelDispatcher.class.getName() + "-");
+            CsrcAudioLevelDispatcher.class.getName());
 
     /**
      * The levels added to this instance (by the <tt>reverseTransform</tt>

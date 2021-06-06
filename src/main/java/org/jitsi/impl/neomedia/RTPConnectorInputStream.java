@@ -777,6 +777,7 @@ public abstract class RTPConnectorInputStream<T extends Closeable>
             }
             catch (IOException e)
             {
+                logger.debug("RTP input stream failed", e);
                 ioError = true;
                 break;
             }
