@@ -44,7 +44,7 @@
     </or>
   </condition>
 
-  <condition property="arch" value="32">
+  <condition property="arch" value="x86">
     <or>
       <os arch="x86" />
       <os arch="i386" />
@@ -53,22 +53,25 @@
       <os arch="i686" />
     </or>
   </condition>
-  <condition property="arch" value="64">
+  <condition property="arch" value="x86_64">
     <or>
       <os arch="amd64" />
       <os arch="x86_64" />
     </or>
   </condition>
+  <condition property="arch" value="arm64">
+    <os arch="aarch64" />
+  </condition>
   <condition property="is.running.windows_32" value="y">
     <and>
       <isset property="is.running.windows"/>
-      <equals arg1="${arch}" arg2="32" />
+      <equals arg1="${arch}" arg2="x86" />
     </and>
   </condition>
   <condition property="is.running.windows_64" value="y">
     <and>
       <isset property="is.running.windows"/>
-      <equals arg1="${arch}" arg2="64" />
+      <equals arg1="${arch}" arg2="x86_64" />
     </and>
   </condition>
 
@@ -78,11 +81,11 @@
     each architecture before creating an universal binary with the lipo tool.
   -->
   <condition property="cross_32" value="y" >
-    <equals arg1="${arch}" arg2="32" />
+    <equals arg1="${arch}" arg2="x86" />
   </condition>
 
   <condition property="cross_64" value="y" >
-    <equals arg1="${arch}" arg2="64" />
+    <equals arg1="${arch}" arg2="x86_64" />
   </condition>
 
   <!-- Mac OS X only -->
@@ -94,28 +97,35 @@
   <condition property="native_install_dir" value="${native.libs}/win32-x86">
     <and>
       <isset property="is.running.windows"/>
-      <equals arg1="${arch}" arg2="32" />
+      <equals arg1="${arch}" arg2="x86" />
     </and>
   </condition>
 
   <condition property="native_install_dir" value="${native.libs}/win32-x86-64">
     <and>
       <isset property="is.running.windows"/>
-      <equals arg1="${arch}" arg2="64" />
+      <equals arg1="${arch}" arg2="x86_64" />
     </and>
   </condition>
 
   <condition property="native_install_dir" value="${native.libs}/linux-x86">
     <and>
       <isset property="is.running.linux"/>
-      <equals arg1="${arch}" arg2="32" />
+      <equals arg1="${arch}" arg2="x86" />
     </and>
   </condition>
 
   <condition property="native_install_dir" value="${native.libs}/linux-x86-64">
     <and>
       <isset property="is.running.linux"/>
-      <equals arg1="${arch}" arg2="64" />
+      <equals arg1="${arch}" arg2="x86_64" />
+    </and>
+  </condition>
+
+  <condition property="native_install_dir" value="${native.libs}/linux-arm64">
+    <and>
+      <isset property="is.running.linux" />
+      <equals arg1="${arch}" arg2="arm64" />
     </and>
   </condition>
 
@@ -126,14 +136,14 @@
   <condition property="native_install_dir" value="${native.libs}/freebsd">
     <and>
       <isset property="is.running.freebsd"/>
-      <equals arg1="${arch}" arg2="32" />
+      <equals arg1="${arch}" arg2="x86" />
     </and>
   </condition>
 
   <condition property="native_install_dir" value="${native.libs}/freebsd-64">
     <and>
       <isset property="is.running.freebsd"/>
-      <equals arg1="${arch}" arg2="64" />
+      <equals arg1="${arch}" arg2="x86_64" />
     </and>
   </condition>
 
@@ -316,7 +326,8 @@
       <compilerarg value="-D_XOPEN_SOURCE=600" />
       <compilerarg value="-fPIC" />
       <compilerarg value="-I${ffmpeg}" />
-      <compilerarg value="-m${arch}" />
+      <compilerarg value="-m32" if="cross_32" unless="is.running.macos" />
+      <compilerarg value="-m64" if="cross_64" unless="is.running.macos" />
       <compilerarg value="-O2" />
       <compilerarg value="-std=c99" />
       <compilerarg value="-Wall" />
@@ -335,7 +346,8 @@
       <linkerarg value="-L${lame}/libmp3lame/.libs" />
       <linkerarg value="-L${voamrwbenc}/.libs" />
       <linkerarg value="-L${x264}" />
-      <linkerarg value="-m${arch}" />
+      <linkerarg value="-m32" if="cross_32" unless="is.running.macos" />
+      <linkerarg value="-m64" if="cross_64" unless="is.running.macos" />
       <linkerarg value="-Wl,-z,relro" if="is.running.debian"/>
       <!--
         Static libraries MUST be at the end otherwise they will not be added to
@@ -1396,10 +1408,10 @@
         <fail message="usrsctp repository not set!" unless="usrsctp"/>
 
         <condition property="arch_param" value="i386">
-            <equals arg1="${arch}" arg2="32" />
+            <equals arg1="${arch}" arg2="x86" />
         </condition>
         <condition property="arch_param" value="x86_64">
-            <equals arg1="${arch}" arg2="64" />
+            <equals arg1="${arch}" arg2="x86_64" />
         </condition>
 
         <exec executable="gcc">

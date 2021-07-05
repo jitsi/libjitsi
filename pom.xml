@@ -170,6 +170,14 @@
                    darwin/libjnsctp.jnilib;
                    darwin/libjnspeex.jnilib;
                    darwin/libjnvpx.jnilib;osname=Mac OS X;processor=x86-64,
+                   linux-arm64/libjnawtrenderer.so;
+                   linux-arm64/libjnopus.so;
+                   linux-arm64/libjnportaudio.so;
+                   linux-arm64/libjnpulseaudio.so;
+                   linux-arm64/libjnscreencapture.so;
+                   linux-arm64/libjnsctp.so;
+                   linux-arm64/libjnspeex.so;
+                   linux-arm64/libjnvideo4linux2.so;osname=Linux;processor=arm64,
                    linux-x86/libjnawtrenderer.so;
                    linux-x86/libjnopus.so;
                    linux-x86/libjnportaudio.so;
