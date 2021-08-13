@@ -13,7 +13,7 @@
   <url>https://github.com/jitsi/libjitsi</url>
 
   <properties>
-    <bouncycastle.version>1.54</bouncycastle.version>
+    <bouncycastle.version>1.67</bouncycastle.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
 
