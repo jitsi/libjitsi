@@ -171,7 +171,7 @@
       </classpath>
       <sysproperty
           key="java.library.path"
-          path="lib/native/linux-x86-64:lib/native/linux-x86:lib/native/darwin:lib/native/win32-x86-64:lib/native/win32-x86" />
+          path="lib/native/linux-ppc64le:lib/native/linux-x86-64:lib/native/linux-x86:lib/native/darwin:lib/native/win32-x86-64:lib/native/win32-x86" />
     </java>
   </target>
 
@@ -237,6 +237,12 @@
           <zipfileset dir="lib/native/linux-x86-64" includes="*.so"
                       prefix="lib/native/linux-x86-64"/>
       </zip>
+      <zip destfile="${dist}/linux/libjitsi-${build.label}-ppc64le.zip">
+          <zipfileset file="libjitsi.jar" />
+          <zipfileset dir="lib" includes="*.jar" prefix="lib"/>
+          <zipfileset dir="lib/native/linux-ppc64le" includes="*.so"
+                      prefix="lib/native/linux-ppc64le"/>
+      </zip>
       <zip destfile="${dist}/src/libjitsi-src-${build.label}.zip">
         <zipfileset dir="." prefix="libjitsi">
             <exclude name="classes/"/>
@@ -254,7 +260,7 @@
         <classpath refid="test.class.path"/>
         <sysproperty
               key="java.library.path"
-              path="lib/native/linux-x86-64:lib/native/linux-x86:lib/native/darwin:lib/native/win32-x86-64:lib/native/win32-x86" />
+              path="lib/native/linux-ppc64le:lib/native/linux-x86-64:lib/native/linux-x86:lib/native/darwin:lib/native/win32-x86-64:lib/native/win32-x86" />
         <test name="org.jitsi.sctp4j.SctpTestSuite"
               todir="${junit.reports}"/>
       </junit>

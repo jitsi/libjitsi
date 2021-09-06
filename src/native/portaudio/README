@@ -2,6 +2,8 @@
 
     Get portaudio-hotplug branch:
     $ git clone https://github.com/jitsi/portaudio
+    $ git checkout libjitsi
+    $ cp -Rp /usr/share/misc/config.guess .
     $ autoreconf -i (OS X and Linux only)
     $ ./configure --disable-shared --enable-static --with-pic --with-jack=no
     $ make/gmake 

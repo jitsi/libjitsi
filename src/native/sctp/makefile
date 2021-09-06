@@ -1,5 +1,6 @@
 #
 # Copyright @ 2015 Atlassian Pty Ltd
+# Copyright @ 2021 Raptor Engineering, LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,7 +25,7 @@ CFLAGS = -Wall -Werror -std=c99 $(JNI_HEADERS) $(SCTP_HEADERS) -DSCTP_DEBUG=1 -D
 
 OBJS = org_jitsi_sctp4j_Sctp.c
 
-LIBS = -L"usrsctp/.libs" -lusrsctp -lpthread
+LIBS = -L"usrsctp/usrsctplib/.libs" -lusrsctp -lpthread
 
 libjnsctp.so: clean
 	$(CC) $(CFLAGS) -fPIC -shared $(OBJS) -o libjnsctp.so $(LIBS)
@@ -36,6 +37,10 @@ install32: libjnsctp.so
 install64: libjnsctp.so
 	cp libjnsctp.so "../../../lib/native/linux-x86-64/libjnsctp.so"
 	cp libjnsctp.so "../../../../jitsi-videobridge/lib/native/linux-64/libjnsctp.so"
+
+installppc64: libjnsctp.so
+	cp libjnsctp.so "../../../lib/native/linux-ppc64le/libjnsctp.so"
+	cp libjnsctp.so "../../../../jitsi-videobridge/lib/native/linux-ppc64le/libjnsctp.so"
 
 clean:
 	rm -f *.so

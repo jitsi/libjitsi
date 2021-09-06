@@ -187,6 +187,14 @@
                    linux-x86-64/libjnspeex.so;
                    linux-x86-64/libjnvideo4linux2.so;
                    linux-x86-64/libjnvpx.so;osname=Linux;processor=x86-64,
+                   linux-ppc64le/libjnopus.so;
+                   linux-ppc64le/libjnportaudio.so;
+                   linux-ppc64le/libjnpulseaudio.so;
+                   linux-ppc64le/libjnscreencapture.so;
+                   linux-ppc64le/libjnsctp.so;
+                   linux-ppc64le/libjnspeex.so;
+                   linux-ppc64le/libjnvideo4linux2.so;
+                   <!--linux-ppc64le/libjnvpx.so;-->osname=Linux;processor=ppc64le,
                    win32-x86/jnawtrenderer.dll;
                    win32-x86/jndirectshow.dll;
                    win32-x86/jnopus.dll;

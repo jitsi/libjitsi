@@ -411,7 +411,6 @@ static int x11_grab_screen(jbyte* data, unsigned int displayIndex, int x, int y,
   size_t off = 0;
   int i = 0;
   int j = 0;
-  size_t size = 0;
   uint32_t test = 1;
   int little_endian = *((uint8_t*)&test);
   char buf[16];
@@ -441,8 +440,6 @@ static int x11_grab_screen(jbyte* data, unsigned int displayIndex, int x, int y,
     XCloseDisplay(display);
     return -1;
   }
-
-  size = w * h;
 
   /* test is XServer support SHM */
   shm_support = XShmQueryExtension(display);

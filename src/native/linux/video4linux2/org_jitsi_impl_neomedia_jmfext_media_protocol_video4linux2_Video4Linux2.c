@@ -22,7 +22,6 @@
 #include <string.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
-#include <sys/select.h>
 #include <unistd.h>
 
 #include <linux/videodev2.h>
