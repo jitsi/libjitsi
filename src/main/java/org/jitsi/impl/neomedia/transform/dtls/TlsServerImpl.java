@@ -21,9 +21,8 @@ import java.io.*;
 import java.util.*;
 
 import org.bouncycastle.tls.*;
+import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.utils.logging.*;
-import java.security.SecureRandom;
-import org.bouncycastle.tls.crypto.impl.bc.BcTlsCrypto;
 
 /**
  * Implements {@link TlsServer} for the purposes of supporting DTLS-SRTP.
@@ -82,18 +81,6 @@ public class TlsServerImpl
     }
 
     /**
-     * Gets the <tt>SRTPProtectionProfile</tt> negotiated between this DTLS-SRTP
-     * server and its client.
-     *
-     * @return the <tt>SRTPProtectionProfile</tt> negotiated between this
-     * DTLS-SRTP server and its client
-     */
-    int getChosenProtectionProfile()
-    {
-        return chosenProtectionProfile;
-    }
-
-    /**
      * {@inheritDoc}
      *
      * Overrides the super implementation to explicitly specify cipher suites
@@ -122,18 +109,6 @@ public class TlsServerImpl
             CipherSuite.TLS_DHE_RSA_WITH_AES_128_CBC_SHA
         };
         return TlsUtils.getSupportedCipherSuites(getCrypto(), suites);
-    }
-
-    /**
-     * Gets the <tt>TlsContext</tt> with which this <tt>TlsServer</tt> has been
-     * initialized.
-     *
-     * @return the <tt>TlsContext</tt> with which this <tt>TlsServer</tt> has
-     * been initialized
-     */
-    TlsContext getContext()
-    {
-        return context;
     }
 
     /**
@@ -239,6 +214,26 @@ public class TlsServerImpl
         packetTransformer.notifyAlertRaised(
                 this,
                 alertLevel, alertDescription, message, cause);
+    }
+
+    @Override
+    public void notifyHandshakeComplete()
+    {
+        if (packetTransformer.getProperties().isSrtpDisabled())
+        {
+            // SRTP is disabled, nothing to do. Why did we get here in
+            // the first place?
+            return;
+        }
+
+        SinglePacketTransformer srtpTransformer
+            = packetTransformer.initializeSRTPTransformer(
+            chosenProtectionProfile, context);
+
+        synchronized (packetTransformer)
+        {
+            packetTransformer.setSrtpTransformer(srtpTransformer);
+        }
     }
 
     /**

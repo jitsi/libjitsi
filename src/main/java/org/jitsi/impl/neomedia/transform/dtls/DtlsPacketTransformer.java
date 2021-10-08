@@ -551,7 +551,7 @@ public class DtlsPacketTransformer
      * @return a new <tt>SRTPTransformer</tt> instance initialized with
      * <tt>srtpProtectionProfile</tt> and <tt>tlsContext</tt>
      */
-    private SinglePacketTransformer initializeSRTPTransformer(
+    SinglePacketTransformer initializeSRTPTransformer(
             int srtpProtectionProfile,
             TlsContext tlsContext)
     {
@@ -616,37 +616,11 @@ public class DtlsPacketTransformer
             throw new IllegalArgumentException("srtpProtectionProfile");
         }
 
-        byte[] keyingMaterial = null;
-        if (tlsContext.getSecurityParameters().getMasterSecret() == null
-                && tlsContext.getResumableSession() != null) {
-            // BouncyCastle 1.59 clears the master secret from its session
-            // parameters immediately after connect, making them unavailable
-            // for exporting keying material. The value can still be present
-            // in the session parameters from the resumable session, which is
-            // used here.
-            final SessionParameters sessionParameters
-                = tlsContext.getResumableSession().exportSessionParameters();
-            if (sessionParameters != null
-                    && sessionParameters.getMasterSecret() != null)
-            {
-                keyingMaterial = exportKeyingMaterial(
-                        tlsContext,
-                        ExporterLabel.dtls_srtp,
-                        null,
-                        2 * (cipher_key_length + cipher_salt_length),
-                        sessionParameters.getMasterSecret().extract()
-                );
-            }
-        }
-        else
-        {
-            // Original, BouncyCastle 1.54-compatible code.
-            keyingMaterial
-                    = tlsContext.exportKeyingMaterial(
-                    ExporterLabel.dtls_srtp,
-                    null,
-                    2 * (cipher_key_length + cipher_salt_length) );
-        }
+        byte[] keyingMaterial = tlsContext.exportKeyingMaterial(
+            ExporterLabel.dtls_srtp,
+            null,
+            2 * (cipher_key_length + cipher_salt_length));
+
         byte[] client_write_SRTP_master_key = new byte[cipher_key_length];
         byte[] server_write_SRTP_master_key = new byte[cipher_key_length];
         byte[] client_write_SRTP_master_salt = new byte[cipher_salt_length];
@@ -786,6 +760,13 @@ public class DtlsPacketTransformer
                 && AlertDescription.close_notify == alertDescription)
         {
             tlsPeerHasRaisedCloseNotifyWarning = true;
+        }
+        else
+        {
+            logger.debug("TLS alert, level=" + alertLevel
+                + ", description=" + alertDescription
+                + ", message=" + message,
+                cause);
         }
     }
 
@@ -970,11 +951,6 @@ public class DtlsPacketTransformer
             TlsPeer tlsPeer,
             DatagramTransport datagramTransport)
     {
-        DTLSTransport dtlsTransport = null;
-        final boolean srtp = !isSrtpDisabled();
-        int srtpProtectionProfile = 0;
-        TlsContext tlsContext = null;
-
         // DTLS client
         if (dtlsProtocol instanceof DTLSClientProtocol)
         {
@@ -1005,11 +981,6 @@ public class DtlsPacketTransformer
                         break;
                     }
                 }
-            }
-            if (dtlsTransport != null && srtp)
-            {
-                srtpProtectionProfile = tlsClient.getChosenProtectionProfile();
-                tlsContext = tlsClient.getContext();
             }
         }
         // DTLS server
@@ -1042,36 +1013,12 @@ public class DtlsPacketTransformer
                     }
                 }
             }
-            if (dtlsTransport != null && srtp)
-            {
-                srtpProtectionProfile = tlsServer.getChosenProtectionProfile();
-                tlsContext = tlsServer.getContext();
-            }
         }
         else
         {
             // It MUST be either a DTLS client or a DTLS server.
             throw new IllegalStateException("dtlsProtocol");
         }
-
-        SinglePacketTransformer srtpTransformer
-            = (dtlsTransport == null || !srtp)
-                ? null
-                : initializeSRTPTransformer(srtpProtectionProfile, tlsContext);
-        boolean closeSRTPTransformer;
-
-        synchronized (this)
-        {
-            if (Thread.currentThread().equals(this.connectThread)
-                    && datagramTransport.equals(this.datagramTransport))
-            {
-                this.dtlsTransport = dtlsTransport;
-                setSrtpTransformer(srtpTransformer);
-            }
-            closeSRTPTransformer = (_srtpTransformer != srtpTransformer);
-        }
-        if (closeSRTPTransformer && srtpTransformer != null)
-            srtpTransformer.close();
     }
 
     /**
@@ -1179,11 +1126,17 @@ public class DtlsPacketTransformer
      * @param srtpTransformer the {@code SinglePacketTransformer} to set on
      * {@code _srtpTransformer}
      */
-    private synchronized void setSrtpTransformer(
+    synchronized void setSrtpTransformer(
             SinglePacketTransformer srtpTransformer)
     {
         if (_srtpTransformer != srtpTransformer)
         {
+            SinglePacketTransformer oldTransformer = _srtpTransformer;
+            if (oldTransformer != null)
+            {
+                oldTransformer.close();
+            }
+
             _srtpTransformer = srtpTransformer;
             _srtpTransformerLastChanged = System.currentTimeMillis();
             // For the sake of completeness, we notify whenever we assign to

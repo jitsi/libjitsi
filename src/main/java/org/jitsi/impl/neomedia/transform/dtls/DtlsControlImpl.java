@@ -31,6 +31,8 @@ import org.bouncycastle.cert.*;
 import org.bouncycastle.crypto.*;
 import org.bouncycastle.crypto.generators.*;
 import org.bouncycastle.crypto.params.*;
+import org.bouncycastle.jce.*;
+import org.bouncycastle.jce.spec.*;
 import org.bouncycastle.tls.*;
 import org.bouncycastle.tls.crypto.*;
 import org.bouncycastle.tls.crypto.impl.bc.*;
@@ -99,7 +101,7 @@ public class DtlsControlImpl
     /**
      * The default RSA key size when configuration properties are not found.
      */
-    public static final int DEFAULT_RSA_KEY_SIZE = 1024;
+    public static final int DEFAULT_RSA_KEY_SIZE = 2048;
 
     /**
      * The RSA key size to use.
@@ -441,15 +443,38 @@ public class DtlsControlImpl
      */
     private static AsymmetricCipherKeyPair generateKeyPair()
     {
-        RSAKeyPairGenerator generator = new RSAKeyPairGenerator();
+        String signatureAlgorithm
+            = ConfigUtils.getString(
+            LibJitsi.getConfigurationService(),
+            PROP_SIGNATURE_ALGORITHM,
+            "SHA256withECDSA");
+        if (signatureAlgorithm.toUpperCase(Locale.ROOT).endsWith("RSA"))
+        {
+            RSAKeyPairGenerator generator = new RSAKeyPairGenerator();
 
-        generator.init(
+            generator.init(
                 new RSAKeyGenerationParameters(
-                        RSA_KEY_PUBLIC_EXPONENT,
-                        new SecureRandom(),
-                        RSA_KEY_SIZE,
-                        RSA_KEY_SIZE_CERTAINTY));
-        return generator.generateKeyPair();
+                    RSA_KEY_PUBLIC_EXPONENT,
+                    new SecureRandom(),
+                    RSA_KEY_SIZE,
+                    RSA_KEY_SIZE_CERTAINTY));
+            return generator.generateKeyPair();
+        }
+        else if (signatureAlgorithm.toUpperCase(Locale.ROOT).endsWith("ECDSA"))
+        {
+            ECKeyPairGenerator generator = new ECKeyPairGenerator();
+            ECNamedCurveParameterSpec curve =
+                ECNamedCurveTable.getParameterSpec("secp256r1");
+            ECDomainParameters domainParams =
+                new ECDomainParameters(curve.getCurve(), curve.getG(),
+                    curve.getN(), curve.getH(), curve.getSeed());
+            generator.init(new ECKeyGenerationParameters(domainParams,
+                new SecureRandom()));
+            return generator.generateKeyPair();
+        }
+        
+        throw new IllegalArgumentException("Unknown signature algorithm: "
+            + signatureAlgorithm);
     }
 
     /**
@@ -475,7 +500,7 @@ public class DtlsControlImpl
             = ConfigUtils.getString(
                     LibJitsi.getConfigurationService(),
                     PROP_SIGNATURE_ALGORITHM,
-                    "SHA1withRSA");
+                    "SHA256withECDSA");
 
         if (logger.isDebugEnabled())
             logger.debug("Signature algorithm: " + signatureAlgorithm);
@@ -501,9 +526,17 @@ public class DtlsControlImpl
                     .find(signatureAlgorithm);
             AlgorithmIdentifier digAlgId
                 = new DefaultDigestAlgorithmIdentifierFinder().find(sigAlgId);
-            ContentSigner signer
-                = new BcRSAContentSignerBuilder(sigAlgId, digAlgId)
+            ContentSigner signer;
+            if (keyPair.getPrivate() instanceof RSAKeyParameters)
+            {
+                signer = new BcRSAContentSignerBuilder(sigAlgId, digAlgId)
                     .build(keyPair.getPrivate());
+            }
+            else
+            {
+                signer = new BcECContentSignerBuilder(sigAlgId, digAlgId)
+                    .build(keyPair.getPrivate());
+            }
 
             return builder.build(signer).toASN1Structure();
         }

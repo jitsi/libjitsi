@@ -20,7 +20,10 @@ import static org.jitsi.impl.neomedia.transform.dtls.DtlsUtils.BC_TLS_CRYPTO;
 import java.io.*;
 import java.util.*;
 
+import org.bouncycastle.asn1.*;
+import org.bouncycastle.operator.*;
 import org.bouncycastle.tls.*;
+import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.utils.logging.*;
 import org.bouncycastle.tls.crypto.impl.bc.BcTlsCrypto;
 import org.bouncycastle.tls.crypto.impl.bc.BcDefaultTlsCredentialedSigner;
@@ -84,44 +87,17 @@ public class TlsClientImpl
     }
 
     /**
-     * Gets the <tt>SRTPProtectionProfile</tt> negotiated between this DTLS-SRTP
-     * client and its server.
-     *
-     * @return the <tt>SRTPProtectionProfile</tt> negotiated between this
-     * DTLS-SRTP client and its server
-     */
-    int getChosenProtectionProfile()
-    {
-        return chosenProtectionProfile;
-    }
-
-    /**
      * {@inheritDoc}
      *
-     * Overrides the super implementation to explicitly specify cipher suites
-     * which we know to be supported by Bouncy Castle and provide Perfect
-     * Forward Secrecy.
+     * The implementation of <tt>TlsClientImpl</tt> always returns
+     * <tt>ProtocolVersion.DTLSv10</tt> because <tt>ProtocolVersion.DTLSv12</tt>
+     * does not work with the Bouncy Castle Crypto APIs at the time of this
+     * writing.
      */
     @Override
-    protected int[] getSupportedCipherSuites()
+    protected ProtocolVersion[] getSupportedVersions()
     {
-        int[] suites = new int[]
-        {
-/* core/src/main/java/org/bouncycastle/crypto/tls/DefaultTlsClient.java */
-            CipherSuite.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
-            CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-            CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
-            CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
-            CipherSuite.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
-            CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-            CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-            CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-            CipherSuite.TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
-            CipherSuite.TLS_DHE_RSA_WITH_AES_128_GCM_SHA256,
-            CipherSuite.TLS_DHE_RSA_WITH_AES_128_CBC_SHA256,
-            CipherSuite.TLS_DHE_RSA_WITH_AES_128_CBC_SHA,
-        };
-        return TlsUtils.getSupportedCipherSuites(getCrypto(), suites);
+        return ProtocolVersion.DTLSv12.only();
     }
 
     /**
@@ -152,18 +128,6 @@ public class TlsClientImpl
     }
 
     /**
-     * Gets the <tt>TlsContext</tt> with which this <tt>TlsClient</tt> has been
-     * initialized.
-     *
-     * @return the <tt>TlsContext</tt> with which this <tt>TlsClient</tt> has
-     * been initialized
-     */
-    TlsContext getContext()
-    {
-        return context;
-    }
-
-    /**
      * Determines whether this {@code TlsClientImpl} is to operate in pure DTLS
      * mode without SRTP extensions or in DTLS/SRTP mode.
      *
@@ -190,6 +154,26 @@ public class TlsClientImpl
         packetTransformer.notifyAlertRaised(
                 this,
                 alertLevel, alertDescription, message, cause);
+    }
+
+    @Override
+    public void notifyHandshakeComplete()
+    {
+        if (packetTransformer.getProperties().isSrtpDisabled())
+        {
+            // SRTP is disabled, nothing to do. Why did we get here in
+            // the first place?
+            return;
+        }
+
+        SinglePacketTransformer srtpTransformer
+            = packetTransformer.initializeSRTPTransformer(
+            chosenProtectionProfile, context);
+
+        synchronized (packetTransformer)
+        {
+            packetTransformer.setSrtpTransformer(srtpTransformer);
+        }
     }
 
     /**
@@ -293,17 +277,67 @@ public class TlsClientImpl
                 CertificateInfo certificateInfo
                     = packetTransformer.getDtlsControl().getCertificateInfo();
 
-                // FIXME The signature and hash algorithms should be retrieved
-                // from the certificate.
+                // FIXME ed448/ed25519? multiple certificates?
+                String algName = new DefaultAlgorithmNameFinder()
+                    .getAlgorithmName(new ASN1ObjectIdentifier(certificateInfo
+                        .getCertificate()
+                        .getCertificateAt(0)
+                        .getSigAlgOID()));
+                SignatureAndHashAlgorithm sigAndHashAlg = null;
+                switch (algName)
+                {
+                case "SHA1WITHRSA":
+                    sigAndHashAlg = SignatureAndHashAlgorithm
+                        .getInstance(HashAlgorithm.sha1, SignatureAlgorithm.rsa);
+                    break;
+                case "SHA224WITHRSA":
+                    sigAndHashAlg = SignatureAndHashAlgorithm
+                        .getInstance(HashAlgorithm.sha224, SignatureAlgorithm.rsa);
+                    break;
+                case "SHA256WITHRSA":
+                    sigAndHashAlg = SignatureAndHashAlgorithm
+                        .getInstance(HashAlgorithm.sha256, SignatureAlgorithm.rsa);
+                    break;
+                case "SHA384WITHRSA":
+                    sigAndHashAlg = SignatureAndHashAlgorithm
+                        .getInstance(HashAlgorithm.sha384, SignatureAlgorithm.rsa);
+                    break;
+                case "SHA512WITHRSA":
+                    sigAndHashAlg = SignatureAndHashAlgorithm
+                        .getInstance(HashAlgorithm.sha512, SignatureAlgorithm.rsa);
+                    break;
+                case "SHA1WITHECDSA":
+                    sigAndHashAlg = SignatureAndHashAlgorithm
+                        .getInstance(HashAlgorithm.sha1, SignatureAlgorithm.ecdsa);
+                    break;
+                case "SHA224WITHECDSA":
+                    sigAndHashAlg = SignatureAndHashAlgorithm
+                        .getInstance(HashAlgorithm.sha224, SignatureAlgorithm.ecdsa);
+                    break;
+                case "SHA256WITHECDSA":
+                    sigAndHashAlg = SignatureAndHashAlgorithm
+                        .getInstance(HashAlgorithm.sha256, SignatureAlgorithm.ecdsa);
+                    break;
+                case "SHA384WITHECDSA":
+                    sigAndHashAlg = SignatureAndHashAlgorithm
+                        .getInstance(HashAlgorithm.sha384, SignatureAlgorithm.ecdsa);
+                    break;
+                case "SHA512WITHECDSA":
+                    sigAndHashAlg = SignatureAndHashAlgorithm
+                        .getInstance(HashAlgorithm.sha512, SignatureAlgorithm.ecdsa);
+                    break;
+                default:
+                    logger.warn("Unknown algOid in certificate: " + algName);
+                    return null;
+                }
+
                 clientCredentials
                     = new BcDefaultTlsCredentialedSigner(
                             new TlsCryptoParameters(context),
                             (BcTlsCrypto) context.getCrypto(),
                             certificateInfo.getKeyPair().getPrivate(),
                             certificateInfo.getCertificate(),
-                            new SignatureAndHashAlgorithm(
-                                    HashAlgorithm.sha256,
-                                    SignatureAlgorithm.ecdsa));
+                            sigAndHashAlg);
             }
             return clientCredentials;
         }

@@ -78,7 +78,12 @@ public interface DtlsControl
      * instance in order to determine whether this instance is to act as a DTLS
      * client or a DTLS server
      */
-    public void setSetup(Setup setup);
+    void setSetup(Setup setup);
+
+    /**
+     * Gets the value of the <tt>setup</tt> SDP attribute.
+     */
+    Setup getSetup();
 
     /**
      * Enables/disables rtcp-mux.
