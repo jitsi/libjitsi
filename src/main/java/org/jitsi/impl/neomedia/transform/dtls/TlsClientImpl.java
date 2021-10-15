@@ -87,12 +87,7 @@ public class TlsClientImpl
     }
 
     /**
-     * {@inheritDoc}
-     *
-     * The implementation of <tt>TlsClientImpl</tt> always returns
-     * <tt>ProtocolVersion.DTLSv10</tt> because <tt>ProtocolVersion.DTLSv12</tt>
-     * does not work with the Bouncy Castle Crypto APIs at the time of this
-     * writing.
+     * Always returns {@link ProtocolVersion#DTLSv12}.
      */
     @Override
     protected ProtocolVersion[] getSupportedVersions()
