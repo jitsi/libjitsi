@@ -16,6 +16,7 @@
 package org.jitsi.impl.neomedia.rtp.translator;
 
 import java.io.*;
+import java.time.Clock;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -108,7 +109,7 @@ class PushSourceStreamImpl
         readQ = new ArrayBlockingQueue<>(readQCapacity);
         if (logger.isTraceEnabled())
         {
-            readQStats = new QueueStatistics();
+            readQStats = new QueueStatistics(readQCapacity, Clock.systemUTC());
         }
         else
         {
@@ -241,7 +242,7 @@ class PushSourceStreamImpl
             readQ.remove();
             if (readQStats != null)
             {
-                readQStats.remove(System.currentTimeMillis());
+                readQStats.removed(readQ.size(), null);
             }
             _read = true;
             readQ.notifyAll();
@@ -316,6 +317,8 @@ class PushSourceStreamImpl
                         }
                         catch (InterruptedException ie)
                         {
+                            Thread.currentThread().interrupt();
+                            return;
                         }
                         continue;
                     }
@@ -325,19 +328,11 @@ class PushSourceStreamImpl
                 {
                     transferHandler.transferData(this);
                 }
-                catch (Throwable t)
+                catch (Exception t)
                 {
-                    if (t instanceof ThreadDeath)
-                    {
-                        throw (ThreadDeath) t;
-                    }
-                    else
-                    {
-                        logger.warn(
-                                "An RTP packet may have not been fully"
-                                        + " handled.",
-                                t);
-                    }
+                    logger.warn(
+                        "An RTP packet may have not been fully handled",
+                        t);
                 }
             }
         }
@@ -474,13 +469,12 @@ class PushSourceStreamImpl
 
                 synchronized (readQ)
                 {
-                    long now = System.currentTimeMillis();
                     if (readQ.size() >= readQCapacity)
                     {
                         readQ.remove();
                         if (readQStats != null)
                         {
-                            readQStats.remove(now);
+                            readQStats.dropped();
                         }
                         numDroppedPackets++;
                         if (RTPConnectorOutputStream.logDroppedPacket(
@@ -496,7 +490,7 @@ class PushSourceStreamImpl
                     {
                         if (readQStats != null)
                         {
-                            readQStats.add(now);
+                            readQStats.added();
                         }
                         // TODO It appears that it is better to not yield based
                         // on whether the read method has read after the last

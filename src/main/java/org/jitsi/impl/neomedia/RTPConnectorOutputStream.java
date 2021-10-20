@@ -17,6 +17,7 @@ package org.jitsi.impl.neomedia;
 
 import java.io.*;
 import java.net.*;
+import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.*;
@@ -780,7 +781,8 @@ public abstract class RTPConnectorOutputStream
         {
             if (logger.isTraceEnabled())
             {
-                queueStats = new QueueStatistics();
+                queueStats = new QueueStatistics(PACKET_QUEUE_CAPACITY,
+                    Clock.systemUTC());
             }
 
             sendThread = new Thread(this::runInSendThread);
@@ -807,7 +809,6 @@ public abstract class RTPConnectorOutputStream
             buffer.len = len;
             buffer.context = context;
 
-            long now = System.currentTimeMillis();
             if (queue.size() >= PACKET_QUEUE_CAPACITY)
             {
                 // Drop from the head of the queue.
@@ -816,7 +817,7 @@ public abstract class RTPConnectorOutputStream
                 {
                     if (queueStats != null)
                     {
-                        queueStats.remove(now);
+                        queueStats.dropped();
                     }
                     pool.offer(b);
                     numDroppedPackets++;
@@ -831,7 +832,7 @@ public abstract class RTPConnectorOutputStream
 
             if (queue.offer(buffer) && queueStats != null)
             {
-                queueStats.add(now);
+                queueStats.added();
             }
         }
 
@@ -887,7 +888,7 @@ public abstract class RTPConnectorOutputStream
 
                     if (queueStats != null)
                     {
-                        queueStats.remove(System.currentTimeMillis());
+                        queueStats.removed(queue.size(), null);
                     }
 
                     RawPacket[] pkts;

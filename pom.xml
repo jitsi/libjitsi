@@ -69,7 +69,7 @@
     <dependency>
       <groupId>net.java.dev.jna</groupId>
       <artifactId>jna</artifactId>
-      <version>5.6.0</version>
+      <version>5.9.0</version>
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
@@ -89,22 +89,22 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>fmj</artifactId>
-      <version>1.0.1-jitsi</version>
+      <version>1.0.2-jitsi</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-utils</artifactId>
-      <version>1.0-79-g18bc41d</version>
+      <version>1.0-98-g6a75684</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-srtp</artifactId>
-      <version>1.0-2-gc816309</version>
+      <version>1.1-2-gabdf3cc</version>
     </dependency>
     <dependency>
       <groupId>org.opentelecoms.sdp</groupId>
       <artifactId>java-sdp-nist-bridge</artifactId>
-      <version>1.1</version>
+      <version>1.2</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -127,12 +127,12 @@
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-lang3</artifactId>
-      <version>3.11</version>
+      <version>3.12.0</version>
     </dependency>
     <dependency>
       <groupId>org.jetbrains</groupId>
       <artifactId>annotations</artifactId>
-      <version>19.0.0</version>
+      <version>22.0.0</version>
       <scope>provided</scope>
     </dependency>
 
@@ -140,19 +140,19 @@
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-engine</artifactId>
-      <version>5.7.1</version>
+      <version>5.8.1</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
-      <version>3.8.0</version>
+      <version>4.0.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
         <groupId>io.pkts</groupId>
         <artifactId>pkts-core</artifactId>
-        <version>3.0.1</version>
+        <version>3.0.10</version>
         <scope>test</scope>
     </dependency>
   </dependencies>

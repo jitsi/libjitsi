@@ -15,6 +15,7 @@
  */
 package org.jitsi.impl.neomedia.rtp.translator;
 
+import java.time.Clock;
 import java.util.*;
 
 import javax.media.*;
@@ -88,7 +89,7 @@ class OutputDataStreamImpl
      * copy-on-write storage in order to reduce synchronized blocks and deadlock
      * risks. I do NOT want to use {@code CopyOnWriteArrayList} because I want
      * to (1) avoid {@code Iterator}s and (2) reduce synchronization. The access
-     * to {@link #_streams} is synchronized by {@link #_streamsSyncRoot}.
+     * to _streams is synchronized by {@link #_streamsSyncRoot}.
      */
     private List<OutputDataStreamDesc> _streams = Collections.emptyList();
 
@@ -127,7 +128,7 @@ class OutputDataStreamImpl
 
         if (logger.isTraceEnabled())
         {
-            writeQStats = new QueueStatistics();
+            writeQStats = new QueueStatistics(WRITE_Q_CAPACITY, Clock.systemUTC());
         }
         else
         {
@@ -411,7 +412,7 @@ class OutputDataStreamImpl
                     writeQLength--;
                     if (writeQStats != null)
                     {
-                        writeQStats.remove(System.currentTimeMillis());
+                        writeQStats.removed(writeQLength, null);
                     }
                 }
 
@@ -652,7 +653,7 @@ class OutputDataStreamImpl
             writeQLength--;
             if (writeQStats != null)
             {
-                writeQStats.remove(System.currentTimeMillis());
+                writeQStats.dropped();
             }
 
             numDroppedPackets++;
@@ -682,7 +683,7 @@ class OutputDataStreamImpl
         writeQLength++;
         if (writeQStats != null)
         {
-            writeQStats.add(System.currentTimeMillis());
+            writeQStats.added();
         }
 
         if (writeThread == null)
