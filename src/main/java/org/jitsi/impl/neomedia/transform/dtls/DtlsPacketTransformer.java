@@ -131,8 +131,6 @@ public class DtlsPacketTransformer
      */
     public static boolean isDtlsRecord(byte[] buf, int off, int len)
     {
-        boolean b = false;
-
         if (len >= DTLS_RECORD_HEADER_LENGTH)
         {
             short type = TlsUtils.readUint8(buf, off);
@@ -145,25 +143,14 @@ public class DtlsPacketTransformer
             case ContentType.handshake:
                 int major = buf[off + 1] & 0xff;
                 int minor = buf[off + 2] & 0xff;
-                ProtocolVersion version = null;
-
-                if (major == ProtocolVersion.DTLSv10.getMajorVersion()
-                        && minor == ProtocolVersion.DTLSv10.getMinorVersion())
-                {
-                    version = ProtocolVersion.DTLSv10;
-                }
-                if (version == null
-                        && major == ProtocolVersion.DTLSv12.getMajorVersion()
-                        && minor == ProtocolVersion.DTLSv12.getMinorVersion())
-                {
-                    version = ProtocolVersion.DTLSv12;
-                }
-                if (version != null)
+                ProtocolVersion version = ProtocolVersion.get(major, minor);
+                if (version.isDTLS())
                 {
                     int length = TlsUtils.readUint16(buf, off + 11);
-
                     if (DTLS_RECORD_HEADER_LENGTH + length <= len)
-                        b = true;
+                    {
+                        return true;
+                    }
                 }
                 break;
             default:
@@ -173,7 +160,7 @@ public class DtlsPacketTransformer
                 break;
             }
         }
-        return b;
+        return false;
     }
 
     /**
