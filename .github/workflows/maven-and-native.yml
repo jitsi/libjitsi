@@ -30,7 +30,7 @@ jobs:
         uses: actions/setup-java@v2
         with:
           java-version: ${{ matrix.java }}
-          distribution: adopt
+          distribution: temurin
           check-latest: true
 
       - name: Verify Java
@@ -59,7 +59,7 @@ jobs:
         uses: actions/setup-java@v2
         with:
           java-version: 8
-          distribution: adopt
+          distribution: temurin
 
       - name: Compile Java for JNI headers
         run: mvn -B compile
@@ -185,7 +185,7 @@ jobs:
         uses: actions/setup-java@v2
         with:
           java-version: 8
-          distribution: adopt
+          distribution: temurin
 
       - name: Compile Java for JNI headers
         run: mvn -B compile
@@ -239,7 +239,7 @@ jobs:
         uses: actions/setup-java@v2
         with:
           java-version: 8
-          distribution: adopt
+          distribution: temurin
           server-id: ossrh
           server-username: SONATYPE_USER
           server-password: SONATYPE_PW
