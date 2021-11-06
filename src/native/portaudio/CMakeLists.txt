@@ -22,7 +22,7 @@ set(libportaudio_LIBRARY_DIRS ${PORTAUDIO_ROOT}/lib)
 externalproject_add(ext_lib_portaudio
                     INSTALL_DIR ${PORTAUDIO_ROOT}
                     GIT_REPOSITORY https://github.com/jitsi/portaudio
-                    GIT_TAG libjitsi_v2
+                    GIT_TAG 09ac94762ce91fdde41aed82599f328e578bafb2
                     GIT_SHALLOW false
                     CMAKE_ARGS (-DPA_BUILD_SHARED:BOOL=OFF
                     -DPA_LIBNAME_ADD_SUFFIX:BOOL=OFF

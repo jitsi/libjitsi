@@ -6,7 +6,7 @@
 
   <groupId>org.jitsi</groupId>
   <artifactId>libjitsi</artifactId>
-  <version>1.0-desktop-SNAPSHOT</version>
+  <version>1.1-SNAPSHOT</version>
   <packaging>bundle</packaging>
 
   <name>libjitsi</name>
@@ -38,7 +38,7 @@
 
   <licenses>
     <license>
-      <name>Apache License, Version 2.0</name>
+      <name>Apache-2.0</name>
       <url>https://github.com/jitsi/libjitsi/blob/master/LICENSE</url>
       <distribution>repo</distribution>
     </license>
@@ -94,7 +94,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-utils</artifactId>
-      <version>1.0-98-g6a75684</version>
+      <version>1.0-99-gf60ac15</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
