@@ -107,7 +107,7 @@ jobs:
           fetch-depth: 0
           submodules: true
 
-      - name: Install Java {{ env.RELEASE_JAVA_VERSION }}
+      - name: Install Java ${{ env.RELEASE_JAVA_VERSION }}
         id: install_java
         uses: actions/setup-java@v2
         with:
@@ -217,31 +217,23 @@ jobs:
           server-password: SONATYPE_PW
 
       - name: Fixup version
+        if: github.ref == 'refs/heads/master'
         id: version
         run: |
           MVNVER=`mvn help:evaluate -Dexpression=project.version -q -DforceStdout`
-          if [ "${{ github.ref }}" == "refs/heads/master" ]; then
-            TAG_NAME="v${MVNVER/-SNAPSHOT/}"
-            if ! git rev-parse "$TAG_NAME" >/dev/null 2>&1
-            then
-              echo "Creating tag $TAG_NAME"
-              git config --local user.name "$GITHUB_ACTOR via GitHub Action"
-              git config --local user.email "action@github.com"
-              git tag -a "$TAG_NAME" -m "Tagged automatically by GitHub Action ${{ github.workflow }}"
-              git push origin "$TAG_NAME"
-            else
-              echo "Tag: $TAG_NAME already exists"
-            fi
-            VERSION=`git describe --match "v[0-9\.]*" --long --always`
-            VERSION=${VERSION:1}
+          TAG_NAME="v${MVNVER/-SNAPSHOT/}"
+          if ! git rev-parse "$TAG_NAME" >/dev/null 2>&1
+          then
+            echo "Creating tag $TAG_NAME"
+            git config --local user.name "$GITHUB_ACTOR via GitHub Action"
+            git config --local user.email "action@github.com"
+            git tag -a "$TAG_NAME" -m "Tagged automatically by GitHub Action ${{ github.workflow }}"
+            git push origin "$TAG_NAME"
           else
-            echo "Not on master"
-            BRANCH=${GITHUB_REF#refs/heads/}
-            VERSION=${MVNVER/-SNAPSHOT/}
-            VERSION=${VERSION/-$BRANCH/}
-            # this may well be what it was before...
-            VERSION=$VERSION-$BRANCH-SNAPSHOT
+            echo "Tag: $TAG_NAME already exists"
           fi
+          VERSION=`git describe --match "v[0-9\.]*" --long --always`
+          VERSION=${VERSION:1}
           echo "Version: $VERSION"
           echo "::set-output name=version::${VERSION}"
           mvn -B versions:set -DnewVersion=${VERSION} -DgenerateBackupPoms=false
