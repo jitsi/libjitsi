@@ -8,6 +8,10 @@ on:
     branches:
       - master
 
+env:
+  # Java version to use for the release
+  RELEASE_JAVA_VERSION: 8
+
 jobs:
   javatest:
     name: Java ${{ matrix.java }} Test
@@ -15,27 +19,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        java: [ 8, 11, 17 ]
+        java: [ 8, 11 ]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
         with:
           submodules: false
 
-      - name: Cache local Maven repository
-        uses: actions/cache@v2
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-
       - name: Install Java ${{ matrix.java }}
         uses: actions/setup-java@v2
         with:
           java-version: ${{ matrix.java }}
           distribution: temurin
-          check-latest: true
+          cache: maven
 
       - name: Verify Java
         run: mvn -B verify
@@ -51,19 +47,12 @@ jobs:
           fetch-depth: 0
           submodules: true
 
-      - name: Cache local Maven repository
-        uses: actions/cache@v2
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-
-      - name: Install Java 8
+      - name: Install Java ${{ env.RELEASE_JAVA_VERSION }}
         uses: actions/setup-java@v2
         with:
-          java-version: 8
+          java-version: ${{ env.RELEASE_JAVA_VERSION }}
           distribution: temurin
+          cache: maven
 
       - name: Compile Java for JNI headers
         run: mvn -B compile
@@ -118,20 +107,13 @@ jobs:
           fetch-depth: 0
           submodules: true
 
-      - name: Cache local Maven repository
-        uses: actions/cache@v2
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-
-      - name: Install Java 8
+      - name: Install Java {{ env.RELEASE_JAVA_VERSION }}
         id: install_java
-        uses: actions/setup-java@v1
+        uses: actions/setup-java@v2
         with:
-          java-version: 8
-          java-package: jdk
+          java-version: ${{ env.RELEASE_JAVA_VERSION }}
+          distribution: temurin
+          cache: maven
           architecture: ${{ matrix.arch }}
 
       - name: Compile Java for JNI headers
@@ -176,20 +158,13 @@ jobs:
           fetch-depth: 0
           submodules: true
 
-      - name: Cache local Maven repository
-        uses: actions/cache@v2
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-
-      - name: Install Java 8
+      - name: Install Java ${{ env.RELEASE_JAVA_VERSION }}
         id: install_java
         uses: actions/setup-java@v2
         with:
-          java-version: 8
+          java-version: ${{ env.RELEASE_JAVA_VERSION }}
           distribution: temurin
+          cache: maven
 
       - name: Compile Java for JNI headers
         run: mvn -B compile
@@ -231,19 +206,12 @@ jobs:
           fetch-depth: 0
           submodules: false
 
-      - name: Cache local Maven repository
-        uses: actions/cache@v2
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-
-      - name: Install Java 8
+      - name: Install Java ${{ env.RELEASE_JAVA_VERSION }}
         uses: actions/setup-java@v2
         with:
-          java-version: 8
+          java-version: ${{ env.RELEASE_JAVA_VERSION }}
           distribution: temurin
+          cache: maven
           server-id: ossrh
           server-username: SONATYPE_USER
           server-password: SONATYPE_PW
