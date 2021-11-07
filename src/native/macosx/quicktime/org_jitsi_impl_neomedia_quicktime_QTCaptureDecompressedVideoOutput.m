@@ -20,23 +20,20 @@
 #import <Foundation/NSAutoreleasePool.h>
 #import <Foundation/NSDictionary.h>
 #import <Foundation/NSObject.h>
-#import <QTKit/QTCaptureDecompressedVideoOutput.h>
-#import <QTKit/QTCaptureConnection.h>
-#import <QTKit/QTCaptureOutput.h>
-#import <QTKit/QTSampleBuffer.h>
+#import <AVFoundation/AVFoundation.h>
 #import <stdint.h>
 
-@interface QTCaptureDecompressedVideoOutputDelegate : NSObject
+@interface QTCaptureDecompressedVideoOutputDelegate : NSObject<AVCaptureVideoDataOutputSampleBufferDelegate>
 {
 @private
     jobject _delegate;
     JavaVM *_vm;
+    jmethodID _didOutputVideoFrameWithSampleBufferMethodID;
 }
 
-- (void)captureOutput:(QTCaptureOutput *)captureOutput
-        didOutputVideoFrame:(CVImageBufferRef *)videoFrame
-        withSampleBuffer:(QTSampleBuffer *)sampleBuffer
-        fromConnection:(QTCaptureConnection *)connection;
+- (void)captureOutput:(AVCaptureOutput *)captureOutput
+        didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
+        fromConnection:(AVCaptureConnection *)connection;
 - (void)dealloc;
 - (id)init;
 - (void)setDelegate:(jobject)delegate inJNIEnv:(JNIEnv *)jniEnv;
@@ -48,48 +45,30 @@ Java_org_jitsi_impl_neomedia_quicktime_QTCaptureDecompressedVideoOutput_allocAnd
     (JNIEnv *jniEnv, jclass clazz)
 {
     NSAutoreleasePool *autoreleasePool;
-    QTCaptureDecompressedVideoOutput *captureDecompressedVideoOutput;
+    AVCaptureVideoDataOutput *captureDecompressedVideoOutput;
 
     autoreleasePool = [[NSAutoreleasePool alloc] init];
 
     captureDecompressedVideoOutput
-        = [[QTCaptureDecompressedVideoOutput alloc] init];
+        = [[AVCaptureVideoDataOutput alloc] init];
 
     [autoreleasePool release];
     return (jlong) (intptr_t) captureDecompressedVideoOutput;
-}
-
-JNIEXPORT jdouble JNICALL
-Java_org_jitsi_impl_neomedia_quicktime_QTCaptureDecompressedVideoOutput_minimumVideoFrameInterval
-    (JNIEnv *jniEnv, jclass clazz, jlong ptr)
-{
-    QTCaptureDecompressedVideoOutput *captureDecompressedVideoOutput;
-    NSAutoreleasePool *autoreleasePool;
-    NSTimeInterval minimumVideoFrameInterval;
-
-    captureDecompressedVideoOutput = (QTCaptureDecompressedVideoOutput *) (intptr_t) ptr;
-    autoreleasePool = [[NSAutoreleasePool alloc] init];
-
-    minimumVideoFrameInterval
-        = [captureDecompressedVideoOutput minimumVideoFrameInterval];
-
-    [autoreleasePool release];
-    return (jdouble) minimumVideoFrameInterval;
 }
 
 JNIEXPORT jlong JNICALL
 Java_org_jitsi_impl_neomedia_quicktime_QTCaptureDecompressedVideoOutput_pixelBufferAttributes
     (JNIEnv *jniEnv, jclass clazz, jlong ptr)
 {
-    QTCaptureDecompressedVideoOutput *captureDecompressedVideoOutput;
+    AVCaptureVideoDataOutput *captureDecompressedVideoOutput;
     NSAutoreleasePool *autoreleasePool;
-    NSDictionary *pixelBufferAttributes;
+    NSDictionary<NSString *, id> *pixelBufferAttributes;
 
-    captureDecompressedVideoOutput = (QTCaptureDecompressedVideoOutput *) (intptr_t) ptr;
+    captureDecompressedVideoOutput = (AVCaptureVideoDataOutput *) (intptr_t) ptr;
     autoreleasePool = [[NSAutoreleasePool alloc] init];
 
     pixelBufferAttributes
-        = [captureDecompressedVideoOutput pixelBufferAttributes];
+        = [captureDecompressedVideoOutput videoSettings];
     if (pixelBufferAttributes)
         [pixelBufferAttributes retain];
 
@@ -102,23 +81,19 @@ Java_org_jitsi_impl_neomedia_quicktime_QTCaptureDecompressedVideoOutput_setAutom
     (JNIEnv *jniEnv, jclass clazz, jlong ptr,
         jboolean automaticallyDropsLateVideoFrames)
 {
-    QTCaptureDecompressedVideoOutput *captureDecompressedVideoOutput;
+    AVCaptureVideoDataOutput *captureDecompressedVideoOutput;
     NSAutoreleasePool *autoreleasePool;
 
-    captureDecompressedVideoOutput = (QTCaptureDecompressedVideoOutput *) (intptr_t) ptr;
+    captureDecompressedVideoOutput = (AVCaptureVideoDataOutput *) (intptr_t) ptr;
     autoreleasePool = [[NSAutoreleasePool alloc] init];
 
-    if ([captureDecompressedVideoOutput
-            respondsToSelector:@selector(setAutomaticallyDropsLateVideoFrames)])
-    {
-        [captureDecompressedVideoOutput
-            setAutomaticallyDropsLateVideoFrames:
-                ((JNI_TRUE == automaticallyDropsLateVideoFrames) ? YES : NO)];
-        automaticallyDropsLateVideoFrames
-            = [captureDecompressedVideoOutput automaticallyDropsLateVideoFrames];
-    }
-    else
-        automaticallyDropsLateVideoFrames = JNI_FALSE;
+    [captureDecompressedVideoOutput
+        setAlwaysDiscardsLateVideoFrames:
+            ((JNI_TRUE == automaticallyDropsLateVideoFrames) ? YES : NO)];
+    automaticallyDropsLateVideoFrames
+        = [captureDecompressedVideoOutput alwaysDiscardsLateVideoFrames] == YES
+                ? JNI_TRUE
+                : JNI_FALSE;
 
     [autoreleasePool release];
     return automaticallyDropsLateVideoFrames;
@@ -128,12 +103,12 @@ JNIEXPORT void JNICALL
 Java_org_jitsi_impl_neomedia_quicktime_QTCaptureDecompressedVideoOutput_setDelegate
     (JNIEnv *jniEnv, jclass clazz, jlong ptr, jobject delegate)
 {
-    QTCaptureDecompressedVideoOutput *captureDecompressedVideoOutput;
+    AVCaptureVideoDataOutput *captureDecompressedVideoOutput;
     NSAutoreleasePool *autoreleasePool;
     QTCaptureDecompressedVideoOutputDelegate *oDelegate;
     id oPrevDelegate;
 
-    captureDecompressedVideoOutput = (QTCaptureDecompressedVideoOutput *) (intptr_t) ptr;
+    captureDecompressedVideoOutput = (AVCaptureVideoDataOutput *) (intptr_t) ptr;
     autoreleasePool = [[NSAutoreleasePool alloc] init];
 
     if (delegate)
@@ -143,10 +118,13 @@ Java_org_jitsi_impl_neomedia_quicktime_QTCaptureDecompressedVideoOutput_setDeleg
     }
     else
         oDelegate = nil;
-    oPrevDelegate = [captureDecompressedVideoOutput delegate];
+
+    oPrevDelegate = [captureDecompressedVideoOutput sampleBufferDelegate];
     if (oDelegate != oPrevDelegate)
     {
-        [captureDecompressedVideoOutput setDelegate:oDelegate];
+        [captureDecompressedVideoOutput
+                setSampleBufferDelegate:oDelegate
+                                  queue:dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0)];
         if (oPrevDelegate)
             [oPrevDelegate release];
     }
@@ -155,79 +133,45 @@ Java_org_jitsi_impl_neomedia_quicktime_QTCaptureDecompressedVideoOutput_setDeleg
 }
 
 JNIEXPORT void JNICALL
-Java_org_jitsi_impl_neomedia_quicktime_QTCaptureDecompressedVideoOutput_setMinimumVideoFrameInterval
-    (JNIEnv *jniEnv, jclass clazz, jlong ptr, jdouble minimumVideoFrameInterval)
-{
-    QTCaptureDecompressedVideoOutput *captureDecompressedVideoOutput;
-    NSAutoreleasePool *autoreleasePool;
-
-    captureDecompressedVideoOutput = (QTCaptureDecompressedVideoOutput *) (intptr_t) ptr;
-    autoreleasePool = [[NSAutoreleasePool alloc] init];
-
-    [captureDecompressedVideoOutput
-	    setMinimumVideoFrameInterval:(NSTimeInterval)minimumVideoFrameInterval];
-
-    [autoreleasePool release];
-}
-
-JNIEXPORT void JNICALL
 Java_org_jitsi_impl_neomedia_quicktime_QTCaptureDecompressedVideoOutput_setPixelBufferAttributes
     (JNIEnv *jniEnv, jclass clazz, jlong ptr, jlong pixelBufferAttributesPtr)
 {
-    QTCaptureDecompressedVideoOutput *captureDecompressedVideoOutput;
-    NSDictionary *pixelBufferAttributes;
+    AVCaptureVideoDataOutput *captureDecompressedVideoOutput;
+    NSDictionary<NSString *, id> *pixelBufferAttributes;
     NSAutoreleasePool *autoreleasePool;
 
-    captureDecompressedVideoOutput = (QTCaptureDecompressedVideoOutput *) (intptr_t) ptr;
+    captureDecompressedVideoOutput = (AVCaptureVideoDataOutput *) (intptr_t) ptr;
     pixelBufferAttributes = (NSDictionary *) (intptr_t) pixelBufferAttributesPtr;
     autoreleasePool = [[NSAutoreleasePool alloc] init];
 
     [captureDecompressedVideoOutput
-        setPixelBufferAttributes:pixelBufferAttributes];
+        setVideoSettings:pixelBufferAttributes];
 
     [autoreleasePool release];
 }
 
 @implementation QTCaptureDecompressedVideoOutputDelegate
 
-- (void)captureOutput:(QTCaptureOutput *)captureOutput
-        didOutputVideoFrame:(CVImageBufferRef *)videoFrame
-        withSampleBuffer:(QTSampleBuffer *)sampleBuffer
-        fromConnection:(QTCaptureConnection *)connection
+- (void)captureOutput:(AVCaptureOutput *)captureOutput
+        didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
+        fromConnection:(AVCaptureConnection *)connection
 {
-    jobject delegate;
-    JavaVM *vm;
-    JNIEnv *jniEnv;
-    jclass delegateClass;
-
-    delegate = self->_delegate;
+    jobject delegate = _delegate;
     if (!delegate)
         return;
 
-    vm = self->_vm;
-    if (0 != (*vm)->AttachCurrentThreadAsDaemon(vm, (void **) &jniEnv, NULL))
+    JavaVM *vm = _vm;
+    JNIEnv *jniEnv = NULL;
+    if ((*vm)->AttachCurrentThreadAsDaemon(vm, (void **) &jniEnv, NULL) != JNI_OK || jniEnv == NULL)
         return;
 
-    delegateClass = (*jniEnv)->GetObjectClass(jniEnv, delegate);
-    if (delegateClass)
-    {
-        jmethodID didOutputVideoFrameWithSampleBufferMethodID;
-
-        didOutputVideoFrameWithSampleBufferMethodID
-            = (*jniEnv)
-                ->GetMethodID(
-                    jniEnv,
-                    delegateClass,
-                    "outputVideoFrameWithSampleBuffer",
-                    "(JJ)V");
-        if (didOutputVideoFrameWithSampleBufferMethodID)
-            (*jniEnv)->CallVoidMethod(
-                    jniEnv,
-                    delegate,
-                    didOutputVideoFrameWithSampleBufferMethodID,
-                    (jlong) (intptr_t) videoFrame,
-                    (jlong) (intptr_t) sampleBuffer);
-    }
+    CVImageBufferRef videoFrame = CMSampleBufferGetImageBuffer(sampleBuffer);
+    (*jniEnv)->CallVoidMethod(
+            jniEnv,
+            _delegate,
+            _didOutputVideoFrameWithSampleBufferMethodID,
+            (jlong) (intptr_t) videoFrame,
+            (jlong) (intptr_t) sampleBuffer);
     (*jniEnv)->ExceptionClear(jniEnv);
 }
 
@@ -241,29 +185,59 @@ Java_org_jitsi_impl_neomedia_quicktime_QTCaptureDecompressedVideoOutput_setPixel
 {
     if ((self = [super init]))
     {
-        self->_delegate = NULL;
-        self->_vm = NULL;
+        _delegate = NULL;
+        _vm = NULL;
+        _didOutputVideoFrameWithSampleBufferMethodID = NULL;
     }
     return self;
 }
 
 - (void)setDelegate:(jobject)delegate inJNIEnv:(JNIEnv *)jniEnv
 {
-    if (self->_delegate)
+    // release existing references
+    if (_delegate)
     {
-        if (!jniEnv)
-            (*(self->_vm))->AttachCurrentThread(self->_vm, (void **) &jniEnv, NULL);
-        (*jniEnv)->DeleteGlobalRef(jniEnv, self->_delegate);
-        self->_delegate = NULL;
-        self->_vm = NULL;
+        if (!jniEnv && _vm)
+        {
+            (*(_vm))->AttachCurrentThread(_vm, (void **) &jniEnv, NULL);
+        }
+        if (jniEnv)
+        {
+            (*jniEnv)->DeleteGlobalRef(jniEnv, _delegate);
+        }
+
+        _delegate = NULL;
+        _vm = NULL;
+        _didOutputVideoFrameWithSampleBufferMethodID = NULL;
     }
-    if (delegate)
+
+    if (delegate && jniEnv)
     {
+        (*jniEnv)->GetJavaVM(jniEnv, &_vm);
+        if (!_vm)
+        {
+            return;
+        }
+
         delegate = (*jniEnv)->NewGlobalRef(jniEnv, delegate);
         if (delegate)
         {
-            (*jniEnv)->GetJavaVM(jniEnv, &(self->_vm));
-            self->_delegate = delegate;
+            jclass delegateClass
+                    = (*jniEnv)->GetObjectClass(jniEnv, delegate);
+            _didOutputVideoFrameWithSampleBufferMethodID
+                    = (*jniEnv)->GetMethodID(
+                        jniEnv,
+                        delegateClass,
+                        "outputVideoFrameWithSampleBuffer",
+                        "(JJ)V");
+            if (_didOutputVideoFrameWithSampleBufferMethodID)
+            {
+                _delegate = delegate;
+            }
+            else
+            {
+                (*jniEnv)->DeleteGlobalRef(jniEnv, delegate);
+            }
         }
     }
 }

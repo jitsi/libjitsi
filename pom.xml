@@ -6,14 +6,46 @@
 
   <groupId>org.jitsi</groupId>
   <artifactId>libjitsi</artifactId>
-  <version>1.0-SNAPSHOT</version>
+  <version>1.1-SNAPSHOT</version>
   <packaging>bundle</packaging>
 
   <name>libjitsi</name>
+  <description>
+    libjitsi is an advanced Java media library for secure real-time audio/video
+    communication
+  </description>
   <url>https://github.com/jitsi/libjitsi</url>
 
+  <organization>
+    <name>jitsi.org</name>
+    <url>https://jitsi.org</url>
+  </organization>
+
+  <developers>
+    <developer>
+      <id>org.jitsi</id>
+      <name>Jitsi Team</name>
+      <email>dev@jitsi.org</email>
+    </developer>
+  </developers>
+
+  <scm>
+    <url>https://github.com/jitsi/libjitsi</url>
+    <connection>scm:git:https://github.com/jitsi/libjitsi.git</connection>
+    <developerConnection>scm:git:https://github.com/jitsi/libjitsi.git</developerConnection>
+    <tag>HEAD</tag>
+  </scm>
+
+  <licenses>
+    <license>
+      <name>Apache-2.0</name>
+      <url>https://github.com/jitsi/libjitsi/blob/master/LICENSE</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
   <properties>
-    <bouncycastle.version>1.54</bouncycastle.version>
+    <bouncycastle.version>1.69</bouncycastle.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
 
@@ -37,7 +69,7 @@
     <dependency>
       <groupId>net.java.dev.jna</groupId>
       <artifactId>jna</artifactId>
-      <version>5.5.0</version>
+      <version>5.9.0</version>
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
@@ -50,103 +82,92 @@
       <version>${bouncycastle.version}</version>
     </dependency>
     <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bctls-jdk15on</artifactId>
+      <version>${bouncycastle.version}</version>
+    </dependency>
+    <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>fmj</artifactId>
-      <version>1.0.0-jitsi</version>
+      <version>1.0.2-jitsi</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-utils</artifactId>
-      <version>1.0-39-gd481c98</version>
+      <version>1.0-99-gf60ac15</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-srtp</artifactId>
-      <version>1.0-24-g6823dfa</version>
+      <version>1.1-2-gabdf3cc</version>
     </dependency>
     <dependency>
       <groupId>org.opentelecoms.sdp</groupId>
       <artifactId>java-sdp-nist-bridge</artifactId>
-      <version>1.1</version>
+      <version>1.2</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-lgpl-dependencies</artifactId>
+      <version>1.2-13-gf6771c4</version>
+      <scope>provided</scope>
       <optional>true</optional>
-      <version>1.2-1-gfc49658</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>zrtp4j-light</artifactId>
-      <version>4.1.1</version>
+      <version>4.1.2</version>
     </dependency>
     <dependency>
       <groupId>org.osgi</groupId>
-      <artifactId>org.osgi.core</artifactId>
-      <version>6.0.0</version>
+      <artifactId>osgi.core</artifactId>
+      <version>8.0.0</version>
+      <scope>provided</scope>
     </dependency>
-    <!-- https://mvnrepository.com/artifact/org.jetbrains/annotations -->
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+      <version>3.12.0</version>
+    </dependency>
     <dependency>
       <groupId>org.jetbrains</groupId>
       <artifactId>annotations</artifactId>
-      <version>19.0.0</version>
+      <version>22.0.0</version>
       <scope>provided</scope>
     </dependency>
+
     <!-- test -->
     <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>4.13.1</version>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-engine</artifactId>
+      <version>5.8.1</version>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.easymock</groupId>
-      <artifactId>easymock</artifactId>
-      <version>3.4</version>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <version>4.0.0</version>
       <scope>test</scope>
     </dependency>
-        <!-- https://mvnrepository.com/artifact/org.powermock/powermock-core -->
-    <dependency>
-        <groupId>org.powermock</groupId>
-        <artifactId>powermock-core</artifactId>
-        <version>1.7.3</version>
-        <scope>test</scope>
-    </dependency>
-    <!-- https://mvnrepository.com/artifact/org.powermock/powermock-api-easymock -->
-    <dependency>
-        <groupId>org.powermock</groupId>
-        <artifactId>powermock-api-easymock</artifactId>
-        <version>1.7.3</version>
-        <scope>test</scope>
-    </dependency>
-    <!-- https://mvnrepository.com/artifact/org.powermock/powermock-module-junit4 -->
-    <dependency>
-        <groupId>org.powermock</groupId>
-        <artifactId>powermock-module-junit4</artifactId>
-        <version>1.7.3</version>
-        <scope>test</scope>
-    </dependency>
-    <!-- https://mvnrepository.com/artifact/io.pkts/pkts-core -->
     <dependency>
         <groupId>io.pkts</groupId>
         <artifactId>pkts-core</artifactId>
-        <version>3.0.1</version>
+        <version>3.0.10</version>
         <scope>test</scope>
     </dependency>
   </dependencies>
 
   <build>
-    <sourceDirectory>src</sourceDirectory>
-    <testSourceDirectory>test</testSourceDirectory>
     <plugins>
       <plugin>
          <groupId>org.apache.felix</groupId>
          <artifactId>maven-bundle-plugin</artifactId>
-         <version>4.2.1</version>
+         <version>5.1.1</version>
          <extensions>true</extensions>
          <configuration>
             <excludeDependencies>jitsi-lgpl-dependencies</excludeDependencies>
             <instructions>
+               <_noclassforname>true</_noclassforname> 
                <Import-Package>*,sun.awt.X11,sun.lwawt,sun.lwawt.macosx</Import-Package>
                <Export-Package>org.jitsi.util.*,
                org.jitsi.service.*,
@@ -161,15 +182,15 @@
                <Private-Package>org.jitsi.examples.*,org.jitsi.impl.*</Private-Package>
                <Bundle-Activator>org.jitsi.service.libjitsi.LibJitsiActivator</Bundle-Activator>
                <Bundle-NativeCode>
-                   darwin/libjnawtrenderer.jnilib;
-                   darwin/libjnmaccoreaudio.jnilib;
-                   darwin/libjnopus.jnilib;
-                   darwin/libjnportaudio.jnilib;
-                   darwin/libjnquicktime.jnilib;
-                   darwin/libjnscreencapture.jnilib;
-                   darwin/libjnsctp.jnilib;
-                   darwin/libjnspeex.jnilib;
-                   darwin/libjnvpx.jnilib;osname=Mac OS X;processor=x86-64,
+                   darwin/libjnawtrenderer.dylib;
+                   darwin/libjnmaccoreaudio.dylib;
+                   darwin/libjnopus.dylib;
+                   darwin/libjnportaudio.dylib;
+                   darwin/libjnquicktime.dylib;
+                   darwin/libjnscreencapture.dylib;
+                   darwin/libjnsctp.dylib;
+                   darwin/libjnspeex.dylib;
+                   darwin/libjnvpx.dylib;osname=Mac OS X;processor=x86-64,
                    linux-x86/libjnawtrenderer.so;
                    linux-x86/libjnopus.so;
                    linux-x86/libjnportaudio.so;
@@ -207,9 +228,18 @@
                    win32-x86-64/jnwasapi.dll;
                    win32-x86-64/jnwincoreaudio.dll;osname=Win32;processor=x86-64
                </Bundle-NativeCode>
+              <Bundle-License>
+                Apache-2.0;link="https://github.com/jitsi/libjitsi/raw/master/LICENSE"
+              </Bundle-License>
+              <_removeheaders>Bnd-*, Tool, Require-Capability, Include-Resource
+              </_removeheaders>
+              <Include-Resource>
+                {maven-resources},
+                META-INF/LICENSE=LICENSE
+              </Include-Resource>
             </instructions>
          </configuration>
-      </plugin>
+        </plugin>
         <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-compiler-plugin</artifactId>
@@ -219,6 +249,8 @@
                 <target>1.8</target>
                 <compilerArgs>
                     <arg>-Xlint:all</arg>
+                    <arg>-h</arg>
+                    <arg>${project.build.directory}/native/javah/</arg>
                 </compilerArgs>
             </configuration>
         </plugin>
@@ -226,43 +258,100 @@
             <artifactId>maven-surefire-plugin</artifactId>
             <version>2.22.2</version>
         </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-javadoc-plugin</artifactId>
+          <version>3.2.0</version>
+          <configuration>
+            <doclint>-missing</doclint>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-source-plugin</artifactId>
+          <version>3.2.1</version>
+          <configuration>
+            <excludeResources>true</excludeResources>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-resources-plugin</artifactId>
+          <version>3.2.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-install-plugin</artifactId>
+          <version>3.0.0-M1</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-deploy-plugin</artifactId>
+          <version>3.0.0-M1</version>
+        </plugin>
+        <plugin>
+          <groupId>org.sonatype.plugins</groupId>
+          <artifactId>nexus-staging-maven-plugin</artifactId>
+          <version>1.6.8</version>
+          <extensions>true</extensions>
+          <configuration>
+            <serverId>ossrh</serverId>
+            <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+            <autoReleaseAfterClose>true</autoReleaseAfterClose>
+          </configuration>
+        </plugin>
     </plugins>
     <resources>
       <resource>
         <directory>lib/native</directory>
-        <excludes>
-          <!-- jitsi-lgpl-dependencies -->
-          <exclude>**/*jnffmpeg.*</exclude>
-          <exclude>**/*jng722.*</exclude>
-        </excludes>
       </resource>
     </resources>
   </build>
+  
+  <profiles>
+    <profile>
+      <id>release</id>
+      <activation>
+        <property>
+          <name>performRelease</name>
+          <value>true</value>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <version>1.6</version>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <gpgArguments>
+                <arg>--pinentry-mode</arg>
+                <arg>loopback</arg>
+              </gpgArguments>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 
-  <repositories>
+  <distributionManagement>
+    <snapshotRepository>
+      <id>ossrh</id>
+      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+    </snapshotRepository>
     <repository>
-      <id>jitsi-maven-repository-releases</id>
-      <layout>default</layout>
-      <name>Jitsi Maven Repository (Releases)</name>
-      <releases>
-        <enabled>true</enabled>
-      </releases>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-      <url>https://github.com/jitsi/jitsi-maven-repository/raw/master/releases/</url>
+      <id>ossrh</id>
+      <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
     </repository>
-    <repository>
-      <id>jitsi-maven-repository-snapshots</id>
-      <layout>default</layout>
-      <name>Jitsi Maven Repository (Snapshots)</name>
-      <releases>
-        <enabled>false</enabled>
-      </releases>
-      <snapshots>
-        <enabled>true</enabled>
-      </snapshots>
-      <url>https://github.com/jitsi/jitsi-maven-repository/raw/master/snapshots/</url>
-    </repository>
-  </repositories>
+  </distributionManagement>
 </project>

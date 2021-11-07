@@ -25,10 +25,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/time.h>
 
 #ifdef _WIN32
     #include "WMME_DSound.h"
+#else
+    #include <sys/time.h>
 #endif /* #ifdef _WIN32 */
 
 typedef struct

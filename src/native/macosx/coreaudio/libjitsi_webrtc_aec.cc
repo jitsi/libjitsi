@@ -13,7 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "LibJitsi_WebRTC_AEC.h"
+#ifdef COREAUDIO_AEC
+#include "libjitsi_webrtc_aec.h"
 
 #include "webrtc/modules/audio_processing/include/audio_processing.h"
 #include "webrtc/modules/interface/module_common_types.h"
@@ -823,3 +824,4 @@ LibJitsi_WebRTC_AEC_getNbSampleSinceLastProcess(
     }
     return nbSample;
 }
+#endif

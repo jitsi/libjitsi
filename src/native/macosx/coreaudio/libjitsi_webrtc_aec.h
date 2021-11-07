@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#ifdef COREAUDIO_AEC
 #ifndef LibJitsi_WebRTC_AEC_h
 #define LibJitsi_WebRTC_AEC_h
 
@@ -76,4 +77,5 @@ int LibJitsi_WebRTC_AEC_unlock(LibJitsi_WebRTC_AEC *aec, int isRenderStream);
 }
 #endif
 
+#endif
 #endif

@@ -1,0 +1,296 @@
+name: CI with CMake and Maven
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+env:
+  # Java version to use for the release
+  RELEASE_JAVA_VERSION: 8
+
+jobs:
+  javatest:
+    name: Java ${{ matrix.java }} Test
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        java: [ 8, 11 ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: false
+
+      - name: Install Java ${{ matrix.java }}
+        uses: actions/setup-java@v2
+        with:
+          java-version: ${{ matrix.java }}
+          distribution: temurin
+          cache: maven
+
+      - name: Verify Java
+        run: mvn -B verify
+
+  ubuntu:
+    name: Ubuntu Natives (static)
+    runs-on: ubuntu-latest
+    needs: javatest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          submodules: true
+
+      - name: Install Java ${{ env.RELEASE_JAVA_VERSION }}
+        uses: actions/setup-java@v2
+        with:
+          java-version: ${{ env.RELEASE_JAVA_VERSION }}
+          distribution: temurin
+          cache: maven
+
+      - name: Compile Java for JNI headers
+        run: mvn -B compile
+
+      - name: Build build container
+        run: |
+          cd .github/workflows
+          docker build -f Dockerfile.static -t libjitsi-static:${{ github.sha }} .
+
+      - name: Build natives x86 (static)
+        run: docker run -v ${{ github.workspace }}:/ghws libjitsi-static:${{ github.sha }} /bin/bash -c "/ghws/.github/workflows/build-static.sh m32 /ghws"
+
+      - name: Upload Linux x86 natives
+        uses: actions/upload-artifact@v2
+        with:
+          name: linux-x86
+          path: lib/native/linux-x86
+
+      - name: Build natives x64 (static)
+        run: docker run -v ${{ github.workspace }}:/ghws libjitsi-static:${{ github.sha }} /bin/bash -c "/ghws/.github/workflows/build-static.sh m64 /ghws"
+
+      - name: Upload Linux x64 natives
+        uses: actions/upload-artifact@v2
+        with:
+          name: linux-x86-64
+          path: lib/native/linux-x86-64
+
+  windows:
+    name: Windows ${{ matrix.arch}} Natives
+    runs-on: windows-latest
+    needs: javatest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [ x86, x64 ]
+    steps:
+      - name: Expand architecture
+        id: expand_arch
+        shell: bash
+        run: |
+          if [ "${{ matrix.arch }}" == "x86" ]; then
+            echo "::set-output name=cmake_arch::Win32"
+            echo "::set-output name=jitsi_arch::x86"
+          else
+            echo "::set-output name=cmake_arch::x64"
+            echo "::set-output name=jitsi_arch::x86-64"
+          fi;
+
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          submodules: true
+
+      - name: Install Java ${{ env.RELEASE_JAVA_VERSION }}
+        id: install_java
+        uses: actions/setup-java@v2
+        with:
+          java-version: ${{ env.RELEASE_JAVA_VERSION }}
+          distribution: temurin
+          cache: maven
+          architecture: ${{ matrix.arch }}
+
+      - name: Compile Java for JNI headers
+        run: mvn -B compile
+
+      - name: Build natives
+        run: |
+          git config --global user.email "jitsi-jenkins@jitsi.org"
+          git config --global user.name "Jitsi GitHub Action"
+          cd $Env:GITHUB_WORKSPACE/src/native/
+          $java_home = "${{ steps.install_java.outputs.path }}".Replace("\\", "/")
+          cmake -B cmake-build-${{ matrix.arch}} -A ${{ steps.expand_arch.outputs.cmake_arch }} -DJAVA_HOME=$java_home
+          cmake --build cmake-build-${{ matrix.arch}} --config Release --target install --parallel
+
+      - name: Gather logs on failure
+        if: ${{ failure() }}
+        run: |
+          Compress-Archive -Path $Env:GITHUB_WORKSPACE/src/native/cmake-build-${{ matrix.arch}} -DestinationPath $Env:GITHUB_WORKSPACE/target/debug-logs.zip
+          Compress-Archive -Path $Env:GITHUB_WORKSPACE/src/native/vcpkg/buildtrees -DestinationPath $Env:GITHUB_WORKSPACE/target/debug-vcpkg.zip
+
+      - name: Upload Debug logs
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: win32-${{ steps.expand_arch.outputs.jitsi_arch }}-debug
+          path: target/debug*
+
+      - name: Upload Windows x86 natives
+        uses: actions/upload-artifact@v2
+        with:
+          name: win32-${{ steps.expand_arch.outputs.jitsi_arch }}
+          path: lib/native/win32-${{ steps.expand_arch.outputs.jitsi_arch }}
+
+  mac:
+    name: Mac Natives
+    runs-on: macos-latest
+    needs: javatest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          submodules: true
+
+      - name: Install Java ${{ env.RELEASE_JAVA_VERSION }}
+        id: install_java
+        uses: actions/setup-java@v2
+        with:
+          java-version: ${{ env.RELEASE_JAVA_VERSION }}
+          distribution: temurin
+          cache: maven
+
+      - name: Compile Java for JNI headers
+        run: mvn -B compile
+
+      - name: Build natives
+        run: |
+          git config --global user.email "jitsi-jenkins@jitsi.org"
+          git config --global user.name "Jitsi GitHub Action"
+          brew install nasm
+          cd $GITHUB_WORKSPACE/src/native/
+          cmake -B cmake-build -DJAVA_HOME=${{ steps.install_java.outputs.path }}
+          cmake --build cmake-build --config Release --target install --parallel
+
+      - name: The job has failed
+        if: ${{ failure() }}
+        run: tar --exclude *.o -cvJf $GITHUB_WORKSPACE/target/debug-logs.tar.xz $GITHUB_WORKSPACE/src/native/cmake-build
+
+      - name: Upload Debug logs
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: darwin-debug
+          path: target/debug*
+
+      - name: Upload Mac natives
+        uses: actions/upload-artifact@v2
+        with:
+          name: darwin
+          path: lib/native/darwin
+
+  multiplatform:
+    name: Multiplatform Jar
+    runs-on: ubuntu-latest
+    needs: [ javatest, ubuntu, windows, mac ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          submodules: false
+
+      - name: Install Java ${{ env.RELEASE_JAVA_VERSION }}
+        uses: actions/setup-java@v2
+        with:
+          java-version: ${{ env.RELEASE_JAVA_VERSION }}
+          distribution: temurin
+          cache: maven
+          server-id: ossrh
+          server-username: SONATYPE_USER
+          server-password: SONATYPE_PW
+
+      - name: Fixup version
+        if: github.ref == 'refs/heads/master'
+        id: version
+        run: |
+          MVNVER=`mvn help:evaluate -Dexpression=project.version -q -DforceStdout`
+          TAG_NAME="v${MVNVER/-SNAPSHOT/}"
+          if ! git rev-parse "$TAG_NAME" >/dev/null 2>&1
+          then
+            echo "Creating tag $TAG_NAME"
+            git config --local user.name "$GITHUB_ACTOR via GitHub Action"
+            git config --local user.email "action@github.com"
+            git tag -a "$TAG_NAME" -m "Tagged automatically by GitHub Action ${{ github.workflow }}"
+            git push origin "$TAG_NAME"
+          else
+            echo "Tag: $TAG_NAME already exists"
+          fi
+          VERSION=`git describe --match "v[0-9\.]*" --long --always`
+          VERSION=${VERSION:1}
+          echo "Version: $VERSION"
+          echo "::set-output name=version::${VERSION}"
+          mvn -B versions:set -DnewVersion=${VERSION} -DgenerateBackupPoms=false
+
+      - name: Get Linux x86 natives
+        uses: actions/download-artifact@v2
+        with:
+          name: linux-x86
+          path: lib/native/linux-x86
+
+      - name: Get Linux x64 natives
+        uses: actions/download-artifact@v2
+        with:
+          name: linux-x86-64
+          path: lib/native/linux-x86-64
+
+      - name: Get Windows x86 natives
+        uses: actions/download-artifact@v2
+        with:
+          name: win32-x86
+          path: lib/native/win32-x86
+
+      - name: Get Windows x64 natives
+        uses: actions/download-artifact@v2
+        with:
+          name: win32-x86-64
+          path: lib/native/win32-x86-64
+
+      - name: Get Mac natives
+        uses: actions/download-artifact@v2
+        with:
+          name: darwin
+          path: lib/native/darwin
+
+      - name: Package Java with built native libs
+        run: mvn -B package -DperformRelease=true -DskipTests
+
+      - name: Upload Multi-Platform Jar
+        uses: actions/upload-artifact@v2
+        with:
+          name: jar
+          path: target/*.jar
+          if-no-files-found: error
+
+      - name: Release to Maven Central
+        if: github.ref == 'refs/heads/master'
+        env:
+          SONATYPE_USER: ${{ secrets.SONATYPE_USER }}
+          SONATYPE_PW: ${{ secrets.SONATYPE_PW }}
+        run: |
+          cat <(echo -e "${{ secrets.GPG_KEY }}") | gpg --batch --import
+          gpg --list-secret-keys --keyid-format LONG
+          mvn \
+            --no-transfer-progress \
+            --batch-mode \
+            -Dgpg.passphrase="${{ secrets.GPG_PW }}" \
+            -DperformRelease=true \
+            -Drelease=true \
+            -DskipTests \
+            deploy

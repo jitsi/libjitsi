@@ -1,0 +1,3 @@
+[submodule "src/native/vcpkg"]
+	path = src/native/vcpkg
+	url = https://github.com/microsoft/vcpkg

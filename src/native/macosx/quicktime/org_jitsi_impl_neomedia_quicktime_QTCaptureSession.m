@@ -16,30 +16,29 @@
 
 #include "org_jitsi_impl_neomedia_quicktime_QTCaptureSession.h"
 
-#include "common.h"
-
 #import <Foundation/NSAutoreleasePool.h>
-#import <Foundation/NSError.h>
-#import <QTKit/QTCaptureInput.h>
-#import <QTKit/QTCaptureOutput.h>
-#import <QTKit/QTCaptureSession.h>
-#include <stdint.h>
+#import <AVFoundation/AVCaptureInput.h>
+#import <AVFoundation/AVCaptureOutput.h>
 
 JNIEXPORT jboolean JNICALL
 Java_org_jitsi_impl_neomedia_quicktime_QTCaptureSession_addInput
     (JNIEnv *jniEnv, jclass clazz, jlong ptr, jlong inputPtr)
 {
-    QTCaptureSession *captureSession;
-    QTCaptureInput *input;
+    AVCaptureSession *captureSession;
+    AVCaptureInput *input;
     NSAutoreleasePool *autoreleasePool;
-    BOOL ret;
-    NSError *error;
+    BOOL ret = NO;
 
-    captureSession = (QTCaptureSession *) (intptr_t) ptr;
-    input = (QTCaptureInput *) (intptr_t) inputPtr;
+    captureSession = (AVCaptureSession *) (intptr_t) ptr;
+    input = (AVCaptureInput *) (intptr_t) inputPtr;
     autoreleasePool = [[NSAutoreleasePool alloc] init];
 
-    ret = [captureSession addInput:input error:&error];
+    if ([captureSession canAddInput:input])
+    {
+        [captureSession beginConfiguration];
+        [captureSession addInput:input];
+        [captureSession commitConfiguration];
+    }
 
     [autoreleasePool release];
     return (YES == ret) ? JNI_TRUE : JNI_FALSE;
@@ -49,17 +48,21 @@ JNIEXPORT jboolean JNICALL
 Java_org_jitsi_impl_neomedia_quicktime_QTCaptureSession_addOutput
     (JNIEnv *jniEnv, jclass clazz, jlong ptr, jlong outputPtr)
 {
-    QTCaptureSession *captureSession;
-    QTCaptureOutput *output;
+    AVCaptureSession *captureSession;
+    AVCaptureOutput *output;
     NSAutoreleasePool *autoreleasePool;
-    BOOL ret;
-    NSError *error;
+    BOOL ret = NO;
 
-    captureSession = (QTCaptureSession *) (intptr_t) ptr;
-    output = (QTCaptureOutput *) (intptr_t) outputPtr;
+    captureSession = (AVCaptureSession *) (intptr_t) ptr;
+    output = (AVCaptureOutput *) (intptr_t) outputPtr;
     autoreleasePool = [[NSAutoreleasePool alloc] init];
 
-    ret = [captureSession addOutput:output error:&error];
+    if ([captureSession canAddOutput:output])
+    {
+        [captureSession beginConfiguration];
+        [captureSession addOutput:output];
+        [captureSession commitConfiguration];
+    }
 
     [autoreleasePool release];
     return (YES == ret) ? JNI_TRUE : JNI_FALSE;
@@ -70,11 +73,11 @@ Java_org_jitsi_impl_neomedia_quicktime_QTCaptureSession_allocAndInit
     (JNIEnv *jniEnv, jclass clazz)
 {
     NSAutoreleasePool *autoreleasePool;
-    QTCaptureSession *captureSession;
+    AVCaptureSession *captureSession;
 
     autoreleasePool = [[NSAutoreleasePool alloc] init];
 
-    captureSession = [[QTCaptureSession alloc] init];
+    captureSession = [[AVCaptureSession alloc] init];
 
     [autoreleasePool release];
     return (jlong) (intptr_t) captureSession;
@@ -84,12 +87,14 @@ JNIEXPORT void JNICALL
 Java_org_jitsi_impl_neomedia_quicktime_QTCaptureSession_startRunning
     (JNIEnv *jniEnv, jclass clazz, jlong ptr)
 {
-    NSObject_performSelector((id) (intptr_t) ptr, @"startRunning");
+    AVCaptureSession *captureSession = (AVCaptureSession *) (intptr_t) ptr;
+    [captureSession startRunning];
 }
 
 JNIEXPORT void JNICALL
 Java_org_jitsi_impl_neomedia_quicktime_QTCaptureSession_stopRunning
     (JNIEnv *jniEnv, jclass clazz, jlong ptr)
 {
-    NSObject_performSelector((id) (intptr_t) ptr, @"stopRunning");
+    AVCaptureSession *captureSession = (AVCaptureSession *) (intptr_t) ptr;
+    [captureSession stopRunning];
 }

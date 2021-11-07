@@ -44,7 +44,7 @@
 
 #endif
 
-#include "org_jitsi_impl_neomedia_imgstreaming_ScreenCapture.h"
+#include <org_jitsi_impl_neomedia_imgstreaming_ScreenCapture.h>
 
 #if defined(_WIN32) || defined (_WIN64)
 
