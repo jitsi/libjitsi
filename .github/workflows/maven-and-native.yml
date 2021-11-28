@@ -48,7 +48,7 @@ jobs:
 
   ubuntu:
     name: Ubuntu Natives ${{ matrix.arch}}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     needs: javatest
     strategy:
       fail-fast: false
