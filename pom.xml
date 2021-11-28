@@ -94,12 +94,12 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-utils</artifactId>
-      <version>1.0-99-gf60ac15</version>
+      <version>1.0-108-g480acf0</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-srtp</artifactId>
-      <version>1.1-2-gabdf3cc</version>
+      <version>1.1-4-gc42f998</version>
     </dependency>
     <dependency>
       <groupId>org.opentelecoms.sdp</groupId>
@@ -132,7 +132,7 @@
     <dependency>
       <groupId>org.jetbrains</groupId>
       <artifactId>annotations</artifactId>
-      <version>22.0.0</version>
+      <version>23.0.0</version>
       <scope>provided</scope>
     </dependency>
 
@@ -162,7 +162,7 @@
       <plugin>
          <groupId>org.apache.felix</groupId>
          <artifactId>maven-bundle-plugin</artifactId>
-         <version>5.1.1</version>
+         <version>5.1.2</version>
          <extensions>true</extensions>
          <configuration>
             <excludeDependencies>jitsi-lgpl-dependencies</excludeDependencies>
@@ -261,9 +261,10 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-javadoc-plugin</artifactId>
-          <version>3.2.0</version>
+          <version>3.3.1</version>
           <configuration>
             <doclint>-missing</doclint>
+            <source>8</source>
           </configuration>
         </plugin>
         <plugin>
@@ -322,7 +323,7 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-gpg-plugin</artifactId>
-            <version>1.6</version>
+            <version>3.0.1</version>
             <executions>
               <execution>
                 <id>sign-artifacts</id>
