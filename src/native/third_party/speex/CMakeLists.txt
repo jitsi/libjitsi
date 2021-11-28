@@ -42,6 +42,13 @@ if (NOT ${USE_SYSTEM_SPEEX})
                             -DCMAKE_POSITION_INDEPENDENT_CODE=ON
                             -DCMAKE_TOOLCHAIN_FILE=${EXTPROJECT_CMAKE_TOOLCHAIN_FILE}
                             )
+    elseif (APPLE)
+        externalproject_add(ext_lib_speexdsp
+                            INSTALL_DIR ${SPEEXDSP_ROOT}
+                            URL https://ftp.osuosl.org/pub/xiph/releases/speex/speexdsp-1.2.0.tar.gz
+                            URL_HASH SHA256=682042FC6F9BEE6294EC453F470DADC26C6FF29B9C9E9AD2FFC1F4312FD64771
+                            CONFIGURE_COMMAND <SOURCE_DIR>/configure --enable-sse --prefix <INSTALL_DIR>
+                            )
     elseif (UNIX)
         set(USE_HOST_CONFIG OFF)
         if (NOT (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "x64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64"))
