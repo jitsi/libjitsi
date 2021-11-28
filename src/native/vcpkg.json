@@ -2,6 +2,9 @@
   "name": "libjitsi",
   "version-string": "1.0",
   "dependencies": [
-    "libvpx"
+    {
+      "name": "libvpx",
+      "platform": "x86|x64|arm64"
+    }
   ]
 }

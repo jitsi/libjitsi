@@ -6,9 +6,9 @@ if (WIN32)
     set(OS_SOURCES WMME_DSound.c portaudio.rc)
 elseif (APPLE)
     set(OS_LIBS "-framework AudioToolbox"
-            "-framework AudioUnit"
-            "-framework CoreAudio"
-            "-framework Carbon")
+        "-framework AudioUnit"
+        "-framework CoreAudio"
+        "-framework Carbon")
 elseif (UNIX)
     find_package(ALSA REQUIRED)
     set(OS_LIBS pthread asound)
@@ -27,8 +27,10 @@ externalproject_add(ext_lib_portaudio
                     CMAKE_ARGS (-DPA_BUILD_SHARED:BOOL=OFF
                     -DPA_LIBNAME_ADD_SUFFIX:BOOL=OFF
                     -DPA_DLL_LINK_WITH_STATIC_RUNTIME:BOOL=OFF
+                    -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
                     -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON
-                    -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>)
+                    -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
+                    -DCMAKE_TOOLCHAIN_FILE=${EXTPROJECT_CMAKE_TOOLCHAIN_FILE})
                     )
 
 add_library(${PROJECT_NAME} SHARED
@@ -37,6 +39,7 @@ add_library(${PROJECT_NAME} SHARED
             ${OS_SOURCES})
 
 if (NOT ${USE_SYSTEM_SPEEX})
+    add_dependencies(${PROJECT_NAME} ext_lib_speexdsp)
     add_dependencies(${PROJECT_NAME} ext_lib_speex)
 else ()
     find_package(speexdsp REQUIRED)
@@ -47,22 +50,20 @@ endif ()
 add_dependencies(${PROJECT_NAME} ext_lib_portaudio)
 
 target_link_directories(${PROJECT_NAME} PRIVATE
-                        ${libspeex_LIBRARY_DIRS}
-                        ${libspeexdsp_LIBRARY_DIRS}
                         ${libportaudio_LIBRARY_DIRS})
 
 target_link_libraries(${PROJECT_NAME} LINK_PUBLIC
                       portaudio
-                      speex
-                      speexdsp
+                      ${SPEEX_LIBRARIES}
+                      ${SPEEXDSP_LIBRARIES}
                       ${OS_LIBS})
 
 target_include_directories(${PROJECT_NAME} PUBLIC
                            ${LIBJITSI_JAVAH}
                            ${JNI_INCLUDE_DIRS}
                            ${CMAKE_BINARY_DIR}/include/
-                           ${libspeex_INCLUDE_DIRS}
-                           ${libspeexdsp_INCLUDE_DIRS}
+                           ${SPEEX_INCLUDE_DIRS}
+                           ${SPEEXDSP_INCLUDE_DIRS}
                            ${libportaudio_INCLUDE_DIRS})
 
 install(TARGETS ${PROJECT_NAME}

@@ -15,17 +15,22 @@ option(USE_SYSTEM_OPUS "Use system-installed Opus" ${DEFAULT_USE_SYSTEM_OPUS})
 
 if (NOT ${USE_SYSTEM_OPUS})
     set(OPUS_ROOT ${CMAKE_BINARY_DIR}/libopus)
-    set(opus_DIR ${OPUS_ROOT}/lib/cmake/opus)
-    set(libopus_INCLUDE_DIRS ${OPUS_ROOT}/include)
-    set(libopus_LIBRARY_DIRS ${OPUS_ROOT}/lib)
+    set(OPUS_INCLUDE_DIRS ${OPUS_ROOT}/include)
+    set(OPUS_LIBRARY_DIRS ${OPUS_ROOT}/lib)
 
     externalproject_add(ext_lib_opus
                         INSTALL_DIR ${OPUS_ROOT}
                         GIT_REPOSITORY https://github.com/xiph/opus
-                        GIT_TAG c2b542b6c02bafbe7a83b2eeec6cb5a0bfa3ed0d
+                        GIT_TAG a8e6a77c5fe0c37aa6788f939f24f8cd22ae2652
                         GIT_SHALLOW false
-                        CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
+                        CMAKE_ARGS
+                        -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
+                        -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+                        -DCMAKE_TOOLCHAIN_FILE=${EXTPROJECT_CMAKE_TOOLCHAIN_FILE}
+                        -DCMAKE_POSITION_INDEPENDENT_CODE=ON
                         )
+
+    set(OPUS_LIBRARIES ${OPUS_LIBRARY_DIRS}/${CMAKE_STATIC_LIBRARY_PREFIX}opus${CMAKE_STATIC_LIBRARY_SUFFIX})
 endif ()
 
 add_library(${PROJECT_NAME} SHARED
@@ -38,20 +43,16 @@ else ()
     find_package(opus REQUIRED)
 endif ()
 
-
-target_link_directories(${PROJECT_NAME}
-                        PRIVATE ${libopus_LIBRARY_DIRS})
-
 target_link_libraries(${PROJECT_NAME} LINK_PUBLIC
                       ${OS_LIBS}
-                      opus
+                      ${OPUS_LIBRARIES}
                       )
 
 target_include_directories(${PROJECT_NAME} PUBLIC
                            ${LIBJITSI_JAVAH}
                            ${JNI_INCLUDE_DIRS}
                            ${CMAKE_BINARY_DIR}/include/
-                           ${libopus_INCLUDE_DIRS})
+                           ${OPUS_INCLUDE_DIRS})
 
 install(TARGETS ${PROJECT_NAME}
         RUNTIME DESTINATION "."

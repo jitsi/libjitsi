@@ -1,41 +1,53 @@
-git config --global user.email "jitsi-jenkins@jitsi.org"
-git config --global user.name "Jitsi GitHub Action"
+#!/bin/bash
+
+export GIT_COMMITTER_EMAIL="jitsi-jenkins@jitsi.org"
+export GIT_COMMITTER_NAME="libjitsi `basename $0`"
 
 ARCH=$1
-LIBROOT=$2
+JAVA_VERSION=$2
+LIBROOT=$3
 case "$ARCH" in
   "x86")
     VCPKG_ARCH="x86"
     JAVA_ARCH="i386"
-    CMAKE_ARCH="m32"
+    export CFLAGS="-m32 -msse -msse2"
+    export CXXFLAGS="-m32 -msse -msse2"
+    ;;
   "x86-64")
     VCPKG_ARCH="x64"
     JAVA_ARCH="amd64"
-    CMAKE_ARCH="m64"
+    export CFLAGS="-m64 -msse -msse2"
+    export CXXFLAGS="-m64 -msse -msse2"
+    ;;
   "arm64")
+    #for libvpx
+    export CROSS="aarch64-linux-gnu-"
     VCPKG_ARCH="arm64"
     JAVA_ARCH="arm64"
-    CMAKE_ARCH="arm64"
-  "ppc64le")
+    TOOLCHAIN=$LIBROOT/src/native/cmake/toolchains/arm64-linux.cmake
+    ;;
+  "ppc64el")
     VCPKG_ARCH="ppc64le"
-    JAVA_ARCH="ppc64le"
-    CMAKE_ARCH="ppc64le"
+    JAVA_ARCH="ppc64el"
+    TOOLCHAIN=$LIBROOT/src/native/cmake/toolchains/ppc64el-linux.cmake
+    ;;
 esac
 
-export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-$JAVA_ARCH
-export CFLAGS="-$CMAKE_ARCH -fPIC"
-export CXXFLAGS="-$CMAKE_ARCH -fPIC"
+export JAVA_HOME=/usr/lib/jvm/java-$JAVA_VERSION-openjdk-$JAVA_ARCH
 
 cd "$LIBROOT/src/native" || exit 1
-cp x86-linux.cmake vcpkg/triplets
-cmake -B cmake-build-$CMAKE_ARCH \
+cp cmake/vcpkg-triplets/x86-linux.cmake vcpkg/triplets/community
+cmake -B cmake-build-$ARCH \
+  -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=$TOOLCHAIN \
   -DVCPKG_VERBOSE=ON \
+  -DVCPKG_TARGET_TRIPLET=$VCPKG_ARCH-linux \
+  -DVCPKG_BUILD_TYPE=release \
+  -DCMAKE_BUILD_TYPE=release \
   -DCMAKE_C_FLAGS="$CFLAGS" \
   -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
-  -DVCPKG_TARGET_TRIPLET=$VCPKG_ARCH-linux \
   -DUSE_SYSTEM_OPUS=OFF \
   -DUSE_SYSTEM_SPEEX=OFF \
   -DUSE_SYSTEM_USRSCTP=OFF \
   -DUSE_SYSTEM_VPX=OFF
 
-cmake --build cmake-build-$CMAKE_ARCH --config Release --target install --parallel
+cmake --build cmake-build-$ARCH --config Release --target install --parallel

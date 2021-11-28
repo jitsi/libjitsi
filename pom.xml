@@ -199,15 +199,32 @@
                    linux-x86/libjnsctp.so;
                    linux-x86/libjnspeex.so;
                    linux-x86/libjnvideo4linux2.so;osname=Linux;processor=x86,
-                   linux-x86-64/libjnawtrenderer.so;
-                   linux-x86-64/libjnopus.so;
-                   linux-x86-64/libjnportaudio.so;
-                   linux-x86-64/libjnpulseaudio.so;
-                   linux-x86-64/libjnscreencapture.so;
-                   linux-x86-64/libjnsctp.so;
-                   linux-x86-64/libjnspeex.so;
-                   linux-x86-64/libjnvideo4linux2.so;
-                   linux-x86-64/libjnvpx.so;osname=Linux;processor=x86-64,
+                   linux-x86_64/libjnawtrenderer.so;
+                   linux-x86_64/libjnopus.so;
+                   linux-x86_64/libjnportaudio.so;
+                   linux-x86_64/libjnpulseaudio.so;
+                   linux-x86_64/libjnscreencapture.so;
+                   linux-x86_64/libjnsctp.so;
+                   linux-x86_64/libjnspeex.so;
+                   linux-x86_64/libjnvideo4linux2.so;
+                   linux-x86_64/libjnvpx.so;osname=Linux;processor=x86-64,
+                   linux-aarch64/libjnawtrenderer.so;
+                   linux-aarch64/libjnopus.so;
+                   linux-aarch64/libjnportaudio.so;
+                   linux-aarch64/libjnpulseaudio.so;
+                   linux-aarch64/libjnscreencapture.so;
+                   linux-aarch64/libjnsctp.so;
+                   linux-aarch64/libjnspeex.so;
+                   linux-aarch64/libjnvideo4linux2.so;
+                   linux-aarch64/libjnvpx.so;osname=Linux;processor=AArch64,
+                   linux-ppc64le/libjnawtrenderer.so;
+                   linux-ppc64le/libjnopus.so;
+                   linux-ppc64le/libjnportaudio.so;
+                   linux-ppc64le/libjnpulseaudio.so;
+                   linux-ppc64le/libjnscreencapture.so;
+                   linux-ppc64le/libjnsctp.so;
+                   linux-ppc64le/libjnspeex.so;
+                   linux-ppc64le/libjnvideo4linux2.so;osname=Linux;processor=PowerPC-64-LE,
                    win32-x86/jnawtrenderer.dll;
                    win32-x86/jndirectshow.dll;
                    win32-x86/jnopus.dll;
