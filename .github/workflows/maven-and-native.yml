@@ -34,7 +34,10 @@ jobs:
           cache: maven
 
       - name: Verify Java
-        run: mvn -B verify -DperformRelease=true
+        run: |
+          #disable bundling because no natives are committed
+          sed -i "s/>bundle</>jar</" pom.xml
+          mvn -B verify -DperformRelease=true
 
       - name: Upload JNI headers
         if: matrix.java == env.RELEASE_JAVA_VERSION
@@ -46,6 +49,7 @@ jobs:
   ubuntu:
     name: Ubuntu Natives ${{ matrix.arch}}
     runs-on: ubuntu-latest
+    needs: javatest
     strategy:
       fail-fast: false
       matrix:
