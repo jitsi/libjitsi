@@ -70,9 +70,9 @@ jobs:
       - name: Install packages
         run: |
           if [ "${{ matrix.arch }}" != "x86" ] && [ "${{ matrix.arch }}" != "x86-64" ]; then
-            cp -f /etc/apt/ports-sources.list /etc/apt/sources.list
+            sudo cp -f resources/ubuntu-build-image/ports-sources.list /etc/apt/sources.list
           fi
-          ./resources/ubuntu-build-image/packages.sh ${{ matrix.arch }} ${{ env.RELEASE_JAVA_VERSION }}
+          sudo ./resources/ubuntu-build-image/packages.sh ${{ matrix.arch }} ${{ env.RELEASE_JAVA_VERSION }}
 
       - name: Build natives ${{ matrix.arch }}
         run: ./resources/ubuntu-build-image/build-static.sh ${{ matrix.arch }} ${{ env.RELEASE_JAVA_VERSION }} $(pwd)"
