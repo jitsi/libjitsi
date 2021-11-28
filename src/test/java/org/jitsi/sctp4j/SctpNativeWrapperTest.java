@@ -27,6 +27,7 @@ import java.io.*;
  *
  * @author Pawel Domas
  */
+@Disabled("Binaries not committed")
 public class SctpNativeWrapperTest
 {
     /**
