@@ -77,7 +77,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: linux-${{ matrix.arch }}
-          path: lib/native/linux-${{ matrix.arch }}
+          path: lib/native/linux-*/*
 
   windows:
     name: Windows Natives ${{ matrix.arch}}
@@ -241,13 +241,25 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: linux-x86
-          path: lib/native/linux-x86
+          path: lib/native/
 
       - name: Get Linux x64 natives
         uses: actions/download-artifact@v2
         with:
           name: linux-x86-64
-          path: lib/native/linux-x86-64
+          path: lib/native/
+
+      - name: Get Linux arm64 natives
+        uses: actions/download-artifact@v2
+        with:
+          name: linux-arm64
+          path: lib/native/
+
+      - name: Get Linux ppc64el natives
+        uses: actions/download-artifact@v2
+        with:
+          name: linux-ppc64el
+          path: lib/native/
 
       - name: Get Windows x86 natives
         uses: actions/download-artifact@v2
