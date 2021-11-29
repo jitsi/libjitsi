@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        java: [ 8, 11 ]
+        java: [ 8, 11, 17 ]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -34,12 +34,26 @@ jobs:
           cache: maven
 
       - name: Verify Java
-        run: mvn -B verify
+        run: |
+          #disable bundling because no natives are committed
+          sed -i "s/>bundle</>jar</" pom.xml
+          mvn -B verify -DperformRelease=true
+
+      - name: Upload JNI headers
+        if: matrix.java == env.RELEASE_JAVA_VERSION
+        uses: actions/upload-artifact@v2
+        with:
+          name: jni_headers
+          path: target/native
 
   ubuntu:
-    name: Ubuntu Natives (static)
-    runs-on: ubuntu-latest
+    name: Ubuntu Natives ${{ matrix.arch}}
+    runs-on: ubuntu-18.04
     needs: javatest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [ "x86", "x86-64", "arm64", "ppc64el" ]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -47,41 +61,30 @@ jobs:
           fetch-depth: 0
           submodules: true
 
-      - name: Install Java ${{ env.RELEASE_JAVA_VERSION }}
-        uses: actions/setup-java@v2
+      - name: Get JNI headers
+        uses: actions/download-artifact@v2
         with:
-          java-version: ${{ env.RELEASE_JAVA_VERSION }}
-          distribution: temurin
-          cache: maven
+          name: jni_headers
+          path: target/native
 
-      - name: Compile Java for JNI headers
-        run: mvn -B compile
-
-      - name: Build build container
+      - name: Install packages
         run: |
-          cd .github/workflows
-          docker build -f Dockerfile.static -t libjitsi-static:${{ github.sha }} .
+          if [ "${{ matrix.arch }}" != "x86" ] && [ "${{ matrix.arch }}" != "x86-64" ]; then
+            sudo cp -f resources/ubuntu-build-image/ports-sources.list /etc/apt/sources.list
+          fi
+          sudo ./resources/ubuntu-build-image/packages.sh ${{ matrix.arch }} ${{ env.RELEASE_JAVA_VERSION }}
 
-      - name: Build natives x86 (static)
-        run: docker run -v ${{ github.workspace }}:/ghws libjitsi-static:${{ github.sha }} /bin/bash -c "/ghws/.github/workflows/build-static.sh m32 /ghws"
+      - name: Build natives ${{ matrix.arch }}
+        run: ./resources/ubuntu-build-image/build-static.sh ${{ matrix.arch }} ${{ env.RELEASE_JAVA_VERSION }} "$(pwd)"
 
-      - name: Upload Linux x86 natives
+      - name: Upload Linux ${{ matrix.arch }} natives
         uses: actions/upload-artifact@v2
         with:
-          name: linux-x86
-          path: lib/native/linux-x86
-
-      - name: Build natives x64 (static)
-        run: docker run -v ${{ github.workspace }}:/ghws libjitsi-static:${{ github.sha }} /bin/bash -c "/ghws/.github/workflows/build-static.sh m64 /ghws"
-
-      - name: Upload Linux x64 natives
-        uses: actions/upload-artifact@v2
-        with:
-          name: linux-x86-64
-          path: lib/native/linux-x86-64
+          name: linux-${{ matrix.arch }}
+          path: lib/native/linux-*/*
 
   windows:
-    name: Windows ${{ matrix.arch}} Natives
+    name: Windows Natives ${{ matrix.arch}}
     runs-on: windows-latest
     needs: javatest
     strategy:
@@ -242,13 +245,25 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: linux-x86
-          path: lib/native/linux-x86
+          path: lib/native/
 
       - name: Get Linux x64 natives
         uses: actions/download-artifact@v2
         with:
           name: linux-x86-64
-          path: lib/native/linux-x86-64
+          path: lib/native/
+
+      - name: Get Linux arm64 natives
+        uses: actions/download-artifact@v2
+        with:
+          name: linux-arm64
+          path: lib/native/
+
+      - name: Get Linux ppc64el natives
+        uses: actions/download-artifact@v2
+        with:
+          name: linux-ppc64el
+          path: lib/native/
 
       - name: Get Windows x86 natives
         uses: actions/download-artifact@v2

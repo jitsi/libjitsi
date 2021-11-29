@@ -22,22 +22,18 @@ else ()
     find_package(speex REQUIRED)
 endif ()
 
-
-target_link_directories(${PROJECT_NAME}
-                        PRIVATE ${libspeex_LIBRARY_DIRS} ${libspeexdsp_LIBRARY_DIRS})
-
 target_link_libraries(${PROJECT_NAME} LINK_PUBLIC
                       ${OS_LIBS}
-                      speexdsp
-                      speex
+                      ${SPEEX_LIBRARIES}
+                      ${SPEEXDSP_LIBRARIES}
                       )
 
 target_include_directories(${PROJECT_NAME} PUBLIC
                            ${LIBJITSI_JAVAH}
                            ${JNI_INCLUDE_DIRS}
                            ${CMAKE_BINARY_DIR}/include/
-                           ${libspeex_INCLUDE_DIRS}
-                           ${libspeexdsp_INCLUDE_DIRS})
+                           ${SPEEX_INCLUDE_DIRS}
+                           ${SPEEXDSP_INCLUDE_DIRS})
 
 install(TARGETS ${PROJECT_NAME}
         RUNTIME DESTINATION "."

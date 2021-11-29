@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////////
 //ref: http://social.msdn.microsoft.com/Forums/windowsdesktop/en-US/2ab5c212-5824-419d-b5d9-7f5db82f57cd/qedith-missing-in-current-windows-sdk-v70?forum=windowsdirectshowdevelopment
 //
-#ifndef __qedit_h__ && __GNUC__
+#if !defined(__qedit_h__) && !defined(__GNUC__)
 #define __qedit_h__
 
 ///////////////////////////////////////////////////////////////////////////////////

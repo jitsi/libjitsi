@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.*;
  *
  * @author Pawel Domas
  */
+@Disabled("Binaries not committed")
 public class SctpTransferTest
 {
     private SctpSocket peerA;
