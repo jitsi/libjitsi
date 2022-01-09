@@ -23,9 +23,11 @@ if (NOT ${USE_SYSTEM_VPX})
     list(APPEND OS_LIBS unofficial::libvpx::libvpx)
 else ()
     find_package(vpx REQUIRED)
+    list(APPEND OS_LIBS ${vpx_LIBRARY})
 endif ()
 
 target_link_libraries(${PROJECT_NAME} LINK_PUBLIC
+                      ${JNI_LIBRARIES}
                       ${OS_LIBS})
 
 target_include_directories(${PROJECT_NAME} PUBLIC
@@ -34,6 +36,11 @@ target_include_directories(${PROJECT_NAME} PUBLIC
                            ${CMAKE_BINARY_DIR}/include/
                            ${CMAKE_CURRENT_SOURCE_DIR}/../third_party/)
 
-install(TARGETS ${PROJECT_NAME}
-        RUNTIME DESTINATION "."
-        LIBRARY DESTINATION ".")
+if (JITSI_BUILD_DEBIAN)
+    install(TARGETS ${PROJECT_NAME}
+            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+else ()
+    install(TARGETS ${PROJECT_NAME}
+            RUNTIME DESTINATION "."
+            LIBRARY DESTINATION ".")
+endif ()

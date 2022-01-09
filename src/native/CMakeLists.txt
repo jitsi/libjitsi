@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.10)
 if (WIN32 OR APPLE OR NOT USE_SYSTEM_VPX)
     set(CMAKE_TOOLCHAIN_FILE ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake
         CACHE STRING "Vcpkg toolchain file")
@@ -36,40 +36,43 @@ if ("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
     message(SEND_ERROR "In-source builds are not allowed.")
 endif ()
 
-find_package(Git REQUIRED)
 find_package(JNI REQUIRED)
 
-execute_process(
-        COMMAND "${GIT_EXECUTABLE}" describe --match "v[0-9\\.]*" --long --dirty --always
-        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-        RESULT_VARIABLE res
-        OUTPUT_VARIABLE GIT_VERSION
-        ERROR_QUIET
-        OUTPUT_STRIP_TRAILING_WHITESPACE)
+if (WIN32)
+    find_package(Git REQUIRED)
+    execute_process(
+            COMMAND "${GIT_EXECUTABLE}" describe --match "v[0-9\\.]*" --long --dirty --always
+            WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+            RESULT_VARIABLE res
+            OUTPUT_VARIABLE GIT_VERSION
+            ERROR_QUIET
+            OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-set_property(GLOBAL APPEND
-             PROPERTY CMAKE_CONFIGURE_DEPENDS
-             "${CMAKE_SOURCE_DIR}/.git/index")
+    set_property(GLOBAL APPEND
+                 PROPERTY CMAKE_CONFIGURE_DEPENDS
+                 "${CMAKE_SOURCE_DIR}/.git/index")
 
-string(REGEX REPLACE "(v([0-9]+)\\.([0-9]+)-([0-9]+)-)(.*)" "\\1;\\2;\\3;\\4;\\5" _git_parts "${GIT_VERSION}")
-list(GET _git_parts 1 VERSION_MAJOR)
-list(GET _git_parts 2 VERSION_MINOR)
-list(GET _git_parts 3 VERSION_REVISION)
-list(GET _git_parts 4 VERSION_HASH)
-string(JOIN "." VERSION_SHORT ${VERSION_MAJOR} ${VERSION_MINOR} ${VERSION_REVISION})
-string(JOIN "-" VERSION_LONG ${VERSION_SHORT} ${VERSION_SUFFIX})
-string(JOIN "+" VERSION_FULL ${VERSION_LONG} ${VERSION_HASH})
+    string(REGEX REPLACE "(v([0-9]+)\\.([0-9]+)-([0-9]+)-)(.*)" "\\1;\\2;\\3;\\4;\\5" _git_parts "${GIT_VERSION}")
+    list(GET _git_parts 1 VERSION_MAJOR)
+    list(GET _git_parts 2 VERSION_MINOR)
+    list(GET _git_parts 3 VERSION_REVISION)
+    list(GET _git_parts 4 VERSION_HASH)
+    string(JOIN "." VERSION_SHORT ${VERSION_MAJOR} ${VERSION_MINOR} ${VERSION_REVISION})
+    string(JOIN "-" VERSION_LONG ${VERSION_SHORT} ${VERSION_SUFFIX})
+    string(JOIN "+" VERSION_FULL ${VERSION_LONG} ${VERSION_HASH})
 
-set(PRODUCTBUILDVERSION "${VERSION_SHORT}.0")
-set(PRODUCTBUILDVERSION_COMMA "${VERSION_MAJOR},${VERSION_MINOR},${VERSION_REVISION},0")
-set(PRODUCT_INFO_VERSION ${VERSION_FULL})
-if (NOT "${VERSION_SUFFIX}" STREQUAL "")
-    set(PRODUCT_FILEFLAGS "VS_FF_PRERELEASE")
-else ()
-    set(PRODUCT_FILEFLAGS "0")
+    set(PRODUCTBUILDVERSION "${VERSION_SHORT}.0")
+    set(PRODUCTBUILDVERSION_COMMA "${VERSION_MAJOR},${VERSION_MINOR},${VERSION_REVISION},0")
+    set(PRODUCT_INFO_VERSION ${VERSION_FULL})
+    if (NOT "${VERSION_SUFFIX}" STREQUAL "")
+        set(PRODUCT_FILEFLAGS "VS_FF_PRERELEASE")
+    else ()
+        set(PRODUCT_FILEFLAGS "0")
+    endif ()
+
+    configure_file(config.h.in include/config.h)
 endif ()
 
-configure_file(config.h.in include/config.h)
 set(LIBJITSI_JAVAH "${CMAKE_CURRENT_SOURCE_DIR}/../../target/native/javah")
 
 include(ExternalProject)
@@ -92,6 +95,7 @@ if (CMAKE_SYSTEM_PROCESSOR STREQUAL "ppc64el" OR CMAKE_SYSTEM_PROCESSOR STREQUAL
     set(GNU_ARCH "powerpc64le")
 endif ()
 
+include(GNUInstallDirs)
 add_subdirectory(third_party/speex)
 
 add_subdirectory(jawtrenderer)
