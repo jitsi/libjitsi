@@ -23,7 +23,6 @@ Build-Depends:
  libopus-dev,
  libspeex-dev,
  libspeexdsp-dev,
- libusrsctp-dev,
  libvpx-dev,
 
 Package: liblibjitsi-jni

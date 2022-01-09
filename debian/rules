@@ -17,8 +17,7 @@ override_dh_auto_configure:
 		-DJITSI_BUILD_DEBIAN=ON \
 		-DUSE_SYSTEM_VPX=ON \
 		-DUSE_SYSTEM_SPEEX=ON \
-		-DUSE_SYSTEM_OPUS=ON \
-		-DUSE_SYSTEM_USRSCTP=ON
+		-DUSE_SYSTEM_OPUS=ON
 
 override_dh_auto_test:
 	# do not run the tests
