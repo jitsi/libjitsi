@@ -1,0 +1,37 @@
+Source: libjitsi
+Section: net
+Priority: optional
+Maintainer: Jitsi Team <dev@jitsi.org>
+Uploaders: Ingo Bauersachs <ingo@jitsi.org>
+Homepage: https://github.com/jitsi/libjitsi
+Vcs-Git: https://github.com/jitsi/libjitsi.git
+Vcs-Browser: https://github.com/jitsi/libjitsi
+Standards-Version: 4.5.0
+Build-Depends:
+ debhelper (>= 11),
+ javahelper,
+ dpkg-dev (>= 1.16.1),
+ libtool,
+ cmake,
+ default-jdk,
+ libasound2-dev,
+ libpulse-dev,
+ libx11-dev,
+ libxext-dev,
+ libxt-dev,
+ libxv-dev,
+ libopus-dev,
+ libspeex-dev,
+ libspeexdsp-dev,
+ libvpx-dev,
+
+Package: liblibjitsi-jni
+Section: libs
+Architecture: amd64 i386 arm64 ppc64el
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Libjitsi JNI library
+ These are the jni bindings for Libjitsi the advanced Java media library for
+ secure real-time audio/video communication. Handles audio/video devices,
+ screencapture, codecs and SCTP implementation.
+ .
+ Native/JNI part of the package.

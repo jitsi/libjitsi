@@ -3,7 +3,7 @@ pkg_check_modules(PC_SPEEXDSP QUIET speexdsp)
 set(SPEEXDSP_DEFINITIONS ${PC_SPEEXDSP_CFLAGS_OTHER})
 
 find_path(SPEEXDSP_INCLUDE_DIR
-          NAMES speex/speexdsp_types.h
+          NAMES speex/speex_resampler.h
           HINTS ${PC_SPEEXDSP_INCLUDEDIR} ${PC_SPEEXDSP_INCLUDE_DIRS}
           PATHS include
           )

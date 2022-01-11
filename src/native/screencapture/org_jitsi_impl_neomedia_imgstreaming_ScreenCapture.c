@@ -79,8 +79,8 @@ BOOL CALLBACK monitorCallback(HMONITOR hMonitor, HDC hdcMonitor,
 
     if(data->current_index == data->monitor_index)
     {
-	    info.cbSize = sizeof(MONITORINFOEX);
-	    GetMonitorInfo(hMonitor, (LPMONITORINFO)&info);
+        info.cbSize = sizeof(MONITORINFOEX);
+        GetMonitorInfo(hMonitor, (LPMONITORINFO)&info);
 
         /* create the DC for this monitor */
         data->monitor_dc = CreateDC(info.szDevice, info.szDevice, NULL, NULL);

@@ -47,7 +47,7 @@ jobs:
           path: target/native
 
   ubuntu:
-    name: Ubuntu Natives ${{ matrix.arch}}
+    name: Linux Static Natives ${{ matrix.arch}}
     runs-on: ubuntu-18.04
     needs: javatest
     strategy:

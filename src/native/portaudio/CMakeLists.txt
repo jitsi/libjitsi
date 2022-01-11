@@ -11,7 +11,7 @@ elseif (APPLE)
         "-framework Carbon")
 elseif (UNIX)
     find_package(ALSA REQUIRED)
-    set(OS_LIBS pthread asound)
+    set(OS_LIBS pthread asound m)
 endif ()
 
 
@@ -20,10 +20,8 @@ set(libportaudio_INCLUDE_DIRS ${PORTAUDIO_ROOT}/include)
 set(libportaudio_LIBRARY_DIRS ${PORTAUDIO_ROOT}/lib)
 
 externalproject_add(ext_lib_portaudio
+                    URL ${CMAKE_CURRENT_LIST_DIR}/../third_party/portaudio
                     INSTALL_DIR ${PORTAUDIO_ROOT}
-                    GIT_REPOSITORY https://github.com/jitsi/portaudio
-                    GIT_TAG 09ac94762ce91fdde41aed82599f328e578bafb2
-                    GIT_SHALLOW false
                     CMAKE_ARGS (-DPA_BUILD_SHARED:BOOL=OFF
                     -DPA_LIBNAME_ADD_SUFFIX:BOOL=OFF
                     -DPA_DLL_LINK_WITH_STATIC_RUNTIME:BOOL=OFF
@@ -49,11 +47,9 @@ endif ()
 # we cannot use the system default portaudio - it has no hotplug
 add_dependencies(${PROJECT_NAME} ext_lib_portaudio)
 
-target_link_directories(${PROJECT_NAME} PRIVATE
-                        ${libportaudio_LIBRARY_DIRS})
-
 target_link_libraries(${PROJECT_NAME} LINK_PUBLIC
-                      portaudio
+                      ${JNI_LIBRARIES}
+                      ${libportaudio_LIBRARY_DIRS}/${CMAKE_STATIC_LIBRARY_PREFIX}portaudio${CMAKE_STATIC_LIBRARY_SUFFIX}
                       ${SPEEX_LIBRARIES}
                       ${SPEEXDSP_LIBRARIES}
                       ${OS_LIBS})
@@ -66,6 +62,11 @@ target_include_directories(${PROJECT_NAME} PUBLIC
                            ${SPEEXDSP_INCLUDE_DIRS}
                            ${libportaudio_INCLUDE_DIRS})
 
-install(TARGETS ${PROJECT_NAME}
-        RUNTIME DESTINATION "."
-        LIBRARY DESTINATION ".")
+if (JITSI_BUILD_DEBIAN)
+    install(TARGETS ${PROJECT_NAME}
+            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+else ()
+    install(TARGETS ${PROJECT_NAME}
+            RUNTIME DESTINATION "."
+            LIBRARY DESTINATION ".")
+endif ()

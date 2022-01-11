@@ -24,8 +24,10 @@ elseif (UNIX)
     endif ()
     set(OS_SOURCES JAWTRenderer_Linux.c)
     set(OS_LIBS
-        "Xv"
-        "X11")
+        ${X11_X11_LIB}
+        ${X11_Xext_LIB}
+        ${X11_Xv_LIB}
+        )
 endif ()
 
 add_library(${PROJECT_NAME} SHARED
@@ -44,6 +46,11 @@ target_include_directories(${PROJECT_NAME} PUBLIC
                            ${CMAKE_BINARY_DIR}/include/
                            )
 
-install(TARGETS ${PROJECT_NAME}
-        RUNTIME DESTINATION "."
-        LIBRARY DESTINATION ".")
+if (JITSI_BUILD_DEBIAN)
+    install(TARGETS ${PROJECT_NAME}
+            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+else ()
+    install(TARGETS ${PROJECT_NAME}
+            RUNTIME DESTINATION "."
+            LIBRARY DESTINATION ".")
+endif ()

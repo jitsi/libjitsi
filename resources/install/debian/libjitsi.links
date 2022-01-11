@@ -1,5 +1,0 @@
-usr/share/java/bcpkix.jar usr/share/libjitsi/lib/bcpkix.jar
-usr/share/java/bcprov.jar usr/share/libjitsi/lib/bcprov.jar
-usr/share/java/org.apache.felix.framework.jar usr/share/libjitsi/lib/felix.jar
-usr/share/java/jna.jar usr/share/libjitsi/lib/jna.jar
-usr/share/java/json-simple.jar usr/share/libjitsi/lib/json-simple.jar

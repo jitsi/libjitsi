@@ -14,6 +14,10 @@ elseif (UNIX AND NOT APPLE)
     if (NOT X11_Xext_FOUND)
         message(FATAL_ERROR "libxext-dev is missing")
     endif ()
+    set(OS_LIBS
+        ${X11_X11_LIB}
+        ${X11_Xext_LIB}
+        )
 endif ()
 
 add_library(${PROJECT_NAME} SHARED
@@ -21,6 +25,7 @@ add_library(${PROJECT_NAME} SHARED
             ${OS_SOURCES})
 
 target_link_libraries(${PROJECT_NAME} LINK_PUBLIC
+                      ${JNI_LIBRARIES}
                       ${OS_LIBS}
                       )
 
@@ -30,6 +35,11 @@ target_include_directories(${PROJECT_NAME} PUBLIC
                            ${CMAKE_BINARY_DIR}/include/
                            )
 
-install(TARGETS ${PROJECT_NAME}
-        RUNTIME DESTINATION "."
-        LIBRARY DESTINATION ".")
+if (JITSI_BUILD_DEBIAN)
+    install(TARGETS ${PROJECT_NAME}
+            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+else ()
+    install(TARGETS ${PROJECT_NAME}
+            RUNTIME DESTINATION "."
+            LIBRARY DESTINATION ".")
+endif ()

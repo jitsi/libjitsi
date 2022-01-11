@@ -1,0 +1,27 @@
+#!/usr/bin/make -f
+
+include /usr/share/dpkg/architecture.mk
+
+export JAVA_HOME=/usr/lib/jvm/default-java
+#export DH_VERBOSE=1
+
+DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
+
+%:
+	dh $@ -Scmake --sourcedirectory src/native
+
+override_dh_auto_configure:
+	dh_auto_configure -- \
+		-DCMAKE_LIBRARY_ARCHITECTURE="$(DEB_HOST_MULTIARCH)" \
+		-DCMAKE_INSTALL_LIBDIR="lib/$(DEB_HOST_MULTIARCH)/jni" \
+		-DJITSI_BUILD_DEBIAN=ON \
+		-DUSE_SYSTEM_VPX=ON \
+		-DUSE_SYSTEM_SPEEX=ON \
+		-DUSE_SYSTEM_OPUS=ON
+
+override_dh_auto_test:
+	# do not run the tests
+
+#override_dh_install-arch:
+#	dh_auto_install --destdir debian/tmp/
+#	dh_install usr/lib/$(DEB_HOST_MULTIARCH)/*.so usr/lib/$(DEB_HOST_MULTIARCH)/jni/

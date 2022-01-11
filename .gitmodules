@@ -1,3 +1,6 @@
 [submodule "src/native/vcpkg"]
 	path = src/native/vcpkg
 	url = https://github.com/microsoft/vcpkg
+[submodule "src/native/third_party/portaudio"]
+	path = src/native/third_party/portaudio
+	url = https://github.com/jitsi/portaudio
