@@ -13,13 +13,13 @@ case "$ARCH" in
     export CFLAGS="-m32 -msse -msse2"
     export CXXFLAGS="-m32 -msse -msse2"
     ;;
-  "x86-64")
+  "x86-64"|"x86_64"|"amd64")
     VCPKG_ARCH="x64"
     JAVA_ARCH="amd64"
     export CFLAGS="-m64 -msse -msse2"
     export CXXFLAGS="-m64 -msse -msse2"
     ;;
-  "arm64")
+  "arm64"|"aarch64")
     #for libvpx
     export CROSS="aarch64-linux-gnu-"
     VCPKG_ARCH="arm64"
