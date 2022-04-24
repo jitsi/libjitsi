@@ -175,7 +175,8 @@ jobs:
 
     env:
       UBUNTUTOOLS_UBUNTU_MIRROR: http://azure.archive.ubuntu.com/ubuntu
-      UBUNTUTOOLS_DEBIAN_MIRROR: http://deb.debian.org/debian
+      UBUNTUTOOLS_DEBIAN_MIRROR: http://debian-archive.trafficmanager.net/debian/
+      UBUNTUTOOLS_DEBSEC_MIRROR: http://debian-archive.trafficmanager.net/debian-security
       DEBIAN_FRONTEND: noninteractive
 
     steps:
@@ -324,7 +325,6 @@ jobs:
           git config --global user.email "jitsi-jenkins@jitsi.org"
           git config --global user.name "Jitsi GitHub Action"
           brew install nasm
-          cd $GITHUB_WORKSPACE/src/native/
           $(pwd)/resources/mac-cmake.sh ${{ steps.install_java.outputs.path }} ${{ matrix.arch }}
 
       - name: The job has failed

@@ -21,7 +21,9 @@ sudo tee -a /etc/fstab < "${PROJECT_DIR}/resources/sbuild-tmpfs"
 if [[ "${ARCH}" != "amd64" ]]; then
   mk-sbuild "${DIST}" --target "${ARCH}" --skip-security --type=file --debootstrap-include=default-jdk || sbuild-update -udc "${DIST}"-amd64-"${ARCH}"
 else
-  if ubuntu-distro-info --all | grep -Fqxi "${DIST}"; then
+  if debian-distro-info --all | grep -Fqxi "${DIST}"; then
+    export DEBOOTSTRAP_MIRROR=${DEBOOTSTRAP_MIRROR:-$UBUNTUTOOLS_DEBIAN_MIRROR}
+  elif ubuntu-distro-info --all | grep -Fqxi "${DIST}"; then
     export DEBOOTSTRAP_MIRROR=${DEBOOTSTRAP_MIRROR:-$UBUNTUTOOLS_UBUNTU_MIRROR}
   fi
   mk-sbuild "${DIST}" --skip-security --type=file --debootstrap-include=default-jdk || sbuild-update -udc "${DIST}"-amd64
