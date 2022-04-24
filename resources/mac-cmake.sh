@@ -24,7 +24,7 @@ case $ARCH in
 esac
 
 cmake -B "${PROJECT_DIR}/src/native/cmake-build" \
-    -S "${PROJECT_DIR}/src/native"
+    -S "${PROJECT_DIR}/src/native" \
     -DJAVA_HOME="$JAVA_HOME" \
     -DCMAKE_INSTALL_PREFIX="${PROJECT_DIR}/src/main/resources/darwin-$INSTALL_PREFIX_ARCH" \
     -DCMAKE_OSX_ARCHITECTURES="$OSX_ARCH" \
