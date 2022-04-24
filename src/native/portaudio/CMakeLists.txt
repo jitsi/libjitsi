@@ -19,11 +19,18 @@ set(PORTAUDIO_ROOT ${CMAKE_BINARY_DIR}/libportaudio)
 set(libportaudio_INCLUDE_DIRS ${PORTAUDIO_ROOT}/include)
 set(libportaudio_LIBRARY_DIRS ${PORTAUDIO_ROOT}/lib)
 
+if (${JITSI_BUILD_DEBIAN})
+    set(PA_ARGS ${CL_ARGS})
+else ()
+    list(PA_ARGS APPEND "-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
+    list(PA_ARGS APPEND "-DCMAKE_TOOLCHAIN_FILE=${EXTPROJECT_CMAKE_TOOLCHAIN_FILE}")
+endif ()
+
 externalproject_add(ext_lib_portaudio
                     URL ${CMAKE_CURRENT_LIST_DIR}/../third_party/portaudio
                     INSTALL_DIR ${PORTAUDIO_ROOT}
                     CMAKE_ARGS
-                    ${CL_ARGS}
+                    ${PA_ARGS}
                     -DPA_BUILD_SHARED:BOOL=OFF
                     -DPA_LIBNAME_ADD_SUFFIX:BOOL=OFF
                     -DPA_DLL_LINK_WITH_STATIC_RUNTIME:BOOL=OFF

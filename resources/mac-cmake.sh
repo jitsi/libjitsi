@@ -8,7 +8,7 @@ fi;
 
 JAVA_HOME=$1
 ARCH=$2
-PROJECT_DIR="$(realpath "$(dirname "$0")/../")"
+PROJECT_DIR="$(cd "$(dirname "$0")"; pwd -P)"
 
 case $ARCH in
     "x86-64"|"x86_64")
