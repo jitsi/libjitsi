@@ -31,7 +31,7 @@ gbp dch \
   --force-distribution \
   --spawn-editor=never \
   --new-version="${FULL_VERSION}"
-dpkg-source -I.git -I.target -b .
+dpkg-source -I.git -I.target -Isrc/native/vcpkg -b .
 
 # Manually create the changes file instead of using sbuild --source-only-changes
 # as sbuild would include _amd64.buildinfo in the source.changes. This confuses

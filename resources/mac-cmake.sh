@@ -28,5 +28,5 @@ cmake -B "${PROJECT_DIR}/src/native/cmake-build" \
     -DJAVA_HOME="$JAVA_HOME" \
     -DCMAKE_INSTALL_PREFIX="${PROJECT_DIR}/src/main/resources/darwin-$INSTALL_PREFIX_ARCH" \
     -DCMAKE_OSX_ARCHITECTURES="$OSX_ARCH" \
-    -DVCPKG_TARGET_ARCHITECTURE="$VCPKG_ARCH"
+    -DVCPKG_TARGET_TRIPLET="$VCPKG_ARCH-osx"
 cmake --build "${PROJECT_DIR}/src/native/cmake-build" --config Release --target install --parallel

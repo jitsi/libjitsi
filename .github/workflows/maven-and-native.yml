@@ -280,7 +280,7 @@ jobs:
         if: ${{ failure() }}
         uses: actions/upload-artifact@v3
         with:
-          name: win32-${{ matrix.arch.java }}-debug
+          name: win32-debug-${{ matrix.arch.java }}
           path: target/debug*
 
       - name: Upload Windows ${{ matrix.arch.actions }} natives
@@ -335,7 +335,7 @@ jobs:
         if: ${{ failure() }}
         uses: actions/upload-artifact@v3
         with:
-          name: darwin-debug
+          name: darwin-debug-${{ matrix.arch }}
           path: target/debug*
 
       - name: Upload Mac natives
