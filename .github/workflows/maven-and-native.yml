@@ -322,14 +322,14 @@ jobs:
 
       - name: Build natives
         run: |
-          git config --global user.email "jitsi-jenkins@jitsi.org"
+          git config --global user.email "dev@jitsi.org"
           git config --global user.name "Jitsi GitHub Action"
           brew install nasm
-          $(pwd)/resources/mac-cmake.sh ${{ steps.install_java.outputs.path }} ${{ matrix.arch }}
+          resources/mac-cmake.sh ${{ steps.install_java.outputs.path }} ${{ matrix.arch }}
 
       - name: The job has failed
         if: ${{ failure() }}
-        run: tar --exclude *.o -cvJf $GITHUB_WORKSPACE/target/debug-logs.tar.xz $GITHUB_WORKSPACE/src/native/cmake-build
+        run: tar --exclude *.o -cvJf target/debug-logs.tar.xz src/native/cmake-build
 
       - name: Upload Debug logs
         if: ${{ failure() }}

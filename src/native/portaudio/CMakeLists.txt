@@ -22,13 +22,13 @@ set(libportaudio_LIBRARY_DIRS ${PORTAUDIO_ROOT}/lib)
 externalproject_add(ext_lib_portaudio
                     URL ${CMAKE_CURRENT_LIST_DIR}/../third_party/portaudio
                     INSTALL_DIR ${PORTAUDIO_ROOT}
-                    CMAKE_ARGS (-DPA_BUILD_SHARED:BOOL=OFF
+                    CMAKE_ARGS
+                    ${CL_ARGS}
+                    -DPA_BUILD_SHARED:BOOL=OFF
                     -DPA_LIBNAME_ADD_SUFFIX:BOOL=OFF
                     -DPA_DLL_LINK_WITH_STATIC_RUNTIME:BOOL=OFF
-                    -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
                     -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON
                     -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
-                    -DCMAKE_TOOLCHAIN_FILE=${EXTPROJECT_CMAKE_TOOLCHAIN_FILE})
                     )
 
 add_library(${PROJECT_NAME} SHARED

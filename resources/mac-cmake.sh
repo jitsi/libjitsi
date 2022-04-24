@@ -8,6 +8,7 @@ fi;
 
 JAVA_HOME=$1
 ARCH=$2
+PROJECT_DIR="$(realpath "$(dirname "$0")/../")"
 
 case $ARCH in
     "x86-64"|"x86_64")
@@ -20,8 +21,9 @@ case $ARCH in
         ;;
 esac
 
-cmake -B cmake-build \
+cmake -B "${PROJECT_DIR}/src/native/cmake-build" \
+    -S "${PROJECT_DIR}/src/native"
     -DJAVA_HOME="$JAVA_HOME" \
-    -DCMAKE_INSTALL_PREFIX="src/main/resources/darwin-$INSTALL_PREFIX_ARCH" \
+    -DCMAKE_INSTALL_PREFIX="${PROJECT_DIR}/src/main/resources/darwin-$INSTALL_PREFIX_ARCH" \
     -DCMAKE_OSX_ARCHITECTURES="$OSX_ARCH"
-cmake --build cmake-build --config Release --target install --parallel
+cmake --build "${PROJECT_DIR}/src/native/cmake-build" --config Release --target install --parallel
