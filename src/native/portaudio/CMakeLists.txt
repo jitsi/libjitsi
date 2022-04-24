@@ -24,6 +24,9 @@ if (${JITSI_BUILD_DEBIAN})
 else ()
     list(APPEND PA_ARGS "-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
     list(APPEND PA_ARGS "-DCMAKE_TOOLCHAIN_FILE=${EXTPROJECT_CMAKE_TOOLCHAIN_FILE}")
+    if (APPLE)
+        list(APPEND PA_ARGS "-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}")
+    endif ()
 endif ()
 
 externalproject_add(ext_lib_portaudio
