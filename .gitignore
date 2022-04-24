@@ -11,6 +11,7 @@ libjitsi.jar
 libjitsi.iml
 src/native/windows/directshow/Debug/*
 src/main/resources/*
+debian/javah/
 *.sdf
 *.opensdf
 *.o
