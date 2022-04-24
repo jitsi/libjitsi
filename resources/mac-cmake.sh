@@ -14,10 +14,12 @@ case $ARCH in
     "x86-64"|"x86_64")
         INSTALL_PREFIX_ARCH=x86-64
         OSX_ARCH=x86_64
+        VCPKG_ARCH=x64
         ;;
     "arm64"|"aarch64")
         INSTALL_PREFIX_ARCH=aarch64
         OSX_ARCH=arm64
+        VCPKG_ARCH=arm64
         ;;
 esac
 
@@ -26,5 +28,5 @@ cmake -B "${PROJECT_DIR}/src/native/cmake-build" \
     -DJAVA_HOME="$JAVA_HOME" \
     -DCMAKE_INSTALL_PREFIX="${PROJECT_DIR}/src/main/resources/darwin-$INSTALL_PREFIX_ARCH" \
     -DCMAKE_OSX_ARCHITECTURES="$OSX_ARCH" \
-    -DVCPKG_TARGET_ARCHITECTURE="$OSX_ARCH"
+    -DVCPKG_TARGET_ARCHITECTURE="$VCPKG_ARCH"
 cmake --build "${PROJECT_DIR}/src/native/cmake-build" --config Release --target install --parallel
