@@ -5,9 +5,9 @@ on:
     branches:
       - master
       - arch
-  pull_request:
-    branches:
-      - master
+  #pull_request:
+  #  branches:
+  #    - master
 
 env:
   # Java version to use for the release
@@ -191,6 +191,16 @@ jobs:
           name: jni_headers
           path: target/native
 
+      # don't use the setup-java cache option as this only caches what is
+      # necessary for the version, not the other jobs
+      - name: Cache local Maven repository
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-version-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-version-
+
       - name: Install tools
         run: resources/deb-prepare.sh
 
@@ -220,7 +230,7 @@ jobs:
           path: target/debian/${{ matrix.dist.dist }}/*
 
   windows:
-    name: Windows Natives ${{ matrix.arch}}
+    name: Windows Natives ${{ matrix.arch.actions }}
     runs-on: windows-latest
     needs: javatest
     strategy:

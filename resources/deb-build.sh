@@ -21,6 +21,9 @@ sudo tee -a /etc/fstab < "${PROJECT_DIR}/resources/sbuild-tmpfs"
 if [[ "${ARCH}" != "amd64" ]]; then
   mk-sbuild "${DIST}" --target "${ARCH}" --skip-security --type=file --debootstrap-include=default-jdk || sbuild-update -udc "${DIST}"-amd64-"${ARCH}"
 else
+  if ubuntu-distro-info --all | grep -Fqxi "${DIST}"; then
+    export DEBOOTSTRAP_MIRROR=${DEBOOTSTRAP_MIRROR:-UBUNTUTOOLS_UBUNTU_MIRROR}
+  fi
   mk-sbuild "${DIST}" --skip-security --type=file --debootstrap-include=default-jdk || sbuild-update -udc "${DIST}"-amd64
 fi
 
@@ -28,10 +31,10 @@ mvn -B versions:set -DnewVersion="${VERSION}" -DgenerateBackupPoms=false
 "${PROJECT_DIR}/resources/deb-gen-source.sh" "${VERSION}" "${DIST}"
 export SBUILD_CONFIG="${PROJECT_DIR}/resources/sbuildrc"
 if [[ "${ARCH}" != "amd64" ]]; then
-  sbuild --dist "${DIST}" --no-arch-all --host "${ARCH}" "${PROJECT_DIR}"/../jitsi-lgpl-dependencies_*.dsc
+  sbuild --dist "${DIST}" --no-arch-all --host "${ARCH}" "${PROJECT_DIR}"/../libjitsi_*.dsc
 else
-  sbuild --dist "${DIST}" --arch-all "${PROJECT_DIR}"/../jitsi-lgpl-dependencies_*.dsc
-  cp "${PROJECT_DIR}"/../jitsi-lgpl-dependencies_* "$BUILD_DIR"
+  sbuild --dist "${DIST}" --arch-all "${PROJECT_DIR}"/../libjitsi_*.dsc
+  cp "${PROJECT_DIR}"/../libjitsi_* "$BUILD_DIR"
 fi
 
 debsign -S -edev+maven@jitsi.org "${BUILD_DIR}"/*.changes --re-sign -p"${PROJECT_DIR}"/resources/gpg-wrap.sh

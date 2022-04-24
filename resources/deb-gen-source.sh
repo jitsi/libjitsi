@@ -17,6 +17,11 @@ FULL_VERSION="${VERSION}-${DIST_VERSION}~${DIST}"
 
 rm -rf debian/javah
 cp -r target/native/javah debian/ || (echo "Need pre-compiled javah files, run 'mvn compile' first" && exit 1)
+
+export DEBFULLNAME="$GITHUB_ACTOR via GitHub Actions"
+export DEBEMAIL="dev@jitsi.org"
+git config --local user.name "$GITHUB_ACTOR via GitHub Actions"
+git config --local user.email "$DEBEMAIL"
 gbp dch \
   --ignore-branch \
   --since "${SINCE}" \
