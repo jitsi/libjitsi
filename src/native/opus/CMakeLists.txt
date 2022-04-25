@@ -17,6 +17,9 @@ if (NOT ${USE_SYSTEM_OPUS})
     set(OPUS_ROOT ${CMAKE_BINARY_DIR}/libopus)
     set(OPUS_INCLUDE_DIRS ${OPUS_ROOT}/include)
     set(OPUS_LIBRARY_DIRS ${OPUS_ROOT}/lib)
+    if (APPLE)
+        list(APPEND OPUS_ARGS "-DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES}")
+    endif ()
 
     externalproject_add(ext_lib_opus
                         INSTALL_DIR ${OPUS_ROOT}
@@ -28,6 +31,7 @@ if (NOT ${USE_SYSTEM_OPUS})
                         -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
                         -DCMAKE_TOOLCHAIN_FILE=${EXTPROJECT_CMAKE_TOOLCHAIN_FILE}
                         -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+                        ${OPUS_ARGS}
                         )
 
     set(OPUS_LIBRARIES ${OPUS_LIBRARY_DIRS}/${CMAKE_STATIC_LIBRARY_PREFIX}opus${CMAKE_STATIC_LIBRARY_SUFFIX})
