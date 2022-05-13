@@ -403,7 +403,7 @@ jobs:
             -DperformRelease=true \
             -Drelease=true \
             -DskipTests \
-            install
+            deploy
 
       - name: Upload Multi-Platform Jar
         uses: actions/upload-artifact@v3
