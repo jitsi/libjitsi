@@ -388,7 +388,7 @@ jobs:
           done;
 
       - name: Release to Maven Central
-        if: "$GITHUB_REF" == "refs/heads/master"
+        if: github.ref == 'refs/heads/master'
         env:
           SONATYPE_USER: ${{ secrets.SONATYPE_USER }}
           SONATYPE_PW: ${{ secrets.SONATYPE_PW }}
