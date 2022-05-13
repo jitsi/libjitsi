@@ -35,11 +35,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - uses: dsaltares/fetch-gh-release-asset@1.0.0
+      - uses: robinraju/release-downloader@4bdb8ee081c9ee08a35320794dd461312ac9e4ad
         with:
-          repo: "${{ github.repository }}"
-          version: "${{ inputs.tag }}"
-          file: "debian-releases.tar"
+          repository: "${{ github.repository }}"
+          tag: "${{ inputs.tag }}"
+          fileName: "debian-releases.tar"
           tarBall: false
           zipBall: false
 
