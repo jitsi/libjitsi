@@ -298,7 +298,6 @@ jobs:
       matrix:
         arch:
           - x86_64
-          - arm64
     steps:
       - name: Checkout
         uses: actions/checkout@v3
