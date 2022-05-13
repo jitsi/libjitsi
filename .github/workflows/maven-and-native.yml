@@ -423,7 +423,7 @@ jobs:
           artifacts: "target/*.jar,debian-releases.tar"
           allowUpdates: true
           prerelease: true
-          draft: true
+          draft: false
           tag: r${{ needs.version.outputs.version }}
           omitBody: true
           removeArtifacts: true
