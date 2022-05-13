@@ -45,7 +45,7 @@
   </licenses>
 
   <properties>
-    <bouncycastle.version>1.69</bouncycastle.version>
+    <bouncycastle.version>1.70</bouncycastle.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
 
@@ -94,12 +94,12 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-utils</artifactId>
-      <version>1.0-108-g480acf0</version>
+      <version>1.0-112-gd92472a</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-srtp</artifactId>
-      <version>1.1-4-gc42f998</version>
+      <version>1.1-5-g70395c7</version>
     </dependency>
     <dependency>
       <groupId>org.opentelecoms.sdp</groupId>
@@ -140,186 +140,207 @@
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-engine</artifactId>
-      <version>5.8.1</version>
+      <version>5.8.2</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
-      <version>4.0.0</version>
+      <version>4.4.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
-        <groupId>io.pkts</groupId>
-        <artifactId>pkts-core</artifactId>
-        <version>3.0.10</version>
-        <scope>test</scope>
+      <groupId>io.pkts</groupId>
+      <artifactId>pkts-core</artifactId>
+      <version>3.0.10</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 
   <build>
     <plugins>
       <plugin>
-         <groupId>org.apache.felix</groupId>
-         <artifactId>maven-bundle-plugin</artifactId>
-         <version>5.1.2</version>
-         <extensions>true</extensions>
-         <configuration>
-            <excludeDependencies>jitsi-lgpl-dependencies</excludeDependencies>
-            <instructions>
-               <_noclassforname>true</_noclassforname> 
-               <Import-Package>*,sun.awt.X11,sun.lwawt,sun.lwawt.macosx</Import-Package>
-               <Export-Package>org.jitsi.util.*,
-               org.jitsi.service.*,
-               org.jitsi.sctp4j.*,
-               org.jitsi.impl.neomedia,
-               org.jitsi.impl.neomedia.codec,
-               org.jitsi.impl.neomedia.codec.video.h264,
-               org.jitsi.impl.neomedia.device,
-               org.jitsi.impl.neomedia.format,
-               org.jitsi.impl.neomedia.recording
-               </Export-Package>
-               <Private-Package>org.jitsi.examples.*,org.jitsi.impl.*</Private-Package>
-               <Bundle-Activator>org.jitsi.service.libjitsi.LibJitsiActivator</Bundle-Activator>
-               <Bundle-NativeCode>
-                   darwin/libjnawtrenderer.dylib;
-                   darwin/libjnmaccoreaudio.dylib;
-                   darwin/libjnopus.dylib;
-                   darwin/libjnportaudio.dylib;
-                   darwin/libjnquicktime.dylib;
-                   darwin/libjnscreencapture.dylib;
-                   darwin/libjnspeex.dylib;
-                   darwin/libjnvpx.dylib;osname=Mac OS X;processor=x86-64,
-                   linux-x86/libjnawtrenderer.so;
-                   linux-x86/libjnopus.so;
-                   linux-x86/libjnportaudio.so;
-                   linux-x86/libjnpulseaudio.so;
-                   linux-x86/libjnscreencapture.so;
-                   linux-x86/libjnspeex.so;
-                   linux-x86/libjnvideo4linux2.so;osname=Linux;processor=x86,
-                   linux-x86_64/libjnawtrenderer.so;
-                   linux-x86_64/libjnopus.so;
-                   linux-x86_64/libjnportaudio.so;
-                   linux-x86_64/libjnpulseaudio.so;
-                   linux-x86_64/libjnscreencapture.so;
-                   linux-x86_64/libjnspeex.so;
-                   linux-x86_64/libjnvideo4linux2.so;
-                   linux-x86_64/libjnvpx.so;osname=Linux;processor=x86-64,
-                   linux-aarch64/libjnawtrenderer.so;
-                   linux-aarch64/libjnopus.so;
-                   linux-aarch64/libjnportaudio.so;
-                   linux-aarch64/libjnpulseaudio.so;
-                   linux-aarch64/libjnscreencapture.so;
-                   linux-aarch64/libjnspeex.so;
-                   linux-aarch64/libjnvideo4linux2.so;
-                   linux-aarch64/libjnvpx.so;osname=Linux;processor=AArch64,
-                   linux-ppc64le/libjnawtrenderer.so;
-                   linux-ppc64le/libjnopus.so;
-                   linux-ppc64le/libjnportaudio.so;
-                   linux-ppc64le/libjnpulseaudio.so;
-                   linux-ppc64le/libjnscreencapture.so;
-                   linux-ppc64le/libjnspeex.so;
-                   linux-ppc64le/libjnvideo4linux2.so;osname=Linux;processor=PowerPC-64-LE,
-                   win32-x86/jnawtrenderer.dll;
-                   win32-x86/jndirectshow.dll;
-                   win32-x86/jnopus.dll;
-                   win32-x86/jnportaudio.dll;
-                   win32-x86/jnscreencapture.dll;
-                   win32-x86/jnspeex.dll;
-                   win32-x86/jnvpx.dll;
-                   win32-x86/jnwasapi.dll;osname=Win32;processor=x86,
-                   win32-x86-64/jnawtrenderer.dll;
-                   win32-x86-64/jndirectshow.dll;
-                   win32-x86-64/jnopus.dll;
-                   win32-x86-64/jnportaudio.dll;
-                   win32-x86-64/jnscreencapture.dll;
-                   win32-x86-64/jnspeex.dll;
-                   win32-x86-64/jnvpx.dll;
-                   win32-x86-64/jnwasapi.dll;
-                   win32-x86-64/jnwincoreaudio.dll;osname=Win32;processor=x86-64
-               </Bundle-NativeCode>
-              <Bundle-License>
-                Apache-2.0;link="https://github.com/jitsi/libjitsi/raw/master/LICENSE"
-              </Bundle-License>
-              <_removeheaders>Bnd-*, Tool, Require-Capability, Include-Resource
-              </_removeheaders>
-              <Include-Resource>
-                {maven-resources},
-                META-INF/LICENSE=LICENSE
-              </Include-Resource>
-            </instructions>
-         </configuration>
-        </plugin>
-        <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-compiler-plugin</artifactId>
-            <version>3.8.1</version>
-            <configuration>
-                <source>1.8</source>
-                <target>1.8</target>
-                <compilerArgs>
-                    <arg>-Xlint:all</arg>
-                    <arg>-h</arg>
-                    <arg>${project.build.directory}/native/javah/</arg>
-                </compilerArgs>
-            </configuration>
-        </plugin>
-        <plugin>
-            <artifactId>maven-surefire-plugin</artifactId>
-            <version>2.22.2</version>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-javadoc-plugin</artifactId>
-          <version>3.3.1</version>
-          <configuration>
-            <doclint>-missing</doclint>
-            <source>8</source>
-          </configuration>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-source-plugin</artifactId>
-          <version>3.2.1</version>
-          <configuration>
-            <excludeResources>true</excludeResources>
-          </configuration>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-resources-plugin</artifactId>
-          <version>3.2.0</version>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-install-plugin</artifactId>
-          <version>3.0.0-M1</version>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-deploy-plugin</artifactId>
-          <version>3.0.0-M1</version>
-        </plugin>
-        <plugin>
-          <groupId>org.sonatype.plugins</groupId>
-          <artifactId>nexus-staging-maven-plugin</artifactId>
-          <version>1.6.8</version>
-          <extensions>true</extensions>
-          <configuration>
-            <serverId>ossrh</serverId>
-            <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-            <autoReleaseAfterClose>true</autoReleaseAfterClose>
-          </configuration>
-        </plugin>
+        <groupId>org.apache.felix</groupId>
+        <artifactId>maven-bundle-plugin</artifactId>
+        <version>5.1.2</version>
+        <extensions>true</extensions>
+        <configuration>
+          <excludeDependencies>jitsi-lgpl-dependencies</excludeDependencies>
+          <instructions>
+            <_noclassforname>true</_noclassforname>
+            <Import-Package>*,sun.awt.X11,sun.lwawt,sun.lwawt.macosx
+            </Import-Package>
+            <Export-Package>org.jitsi.util.*,
+              org.jitsi.service.*,
+              org.jitsi.sctp4j.*,
+              org.jitsi.impl.neomedia,
+              org.jitsi.impl.neomedia.codec,
+              org.jitsi.impl.neomedia.codec.video.h264,
+              org.jitsi.impl.neomedia.device,
+              org.jitsi.impl.neomedia.format,
+              org.jitsi.impl.neomedia.recording
+            </Export-Package>
+            <Private-Package>org.jitsi.examples.*,org.jitsi.impl.*
+            </Private-Package>
+            <Bundle-Activator>org.jitsi.service.libjitsi.LibJitsiActivator
+            </Bundle-Activator>
+            <Bundle-License>
+              Apache-2.0;link="https://github.com/jitsi/libjitsi/raw/master/LICENSE"
+            </Bundle-License>
+            <_removeheaders>Bnd-*, Tool, Require-Capability, Include-Resource
+            </_removeheaders>
+            <Include-Resource>
+              {maven-resources},
+              META-INF/LICENSE=LICENSE
+            </Include-Resource>
+          </instructions>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.8.1</version>
+        <configuration>
+          <source>11</source>
+          <target>11</target>
+          <compilerArgs>
+            <arg>-Xlint:all</arg>
+            <arg>-h</arg>
+            <arg>${project.build.directory}/native/javah/</arg>
+          </compilerArgs>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.22.2</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <version>3.3.1</version>
+        <configuration>
+          <doclint>-missing</doclint>
+          <source>11</source>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-source-plugin</artifactId>
+        <version>3.2.1</version>
+        <configuration>
+          <excludeResources>true</excludeResources>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-resources-plugin</artifactId>
+        <version>3.2.0</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-install-plugin</artifactId>
+        <version>3.0.0-M1</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-deploy-plugin</artifactId>
+        <version>3.0.0-M1</version>
+      </plugin>
+      <plugin>
+        <groupId>org.sonatype.plugins</groupId>
+        <artifactId>nexus-staging-maven-plugin</artifactId>
+        <version>1.6.8</version>
+        <extensions>true</extensions>
+        <configuration>
+          <serverId>ossrh</serverId>
+          <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+          <autoReleaseAfterClose>true</autoReleaseAfterClose>
+        </configuration>
+      </plugin>
     </plugins>
-    <resources>
-      <resource>
-        <directory>lib/native</directory>
-      </resource>
-    </resources>
   </build>
-  
+
   <profiles>
+    <profile>
+      <id>osgi-native</id>
+      <activation>
+        <property>
+          <name>osgi-native</name>
+          <value>true</value>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.felix</groupId>
+            <artifactId>maven-bundle-plugin</artifactId>
+            <version>5.1.2</version>
+            <extensions>true</extensions>
+            <configuration>
+              <instructions>
+                <Bundle-NativeCode>
+                  darwin-x86-64/libjnawtrenderer.dylib;
+                  darwin-x86-64/libjnmaccoreaudio.dylib;
+                  darwin-x86-64/libjnopus.dylib;
+                  darwin-x86-64/libjnportaudio.dylib;
+                  darwin-x86-64/libjnquicktime.dylib;
+                  darwin-x86-64/libjnscreencapture.dylib;
+                  darwin-x86-64/libjnspeex.dylib;
+                  darwin-x86-64/libjnvpx.dylib;osname=Mac OS X;processor=x86-64,
+                  darwin-aarch64/libjnawtrenderer.dylib;
+                  darwin-aarch64/libjnmaccoreaudio.dylib;
+                  darwin-aarch64/libjnopus.dylib;
+                  darwin-aarch64/libjnportaudio.dylib;
+                  darwin-aarch64/libjnquicktime.dylib;
+                  darwin-aarch64/libjnscreencapture.dylib;
+                  darwin-aarch64/libjnspeex.dylib;
+                  darwin-aarch64/libjnvpx.dylib;osname=Mac OS X;processor=AArch64,
+                  linux-x86/libjnawtrenderer.so;
+                  linux-x86/libjnopus.so;
+                  linux-x86/libjnportaudio.so;
+                  linux-x86/libjnpulseaudio.so;
+                  linux-x86/libjnscreencapture.so;
+                  linux-x86/libjnspeex.so;
+                  linux-x86/libjnvideo4linux2.so;osname=Linux;processor=x86,
+                  linux-x86-64/libjnawtrenderer.so;
+                  linux-x86-64/libjnopus.so;
+                  linux-x86-64/libjnportaudio.so;
+                  linux-x86-64/libjnpulseaudio.so;
+                  linux-x86-64/libjnscreencapture.so;
+                  linux-x86-64/libjnspeex.so;
+                  linux-x86-64/libjnvideo4linux2.so;
+                  linux-x86-64/libjnvpx.so;osname=Linux;processor=x86-64,
+                  linux-aarch64/libjnawtrenderer.so;
+                  linux-aarch64/libjnopus.so;
+                  linux-aarch64/libjnportaudio.so;
+                  linux-aarch64/libjnpulseaudio.so;
+                  linux-aarch64/libjnscreencapture.so;
+                  linux-aarch64/libjnspeex.so;
+                  linux-aarch64/libjnvideo4linux2.so;
+                  linux-aarch64/libjnvpx.so;osname=Linux;processor=AArch64,
+                  linux-ppc64le/libjnawtrenderer.so;
+                  linux-ppc64le/libjnopus.so;
+                  linux-ppc64le/libjnportaudio.so;
+                  linux-ppc64le/libjnpulseaudio.so;
+                  linux-ppc64le/libjnscreencapture.so;
+                  linux-ppc64le/libjnspeex.so;
+                  linux-ppc64le/libjnvideo4linux2.so;osname=Linux;processor=PowerPC-64-LE,
+                  win32-x86-64/jnawtrenderer.dll;
+                  win32-x86-64/jndirectshow.dll;
+                  win32-x86-64/jnopus.dll;
+                  win32-x86-64/jnportaudio.dll;
+                  win32-x86-64/jnscreencapture.dll;
+                  win32-x86-64/jnspeex.dll;
+                  win32-x86-64/jnvpx.dll;
+                  win32-x86-64/jnwasapi.dll;
+                  win32-x86-64/jnwincoreaudio.dll;osname=Win32;processor=x86-64
+                </Bundle-NativeCode>
+              </instructions>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
     <profile>
       <id>release</id>
       <activation>

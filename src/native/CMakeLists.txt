@@ -1,4 +1,16 @@
 cmake_minimum_required(VERSION 3.10)
+
+# capture all arguments to forward to externalproject_add
+# https://stackoverflow.com/a/48555098
+get_cmake_property(vars CACHE_VARIABLES)
+foreach(var ${vars})
+    get_property(currentHelpString CACHE "${var}" PROPERTY HELPSTRING)
+    if("${currentHelpString}" MATCHES "No help, variable specified on the command line." OR "${currentHelpString}" STREQUAL "")
+        # message("${var} = [${${var}}]  --  ${currentHelpString}") # uncomment to see the variables being processed
+        list(APPEND CL_ARGS "-D${var}=${${var}}")
+    endif()
+endforeach()
+
 if (WIN32 OR APPLE OR NOT USE_SYSTEM_VPX)
     set(CMAKE_TOOLCHAIN_FILE ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake
         CACHE STRING "Vcpkg toolchain file")
@@ -13,16 +25,16 @@ endif ()
 project(libjitsi)
 if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     if (WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 8)
-        set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_LIST_DIR}/../../lib/native/win32-x86-64" CACHE PATH "default install path" FORCE)
+        set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_LIST_DIR}/../main/resources/win32-x86-64" CACHE PATH "default install path" FORCE)
     elseif (WIN32)
-        set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_LIST_DIR}/../../lib/native/win32-x86" CACHE PATH "default install path" FORCE)
+        set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_LIST_DIR}/../main/resources/win32-x86" CACHE PATH "default install path" FORCE)
     elseif (APPLE)
-        set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_LIST_DIR}/../../lib/native/darwin" CACHE PATH "default install path" FORCE)
+        set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_LIST_DIR}/../main/resources/darwin-${CMAKE_SYSTEM_PROCESSOR}" CACHE PATH "default install path" FORCE)
     elseif (UNIX)
         if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND CMAKE_SIZEOF_VOID_P EQUAL 4)
-            set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_LIST_DIR}/../../lib/native/linux-x86" CACHE PATH "default install path" FORCE)
+            set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_LIST_DIR}/../main/resources/linux-x86" CACHE PATH "default install path" FORCE)
         else ()
-            set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_LIST_DIR}/../../lib/native/linux-${CMAKE_SYSTEM_PROCESSOR}" CACHE PATH "default install path" FORCE)
+            set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_LIST_DIR}/../main/resources/linux-${CMAKE_SYSTEM_PROCESSOR}" CACHE PATH "default install path" FORCE)
         endif ()
     endif ()
     message(STATUS "CMAKE_INSTALL_PREFIX not set, defaulting to >${CMAKE_INSTALL_PREFIX}<")
