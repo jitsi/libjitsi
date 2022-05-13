@@ -14,7 +14,7 @@ env:
   RELEASE_JAVA_VERSION: 11
 
 concurrency:
-  group: ${{ github.ref }}
+  group: $GITHUB_REF
   cancel-in-progress: true
 
 jobs:
@@ -51,7 +51,7 @@ jobs:
         id: version
         run: |
           MVNVER=`mvn help:evaluate -Dexpression=project.version -q -DforceStdout`
-          if [ "${{ github.ref }}" == "refs/heads/arch" ]; then
+          if [ "$GITHUB_REF" == "refs/heads/arch" ]; then
             TAG_NAME="v${MVNVER/-SNAPSHOT/}"
             if ! git rev-parse "$TAG_NAME" >/dev/null 2>&1
             then
@@ -348,6 +348,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - javatest
+      - version
       - ubuntu
       - windows
       - mac
@@ -388,7 +389,7 @@ jobs:
           done;
 
       - name: Release to Maven Central
-#        if: github.ref == 'refs/heads/master'
+#        if: "$GITHUB_REF" == "refs/heads/master"
         env:
           SONATYPE_USER: ${{ secrets.SONATYPE_USER }}
           SONATYPE_PW: ${{ secrets.SONATYPE_PW }}
