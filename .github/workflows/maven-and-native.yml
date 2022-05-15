@@ -157,7 +157,6 @@ jobs:
         dist:
           - { vendor: ubuntu, dist: bionic }
           - { vendor: ubuntu, dist: focal }
-          - { vendor: ubuntu, dist: impish }
           - { vendor: ubuntu, dist: jammy }
           - { vendor: debian, dist: buster }
           - { vendor: debian, dist: bullseye }
