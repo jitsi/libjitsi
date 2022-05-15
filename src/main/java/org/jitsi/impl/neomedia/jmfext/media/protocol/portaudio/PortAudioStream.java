@@ -56,7 +56,7 @@ public class PortAudioStream
      * Causes the currently executing thread to temporarily pause and allow
      * other threads to execute.
      */
-    public static void yield()
+    public static void paSleep()
     {
         try
         {
@@ -470,7 +470,7 @@ public class PortAudioStream
          */
         if (message != null)
         {
-            yield();
+            paSleep();
             throw new IOException(message);
         }
 
@@ -561,7 +561,7 @@ public class PortAudioStream
             }
 
             if (yield)
-                yield();
+                paSleep();
         }
     }
 

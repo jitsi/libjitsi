@@ -1260,7 +1260,7 @@ public class WASAPIStream
              */
             if (message != null)
             {
-                yield();
+                wasapiWait();
                 throw new IOException(message);
             }
 
@@ -1336,7 +1336,7 @@ public class WASAPIStream
                      * should not block, it should return with whatever is
                      * available.
                      */
-                    yield();
+                    wasapiWait();
                 }
             }
             else
@@ -1347,10 +1347,7 @@ public class WASAPIStream
                     throw (IOException) cause;
                 else
                 {
-                    IOException ioe = new IOException();
-
-                    ioe.initCause(cause);
-                    throw ioe;
+                    throw new IOException(cause);
                 }
             }
         }
@@ -2601,7 +2598,7 @@ public class WASAPIStream
                     }
                 }
 
-                yield();
+                wasapiWait();
             }
             while (true);
         }
@@ -2849,7 +2846,7 @@ public class WASAPIStream
     private synchronized void waitWhileProcessThread()
     {
         while (processThread != null)
-            yield();
+            wasapiWait();
     }
 
     /**
@@ -2879,7 +2876,7 @@ public class WASAPIStream
      * Causes the currently executing thread to temporarily pause and allow
      * other threads to execute.
      */
-    private synchronized void yield()
+    private synchronized void wasapiWait()
     {
         boolean interrupted = false;
 

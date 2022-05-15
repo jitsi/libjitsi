@@ -804,7 +804,7 @@ public class PortAudioRenderer
             }
 
             if (yield)
-                PortAudioStream.yield();
+                PortAudioStream.paSleep();
         }
         return BUFFER_PROCESSED_OK;
     }
