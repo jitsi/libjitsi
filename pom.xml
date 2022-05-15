@@ -45,7 +45,7 @@
   </licenses>
 
   <properties>
-    <bouncycastle.version>1.70</bouncycastle.version>
+    <bouncycastle.version>1.71</bouncycastle.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
 
@@ -69,21 +69,21 @@
     <dependency>
       <groupId>net.java.dev.jna</groupId>
       <artifactId>jna</artifactId>
-      <version>5.9.0</version>
+      <version>5.11.0</version>
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
-      <artifactId>bcpkix-jdk15on</artifactId>
+      <artifactId>bcpkix-jdk18on</artifactId>
       <version>${bouncycastle.version}</version>
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
-      <artifactId>bcprov-jdk15on</artifactId>
+      <artifactId>bcprov-jdk18on</artifactId>
       <version>${bouncycastle.version}</version>
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
-      <artifactId>bctls-jdk15on</artifactId>
+      <artifactId>bctls-jdk18on</artifactId>
       <version>${bouncycastle.version}</version>
     </dependency>
     <dependency>
@@ -94,12 +94,12 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-utils</artifactId>
-      <version>1.0-112-gd92472a</version>
+      <version>1.0-114-g43815ed</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-srtp</artifactId>
-      <version>1.1-5-g70395c7</version>
+      <version>1.1-8-g8f5c9fd</version>
     </dependency>
     <dependency>
       <groupId>org.opentelecoms.sdp</groupId>
@@ -116,7 +116,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>zrtp4j-light</artifactId>
-      <version>4.1.2</version>
+      <version>4.1.3</version>
     </dependency>
     <dependency>
       <groupId>org.osgi</groupId>
@@ -146,7 +146,7 @@
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
-      <version>4.4.0</version>
+      <version>4.5.1</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -162,7 +162,7 @@
       <plugin>
         <groupId>org.apache.felix</groupId>
         <artifactId>maven-bundle-plugin</artifactId>
-        <version>5.1.2</version>
+        <version>5.1.6</version>
         <extensions>true</extensions>
         <configuration>
           <excludeDependencies>jitsi-lgpl-dependencies</excludeDependencies>
@@ -198,10 +198,9 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.8.1</version>
+        <version>3.10.1</version>
         <configuration>
-          <source>11</source>
-          <target>11</target>
+          <release>11</release>
           <compilerArgs>
             <arg>-Xlint:all</arg>
             <arg>-h</arg>
@@ -216,7 +215,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
-        <version>3.3.1</version>
+        <version>3.4.0</version>
         <configuration>
           <doclint>-missing</doclint>
           <source>11</source>
@@ -243,12 +242,12 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-deploy-plugin</artifactId>
-        <version>3.0.0-M1</version>
+        <version>3.0.0-M2</version>
       </plugin>
       <plugin>
         <groupId>org.sonatype.plugins</groupId>
         <artifactId>nexus-staging-maven-plugin</artifactId>
-        <version>1.6.8</version>
+        <version>1.6.13</version>
         <extensions>true</extensions>
         <configuration>
           <serverId>ossrh</serverId>
@@ -273,7 +272,6 @@
           <plugin>
             <groupId>org.apache.felix</groupId>
             <artifactId>maven-bundle-plugin</artifactId>
-            <version>5.1.2</version>
             <extensions>true</extensions>
             <configuration>
               <instructions>
@@ -286,14 +284,6 @@
                   darwin-x86-64/libjnscreencapture.dylib;
                   darwin-x86-64/libjnspeex.dylib;
                   darwin-x86-64/libjnvpx.dylib;osname=Mac OS X;processor=x86-64,
-                  darwin-aarch64/libjnawtrenderer.dylib;
-                  darwin-aarch64/libjnmaccoreaudio.dylib;
-                  darwin-aarch64/libjnopus.dylib;
-                  darwin-aarch64/libjnportaudio.dylib;
-                  darwin-aarch64/libjnquicktime.dylib;
-                  darwin-aarch64/libjnscreencapture.dylib;
-                  darwin-aarch64/libjnspeex.dylib;
-                  darwin-aarch64/libjnvpx.dylib;osname=Mac OS X;processor=AArch64,
                   linux-x86/libjnawtrenderer.so;
                   linux-x86/libjnopus.so;
                   linux-x86/libjnportaudio.so;
