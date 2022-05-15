@@ -168,7 +168,7 @@
           <excludeDependencies>jitsi-lgpl-dependencies</excludeDependencies>
           <instructions>
             <_noclassforname>true</_noclassforname>
-            <Import-Package>*,sun.awt.X11,sun.lwawt,sun.lwawt.macosx
+            <Import-Package>*;version=!,,sun.awt.X11,sun.lwawt,sun.lwawt.macosx
             </Import-Package>
             <Export-Package>org.jitsi.util.*,
               org.jitsi.service.*,
