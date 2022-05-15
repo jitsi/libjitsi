@@ -172,7 +172,6 @@
             </Import-Package>
             <Export-Package>org.jitsi.util.*,
               org.jitsi.service.*,
-              org.jitsi.sctp4j.*,
               org.jitsi.impl.neomedia,
               org.jitsi.impl.neomedia.codec,
               org.jitsi.impl.neomedia.codec.video.h264,
