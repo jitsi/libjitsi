@@ -565,7 +565,6 @@ public class DtmfTransformEngine
                             lastReportedTone = null;
                         else
                             lastReportedTone = temp;
-                        toEnd = false;
                     }
                 }
             }
