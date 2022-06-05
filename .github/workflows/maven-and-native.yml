@@ -404,6 +404,19 @@ jobs:
             -DskipTests \
             deploy
 
+      - name: Package on PR
+        if: github.ref != 'refs/heads/master'
+        run: |
+          mvn -B versions:set -DnewVersion=${{ needs.version.outputs.version }} -DgenerateBackupPoms=false
+          mvn \
+            --no-transfer-progress \
+            --batch-mode \
+            -Dgpg.skip \
+            -DperformRelease=true \
+            -Drelease=true \
+            -DskipTests \
+            package
+
       - name: Upload Multi-Platform Jar
         uses: actions/upload-artifact@v3
         with:
@@ -416,6 +429,7 @@ jobs:
           tar -cvf debian-releases.tar target/{debian-*,ubuntu-*}/*
 
       - name: Create release
+        if: github.ref == 'refs/heads/master'
         uses: ncipollo/release-action@40bb172bd05f266cf9ba4ff965cb61e9ee5f6d01
         with:
           artifacts: "target/*.jar,debian-releases.tar"
@@ -439,6 +453,7 @@ jobs:
 
   deploy:
     name: Deploy Debian packages
+    if: github.ref == 'refs/heads/master'
     needs:
       - version
       - multiplatform
