@@ -401,6 +401,7 @@ jobs:
             -Dgpg.passphrase="${{ secrets.GPG_PW }}" \
             -DperformRelease=true \
             -Drelease=true \
+            -Dosgi-native=true \
             -DskipTests \
             deploy
 
@@ -414,6 +415,7 @@ jobs:
             -Dgpg.skip \
             -DperformRelease=true \
             -Drelease=true \
+            -Dosgi-native=true \
             -DskipTests \
             package
 
