@@ -39,7 +39,7 @@ jobs:
       # don't use the setup-java cache option as this only caches what is
       # necessary for the version, not the other jobs
       - name: Cache local Maven repository
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-version-${{ hashFiles('**/pom.xml') }}
@@ -193,7 +193,7 @@ jobs:
       # don't use the setup-java cache option as this only caches what is
       # necessary for the version, not the other jobs
       - name: Cache local Maven repository
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-version-${{ hashFiles('**/pom.xml') }}
@@ -285,7 +285,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: win32-${{ matrix.arch.java }}
-          path: src/main/resources/win32-${{ matrix.arch.java }}
+          path: src/main/resources/win32-*/*
 
   mac:
     name: Mac Natives ${{ matrix.arch }}
