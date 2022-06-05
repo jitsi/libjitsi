@@ -4,9 +4,9 @@ on:
   push:
     branches:
       - master
-  #pull_request:
-  #  branches:
-  #    - master
+  pull_request:
+    branches:
+      - master
 
 env:
   # Java version to use for the release
@@ -39,7 +39,7 @@ jobs:
       # don't use the setup-java cache option as this only caches what is
       # necessary for the version, not the other jobs
       - name: Cache local Maven repository
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-version-${{ hashFiles('**/pom.xml') }}
@@ -193,7 +193,7 @@ jobs:
       # don't use the setup-java cache option as this only caches what is
       # necessary for the version, not the other jobs
       - name: Cache local Maven repository
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-version-${{ hashFiles('**/pom.xml') }}
@@ -285,7 +285,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: win32-${{ matrix.arch.java }}
-          path: src/main/resources/win32-${{ matrix.arch.java }}
+          path: src/main/resources/win32-*/*
 
   mac:
     name: Mac Natives ${{ matrix.arch }}
@@ -404,6 +404,19 @@ jobs:
             -DskipTests \
             deploy
 
+      - name: Package on PR
+        if: github.ref != 'refs/heads/master'
+        run: |
+          mvn -B versions:set -DnewVersion=${{ needs.version.outputs.version }} -DgenerateBackupPoms=false
+          mvn \
+            --no-transfer-progress \
+            --batch-mode \
+            -Dgpg.skip \
+            -DperformRelease=true \
+            -Drelease=true \
+            -DskipTests \
+            package
+
       - name: Upload Multi-Platform Jar
         uses: actions/upload-artifact@v3
         with:
@@ -416,6 +429,7 @@ jobs:
           tar -cvf debian-releases.tar target/{debian-*,ubuntu-*}/*
 
       - name: Create release
+        if: github.ref == 'refs/heads/master'
         uses: ncipollo/release-action@40bb172bd05f266cf9ba4ff965cb61e9ee5f6d01
         with:
           artifacts: "target/*.jar,debian-releases.tar"
@@ -439,6 +453,7 @@ jobs:
 
   deploy:
     name: Deploy Debian packages
+    if: github.ref == 'refs/heads/master'
     needs:
       - version
       - multiplatform

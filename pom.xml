@@ -99,7 +99,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-srtp</artifactId>
-      <version>1.1-9-ge234488</version>
+      <version>1.1-10-gd9bbebf</version>
     </dependency>
     <dependency>
       <groupId>org.opentelecoms.sdp</groupId>
@@ -109,7 +109,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-lgpl-dependencies</artifactId>
-      <version>1.2-20-gcdff576</version>
+      <version>1.2-21-gc4508d5</version>
       <scope>provided</scope>
       <optional>true</optional>
     </dependency>
