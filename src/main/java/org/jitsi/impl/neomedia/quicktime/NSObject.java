@@ -15,7 +15,7 @@
  */
 package org.jitsi.impl.neomedia.quicktime;
 
-import org.jitsi.utils.*;
+import org.jitsi.util.*;
 
 /**
  * Represents the root of most Objective-C class hierarchies which which objects
@@ -28,7 +28,7 @@ public class NSObject
 {
     static
     {
-        JNIUtils.loadLibrary("jnquicktime", NSObject.class);
+        OSUtils.loadLibrary("jnquicktime", NSObject.class);
     }
 
     /**

@@ -21,7 +21,6 @@ import java.nio.charset.*;
 import org.jitsi.service.configuration.*;
 import org.jitsi.service.libjitsi.*;
 import org.jitsi.util.OSUtils;
-import org.jitsi.utils.*;
 import org.jitsi.utils.logging.*;
 
 /**
@@ -246,7 +245,7 @@ public final class Pa
 
     static
     {
-        JNIUtils.loadLibrary("jnportaudio", Pa.class);
+        OSUtils.loadLibrary("jnportaudio", Pa.class);
 
         try
         {

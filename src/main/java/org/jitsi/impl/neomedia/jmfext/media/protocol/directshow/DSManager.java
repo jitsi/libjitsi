@@ -15,7 +15,7 @@
  */
 package org.jitsi.impl.neomedia.jmfext.media.protocol.directshow;
 
-import org.jitsi.utils.*;
+import org.jitsi.util.*;
 
 /**
  * DirectShow capture device manager.
@@ -44,7 +44,7 @@ public class DSManager
 
     static
     {
-        JNIUtils.loadLibrary("jndirectshow", DSManager.class);
+        OSUtils.loadLibrary("jndirectshow", DSManager.class);
     }
 
     /**

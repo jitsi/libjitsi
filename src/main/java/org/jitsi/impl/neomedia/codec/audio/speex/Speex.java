@@ -15,7 +15,7 @@
  */
 package org.jitsi.impl.neomedia.codec.audio.speex;
 
-import org.jitsi.utils.*;
+import org.jitsi.util.*;
 
 /**
  * Provides the interface to the native Speex library.
@@ -42,7 +42,7 @@ public final class Speex
 
     static
     {
-        JNIUtils.loadLibrary("jnspeex", Speex.class);
+        OSUtils.loadLibrary("jnspeex", Speex.class);
     }
 
     public static void assertSpeexIsFunctional()

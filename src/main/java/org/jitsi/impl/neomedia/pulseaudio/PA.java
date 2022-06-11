@@ -15,7 +15,7 @@
  */
 package org.jitsi.impl.neomedia.pulseaudio;
 
-import org.jitsi.utils.*;
+import org.jitsi.util.*;
 
 /**
  * Declares the functions, structures and constants of the native
@@ -122,7 +122,7 @@ public final class PA
 
     static
     {
-        JNIUtils.loadLibrary("jnpulseaudio", PA.class);
+        OSUtils.loadLibrary("jnpulseaudio", PA.class);
     }
 
     public static native void buffer_attr_free(long attr);

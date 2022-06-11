@@ -15,7 +15,7 @@
  */
 package org.jitsi.impl.neomedia.quicktime;
 
-import org.jitsi.utils.*;
+import org.jitsi.util.*;
 
 /**
  * Represents a CoreVideo <tt>CVImageBufferRef</tt>.
@@ -26,7 +26,7 @@ public class CVImageBuffer
 {
     static
     {
-        JNIUtils.loadLibrary("jnquicktime", CVImageBuffer.class);
+        OSUtils.loadLibrary("jnquicktime", CVImageBuffer.class);
     }
 
     /**

@@ -15,7 +15,7 @@
  */
 package org.jitsi.impl.neomedia.jmfext.media.protocol.wasapi;
 
-import org.jitsi.utils.*;
+import org.jitsi.util.*;
 import org.jitsi.utils.logging.*;
 
 /**
@@ -122,7 +122,7 @@ public class WASAPI
 
     static
     {
-        JNIUtils.loadLibrary("jnwasapi", WASAPI.class);
+        OSUtils.loadLibrary("jnwasapi", WASAPI.class);
 
         AUDCLNT_E_NOT_STOPPED
             = MAKE_HRESULT(SEVERITY_ERROR, FACILIY_AUDCLNT, 5);

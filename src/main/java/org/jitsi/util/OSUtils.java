@@ -15,6 +15,9 @@
  */
 package org.jitsi.util;
 
+import java.util.function.*;
+import org.jitsi.utils.*;
+
 /**
  * Utility fields for OS detection.
  *
@@ -23,12 +26,7 @@ package org.jitsi.util;
  */
 public class OSUtils
 {
-
-    /** <tt>true</tt> if architecture is 32 bit. */
-    public static final boolean IS_32_BIT;
-
-    /** <tt>true</tt> if architecture is 64 bit. */
-    public static final boolean IS_64_BIT;
+    private static final BiConsumer<String, Class<?>> loadLibrary;
 
     /** <tt>true</tt> if OS is Android */
     public static final boolean IS_ANDROID;
@@ -36,44 +34,26 @@ public class OSUtils
     /** <tt>true</tt> if OS is Linux. */
     public static final boolean IS_LINUX;
 
-    /** <tt>true</tt> if OS is Linux 32-bit. */
-    public static final boolean IS_LINUX32;
-
-    /** <tt>true</tt> if OS is Linux 64-bit. */
-    public static final boolean IS_LINUX64;
-
     /** <tt>true</tt> if OS is MacOSX. */
     public static final boolean IS_MAC;
 
-    /** <tt>true</tt> if OS is MacOSX 32-bit. */
-    public static final boolean IS_MAC32;
-
-    /** <tt>true</tt> if OS is MacOSX 64-bit. */
-    public static final boolean IS_MAC64;
-
     /** <tt>true</tt> if OS is Windows. */
     public static final boolean IS_WINDOWS;
-
-    /** <tt>true</tt> if OS is Windows 32-bit. */
-    public static final boolean IS_WINDOWS32;
-
-    /** <tt>true</tt> if OS is Windows 64-bit. */
-    public static final boolean IS_WINDOWS64;
-
-    /** <tt>true</tt> if OS is Windows 7. */
-    public static final boolean IS_WINDOWS_7;
-
-    /** <tt>true</tt> if OS is Windows 8. */
-    public static final boolean IS_WINDOWS_8;
-
-    /** <tt>true</tt> if OS is Windows 10. */
-    public static final boolean IS_WINDOWS_10;
 
     /** <tt>true</tt> if OS is FreeBSD. */
     public static final boolean IS_FREEBSD;
 
     static
     {
+        if (OSUtils.class.getClassLoader().getClass().getName().contains("Bundle"))
+        {
+            loadLibrary = (libname, clazz) -> System.loadLibrary(libname);
+        }
+        else
+        {
+            loadLibrary = JNIUtils::loadLibrary;
+        }
+
         // OS
         String osName = System.getProperty("os.name");
 
@@ -83,9 +63,6 @@ public class OSUtils
             IS_LINUX = false;
             IS_MAC = false;
             IS_WINDOWS = false;
-            IS_WINDOWS_7 = false;
-            IS_WINDOWS_8 = false;
-            IS_WINDOWS_10 = false;
             IS_FREEBSD = false;
         }
         else if (osName.startsWith("Linux"))
@@ -104,9 +81,6 @@ public class OSUtils
             }
             IS_MAC = false;
             IS_WINDOWS = false;
-            IS_WINDOWS_7 = false;
-            IS_WINDOWS_8 = false;
-            IS_WINDOWS_10 = false;
             IS_FREEBSD = false;
         }
         else if (osName.startsWith("Mac"))
@@ -115,9 +89,6 @@ public class OSUtils
             IS_LINUX = false;
             IS_MAC = true;
             IS_WINDOWS = false;
-            IS_WINDOWS_7 = false;
-            IS_WINDOWS_8 = false;
-            IS_WINDOWS_10 = false;
             IS_FREEBSD = false;
         }
         else if (osName.startsWith("Windows"))
@@ -126,9 +97,6 @@ public class OSUtils
             IS_LINUX = false;
             IS_MAC = false;
             IS_WINDOWS = true;
-            IS_WINDOWS_7 = (osName.indexOf("7") != -1);
-            IS_WINDOWS_8 = (osName.indexOf("8") != -1);
-            IS_WINDOWS_10 = (osName.indexOf("10") != -1);
             IS_FREEBSD = false;
         }
         else if (osName.startsWith("FreeBSD"))
@@ -137,9 +105,6 @@ public class OSUtils
             IS_LINUX = false;
             IS_MAC = false;
             IS_WINDOWS = false;
-            IS_WINDOWS_7 = false;
-            IS_WINDOWS_8 = false;
-            IS_WINDOWS_10 = false;
             IS_FREEBSD = true;
         }
         else
@@ -148,50 +113,16 @@ public class OSUtils
             IS_LINUX = false;
             IS_MAC = false;
             IS_WINDOWS = false;
-            IS_WINDOWS_7 = false;
-            IS_WINDOWS_8 = false;
-            IS_WINDOWS_10 = false;
             IS_FREEBSD = false;
         }
-
-        // arch i.e. x86, amd64
-        String osArch = System.getProperty("sun.arch.data.model");
-
-        if(osArch == null)
-        {
-            IS_32_BIT = true;
-            IS_64_BIT = false;
-        }
-        else if (osArch.indexOf("32") != -1)
-        {
-            IS_32_BIT = true;
-            IS_64_BIT = false;
-        }
-        else if (osArch.indexOf("64") != -1)
-        {
-            IS_32_BIT = false;
-            IS_64_BIT = true;
-        }
-        else
-        {
-            IS_32_BIT = false;
-            IS_64_BIT = false;
-        }
-
-        // OS && arch
-        IS_LINUX32 = IS_LINUX && IS_32_BIT;
-        IS_LINUX64 = IS_LINUX && IS_64_BIT;
-        IS_MAC32 = IS_MAC && IS_32_BIT;
-        IS_MAC64 = IS_MAC && IS_64_BIT;
-        IS_WINDOWS32 = IS_WINDOWS && IS_32_BIT;
-        IS_WINDOWS64 = IS_WINDOWS && IS_64_BIT;
     }
 
-    /**
-     * Allows the extending of the <tt>OSUtils</tt> class but disallows
-     * initializing non-extended <tt>OSUtils</tt> instances.
-     */
-    protected OSUtils()
+    public static void loadLibrary(String libname, Class<?> clazz)
+    {
+        loadLibrary.accept(libname, clazz);
+    }
+
+    private OSUtils()
     {
     }
 }

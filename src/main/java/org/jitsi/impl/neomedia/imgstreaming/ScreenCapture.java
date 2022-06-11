@@ -15,7 +15,7 @@
  */
 package org.jitsi.impl.neomedia.imgstreaming;
 
-import org.jitsi.utils.*;
+import org.jitsi.util.*;
 import org.jitsi.utils.logging.*;
 
 /**
@@ -36,7 +36,7 @@ public class ScreenCapture
 
         try
         {
-            JNIUtils.loadLibrary(lib, ScreenCapture.class);
+            OSUtils.loadLibrary(lib, ScreenCapture.class);
         }
         catch (Throwable t)
         {

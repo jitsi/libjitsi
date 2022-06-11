@@ -105,25 +105,6 @@ public class MediaUtils
             AudioFormat.ULAW_RTP,
             8000);
 
-        /*
-         * Some codecs depend on JMF native libraries which are only available
-         * on 32-bit Linux and 32-bit Windows.
-         */
-        if (OSUtils.IS_LINUX32 || OSUtils.IS_WINDOWS32)
-        {
-            Map<String, String> g723FormatParams = new HashMap<>();
-            g723FormatParams.put("annexa", "no");
-            g723FormatParams.put("bitrate", "6.3");
-            addMediaFormats(
-                    (byte) SdpConstants.G723,
-                    "G723",
-                    MediaType.AUDIO,
-                    AudioFormat.G723_RTP,
-                    g723FormatParams,
-                    null,
-                    8000);
-        }
-
         addMediaFormats(
             (byte) SdpConstants.GSM,
             "GSM",
@@ -1038,10 +1019,6 @@ public class MediaUtils
             return SdpConstants.G722;
         }
         else if (jmfEncoding.equals(AudioFormat.GSM))
-        {
-            return SdpConstants.GSM;
-        }
-        else if (jmfEncoding.equals(AudioFormat.GSM_RTP))
         {
             return SdpConstants.GSM;
         }
