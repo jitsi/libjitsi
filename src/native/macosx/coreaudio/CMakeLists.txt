@@ -5,6 +5,7 @@ add_library(${PROJECT_NAME} SHARED
             libjitsi_webrtc_aec.cc
             maccoreaudio_util.c
             org_jitsi_impl_neomedia_device_CoreAudioDevice.c
+            org_jitsi_impl_neomedia_device_MacCoreAudioDevice.c
             )
 
 target_link_libraries(${PROJECT_NAME} LINK_PUBLIC
