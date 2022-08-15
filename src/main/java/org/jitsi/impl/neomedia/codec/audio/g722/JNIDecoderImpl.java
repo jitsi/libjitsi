@@ -16,10 +16,14 @@
 package org.jitsi.impl.neomedia.codec.audio.g722;
 
 import javax.media.*;
+import javax.media.Buffer;
 import javax.media.format.*;
 
+import com.sun.jna.*;
 import org.jitsi.impl.neomedia.codec.*;
 import org.jitsi.service.neomedia.codec.*;
+
+import java.nio.*;
 
 /**
  *
@@ -53,7 +57,7 @@ public class JNIDecoderImpl
                             Format.byteArray)
                 };
 
-    private long decoder;
+    private Pointer decoder;
 
     /**
      * Initializes a new {@code JNIDecoderImpl} instance.
@@ -72,7 +76,8 @@ public class JNIDecoderImpl
     @Override
     protected void doClose()
     {
-        JNIDecoder.g722_decoder_close(decoder);
+        SpanDSP.INSTANCE.g722_decode_release(decoder);
+        SpanDSP.INSTANCE.g722_decode_free(decoder);
     }
 
     /**
@@ -82,8 +87,8 @@ public class JNIDecoderImpl
     protected void doOpen()
         throws ResourceUnavailableException
     {
-        decoder = JNIDecoder.g722_decoder_open();
-        if (decoder == 0)
+        decoder = SpanDSP.INSTANCE.g722_decode_init(null, 64000, 0);
+        if (decoder == null)
             throw new ResourceUnavailableException("g722_decoder_open");
     }
 
@@ -103,10 +108,12 @@ public class JNIDecoderImpl
                     outputOffset + outputLength,
                     true);
 
-        JNIDecoder.g722_decoder_process(
-                decoder,
-                input, inputBuffer.getOffset(),
-                output, outputOffset, outputLength);
+        SpanDSP.INSTANCE.g722_decode(
+            decoder,
+            output,
+            ByteBuffer.wrap(input).order(ByteOrder.BIG_ENDIAN).asShortBuffer().array(),
+            outputLength
+        );
 
         outputBuffer.setDuration(
                 (outputLength * 1000000L)
