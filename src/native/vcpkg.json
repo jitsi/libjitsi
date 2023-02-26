@@ -7,12 +7,10 @@
       "platform": "x86|x64|arm64"
     },
     {
-      "name": "speexdsp",
-      "platform": "x86|x64|arm64|ppc64le"
+      "name": "speexdsp"
     },
     {
-      "name": "speex",
-      "platform": "x86|x64|arm64|ppc64le"
+      "name": "speex"
     }
   ]
 }

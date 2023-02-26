@@ -36,7 +36,6 @@ esac
 export JAVA_HOME=/usr/lib/jvm/java-$JAVA_VERSION-openjdk-$JAVA_ARCH
 
 cd "$LIBROOT/src/native" || exit 1
-cp cmake/vcpkg-triplets/x86-linux.cmake vcpkg/triplets/community
 cmake -B cmake-build-$ARCH \
   -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=$TOOLCHAIN \
   -DVCPKG_VERBOSE=ON \
