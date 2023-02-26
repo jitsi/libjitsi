@@ -5,6 +5,14 @@
     {
       "name": "libvpx",
       "platform": "x86|x64|arm64"
+    },
+    {
+      "name": "speexdsp",
+      "platform": "x86|x64|arm64"
+    },
+    {
+      "name": "speex",
+      "platform": "x86|x64|arm64"
     }
   ]
 }

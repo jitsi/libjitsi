@@ -284,6 +284,14 @@
                   darwin-x86-64/libjnscreencapture.dylib;
                   darwin-x86-64/libjnspeex.dylib;
                   darwin-x86-64/libjnvpx.dylib;osname=Mac OS X;processor=x86-64,
+                  darwin-aarch64/libjnawtrenderer.dylib;
+                  darwin-aarch64/libjnmaccoreaudio.dylib;
+                  darwin-aarch64/libjnopus.dylib;
+                  darwin-aarch64/libjnportaudio.dylib;
+                  darwin-aarch64/libjnquicktime.dylib;
+                  darwin-aarch64/libjnscreencapture.dylib;
+                  darwin-aarch64/libjnspeex.dylib;
+                  darwin-aarch64/libjnvpx.dylib;osname=Mac OS X;processor=AArch64,
                   linux-x86/libjnawtrenderer.so;
                   linux-x86/libjnopus.so;
                   linux-x86/libjnportaudio.so;

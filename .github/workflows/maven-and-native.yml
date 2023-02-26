@@ -296,6 +296,7 @@ jobs:
       matrix:
         arch:
           - x86_64
+          - arm64
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -326,7 +327,7 @@ jobs:
 
       - name: The job has failed
         if: ${{ failure() }}
-        run: tar --exclude *.o -cvJf target/debug-logs.tar.xz src/native/cmake-build
+        run: tar --exclude *.o -cvJf target/debug-logs.tar.xz src/native/cmake-build-${{ matrix.arch }}
 
       - name: Upload Debug logs
         if: ${{ failure() }}
