@@ -8,11 +8,11 @@
     },
     {
       "name": "speexdsp",
-      "platform": "x86|x64|arm64"
+      "platform": "x86|x64|arm64|ppc64le"
     },
     {
       "name": "speex",
-      "platform": "x86|x64|arm64"
+      "platform": "x86|x64|arm64|ppc64le"
     }
   ]
 }

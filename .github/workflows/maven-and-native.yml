@@ -322,7 +322,7 @@ jobs:
         run: |
           git config --global user.email "dev@jitsi.org"
           git config --global user.name "Jitsi GitHub Action"
-          brew install nasm
+          brew install nasm autoconf automake libtool
           resources/mac-cmake.sh ${{ steps.install_java.outputs.path }} ${{ matrix.arch }}
 
       - name: The job has failed
