@@ -22,6 +22,11 @@ endif ()
 option(USE_SYSTEM_SPEEX "Use system-installed speex" ${DEFAULT_USE_SYSTEM_SPEEX})
 option(USE_SYSTEM_VPX "Use system-installed vpx" ${DEFAULT_USE_SYSTEM_VPX})
 
+find_package(Git REQUIRED)
+execute_process(
+        COMMAND "${GIT_EXECUTABLE}" apply --verbose --binary ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg-ppc64el.patch
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg"
+)
 if (NOT USE_SYSTEM_SPEEX OR NOT USE_SYSTEM_VPX)
     set(CMAKE_TOOLCHAIN_FILE ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake
         CACHE STRING "Vcpkg toolchain file")
@@ -64,7 +69,6 @@ endif ()
 find_package(JNI REQUIRED)
 
 if (WIN32)
-    find_package(Git REQUIRED)
     execute_process(
             COMMAND "${GIT_EXECUTABLE}" describe --match "v[0-9\\.]*" --long --dirty --always
             WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"

@@ -26,7 +26,8 @@ case "$ARCH" in
     JAVA_ARCH="arm64"
     TOOLCHAIN=$LIBROOT/src/native/cmake/toolchains/arm64-linux.cmake
     ;;
-  "ppc64el")
+  "ppc64el"|"ppc64le")
+    ARCH="ppc64el"
     VCPKG_ARCH="ppc64le"
     JAVA_ARCH="ppc64el"
     TOOLCHAIN=$LIBROOT/src/native/cmake/toolchains/ppc64el-linux.cmake
