@@ -12,6 +12,7 @@ Build-Depends:
  dpkg-dev (>= 1.16.1),
  libtool,
  cmake,
+ git,
  default-jdk,
  libasound2-dev,
  libpulse-dev,
