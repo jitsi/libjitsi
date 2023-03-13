@@ -11,7 +11,23 @@ foreach(var ${vars})
     endif()
 endforeach()
 
-if (WIN32 OR APPLE OR NOT USE_SYSTEM_VPX)
+if (UNIX AND NOT APPLE)
+    set(DEFAULT_USE_SYSTEM_SPEEX ON)
+    set(DEFAULT_USE_SYSTEM_VPX ON)
+else ()
+    set(DEFAULT_USE_SYSTEM_SPEEX OFF)
+    set(DEFAULT_USE_SYSTEM_VPX OFF)
+endif ()
+
+option(USE_SYSTEM_SPEEX "Use system-installed speex" ${DEFAULT_USE_SYSTEM_SPEEX})
+option(USE_SYSTEM_VPX "Use system-installed vpx" ${DEFAULT_USE_SYSTEM_VPX})
+
+find_package(Git REQUIRED)
+execute_process(
+        COMMAND "${GIT_EXECUTABLE}" apply --verbose --binary ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg-ppc64el.patch
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg"
+)
+if (NOT USE_SYSTEM_SPEEX OR NOT USE_SYSTEM_VPX)
     set(CMAKE_TOOLCHAIN_FILE ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake
         CACHE STRING "Vcpkg toolchain file")
 endif ()
@@ -53,7 +69,6 @@ endif ()
 find_package(JNI REQUIRED)
 
 if (WIN32)
-    find_package(Git REQUIRED)
     execute_process(
             COMMAND "${GIT_EXECUTABLE}" describe --match "v[0-9\\.]*" --long --dirty --always
             WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
@@ -92,13 +107,6 @@ set(LIBJITSI_JAVAH "${CMAKE_CURRENT_SOURCE_DIR}/../../target/native/javah")
 include(ExternalProject)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
-if (UNIX AND NOT APPLE)
-    set(DEFAULT_USE_SYSTEM_SPEEX ON)
-else ()
-    set(DEFAULT_USE_SYSTEM_SPEEX OFF)
-endif ()
-
-option(USE_SYSTEM_SPEEX "Use system-installed speex" ${DEFAULT_USE_SYSTEM_SPEEX})
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
@@ -110,7 +118,6 @@ if (CMAKE_SYSTEM_PROCESSOR STREQUAL "ppc64el" OR CMAKE_SYSTEM_PROCESSOR STREQUAL
 endif ()
 
 include(GNUInstallDirs)
-add_subdirectory(third_party/speex)
 
 add_subdirectory(jawtrenderer)
 add_subdirectory(opus)

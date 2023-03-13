@@ -2,15 +2,9 @@ project(jnvpx CXX)
 
 set(OS_SOURCES "")
 set(OS_LIBS "")
-set(DEFAULT_USE_SYSTEM_VPX 0)
 if (WIN32)
     set(OS_SOURCES vpx.rc)
-elseif (APPLE)
-elseif (UNIX)
-    set(DEFAULT_USE_SYSTEM_VPX 1)
 endif ()
-
-option(USE_SYSTEM_VPX "Use system-installed vpx" ${DEFAULT_USE_SYSTEM_VPX})
 
 add_library(${PROJECT_NAME} SHARED
             org_jitsi_impl_neomedia_codec_video_VPX.c

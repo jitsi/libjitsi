@@ -2,7 +2,6 @@ project(jnspeex C)
 
 set(OS_SOURCES "")
 set(OS_LIBS "")
-set(DEFAULT_USE_SYSTEM_SPEEX 0)
 if (WIN32)
     set(OS_SOURCES speex.rc)
 elseif (APPLE)
@@ -14,13 +13,8 @@ add_library(${PROJECT_NAME} SHARED
             org_jitsi_impl_neomedia_codec_audio_speex_Speex.c
             ${OS_SOURCES})
 
-
-if (NOT ${USE_SYSTEM_SPEEX})
-    add_dependencies(${PROJECT_NAME} ext_lib_speex)
-else ()
-    find_package(speexdsp REQUIRED)
-    find_package(speex REQUIRED)
-endif ()
+find_package(speexdsp REQUIRED)
+find_package(speex REQUIRED)
 
 target_link_libraries(${PROJECT_NAME} LINK_PUBLIC
                       ${JNI_LIBRARIES}

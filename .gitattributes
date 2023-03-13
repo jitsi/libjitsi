@@ -3,3 +3,4 @@
 *.c text eol=lf
 *.cpp text eol=lf
 *.m text eol=lf
+vcpkg-ppc64el.patch text eol=crlf

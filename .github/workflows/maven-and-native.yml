@@ -296,6 +296,7 @@ jobs:
       matrix:
         arch:
           - x86_64
+          - arm64
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -321,12 +322,12 @@ jobs:
         run: |
           git config --global user.email "dev@jitsi.org"
           git config --global user.name "Jitsi GitHub Action"
-          brew install nasm
+          brew install nasm autoconf automake libtool
           resources/mac-cmake.sh ${{ steps.install_java.outputs.path }} ${{ matrix.arch }}
 
       - name: The job has failed
         if: ${{ failure() }}
-        run: tar --exclude *.o -cvJf target/debug-logs.tar.xz src/native/cmake-build
+        run: tar --exclude *.o -cvJf target/debug-logs.tar.xz src/native/cmake-build-${{ matrix.arch }}
 
       - name: Upload Debug logs
         if: ${{ failure() }}

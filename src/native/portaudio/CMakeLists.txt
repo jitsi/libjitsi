@@ -46,13 +46,8 @@ add_library(${PROJECT_NAME} SHARED
             org_jitsi_impl_neomedia_portaudio_Pa.c
             ${OS_SOURCES})
 
-if (NOT ${USE_SYSTEM_SPEEX})
-    add_dependencies(${PROJECT_NAME} ext_lib_speexdsp)
-    add_dependencies(${PROJECT_NAME} ext_lib_speex)
-else ()
-    find_package(speexdsp REQUIRED)
-    find_package(speex REQUIRED)
-endif ()
+find_package(speexdsp REQUIRED)
+find_package(speex REQUIRED)
 
 # we cannot use the system default portaudio - it has no hotplug
 add_dependencies(${PROJECT_NAME} ext_lib_portaudio)
