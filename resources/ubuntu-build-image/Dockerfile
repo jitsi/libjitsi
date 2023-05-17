@@ -1,4 +1,4 @@
-FROM ubuntu:bionic
+FROM ubuntu:focal
 
 ARG ARCH=x86-64
 ARG JAVA_VERSION=11

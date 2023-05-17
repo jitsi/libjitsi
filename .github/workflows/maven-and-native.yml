@@ -106,7 +106,7 @@ jobs:
 
   ubuntu:
     name: Linux Static Natives ${{ matrix.arch }}
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     needs: javatest
     strategy:
       fail-fast: false
@@ -130,8 +130,15 @@ jobs:
           path: target/native
 
       - name: Install packages for native build
+        env:
+          DEBIAN_FRONTEND: noninteractive
         run: |
-          if [ "${{ matrix.arch }}" != "x86" ] && [ "${{ matrix.arch }}" != "x86-64" ]; then
+          ls -al /etc/apt/sources.list.d/
+          cat /etc/apt/sources.list
+          sudo rm -f /etc/apt/sources.list.d/ubuntu-toolchain-r-ubuntu-test-focal.list
+          sudo apt-get remove --purge g++-9 g++-10
+          sudo apt-get autoremove --purge
+          if [ "${{ matrix.arch }}" != "i386" ] && [ "${{ matrix.arch }}" != "x86-64" ]; then
             sudo cp -f resources/ubuntu-build-image/ports-sources.list /etc/apt/sources.list
           fi
           sudo ./resources/ubuntu-build-image/packages.sh ${{ matrix.arch }} ${{ env.RELEASE_JAVA_VERSION }}

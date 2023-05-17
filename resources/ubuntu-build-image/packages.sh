@@ -49,5 +49,5 @@ PACKAGES+=(
      "openjdk-$JAVA_VERSION-jdk:$DEBARCH")
 
 DEBIAN_FRONTEND=noninteractive apt-get update && \
- apt-get install --no-install-recommends -y "${PACKAGES[@]}" && \
+ apt-get install -o Debug::pkgProblemResolver=true -y "${PACKAGES[@]}" && \
  rm -rf /var/lib/apt/lists/*
