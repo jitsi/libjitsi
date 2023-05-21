@@ -58,21 +58,21 @@ jobs:
               git config --local user.name "$GITHUB_ACTOR via GitHub Actions"
               git config --local user.email "actions@github.com"
               git tag -a "$TAG_NAME" -m "Tagged automatically by GitHub Actions ${{ github.workflow }}"
-              echo "::set-output name=create_tag::true"
+              echo "create_tag=true" >> $GITHUB_OUTPUT
             else
               echo "Tag: $TAG_NAME already exists"
-              echo "::set-output name=create_tag::false"
+              echo "create_tag=false" >> $GITHUB_OUTPUT
             fi
             VERSION=`git describe --match "v[0-9\.]*" --long --always`
             VERSION=${VERSION:1}
           else
             echo "Not on master"
-            echo "::set-output name=create_tag::false"
+            echo "create_tag=false" >> $GITHUB_OUTPUT
             VERSION=${MVNVER}
           fi
           echo "Version: $VERSION"
-          echo "::set-output name=version::${VERSION}"
-          echo "::set-output name=tag_name::${TAG_NAME}"
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "tag_name=${TAG_NAME}" >> $GITHUB_OUTPUT
 
   javatest:
     name: Java ${{ matrix.java }} Test
@@ -141,7 +141,7 @@ jobs:
           echo "Get::allow-downgrades \"true\";" | sudo tee /etc/apt/apt.conf.d/99-downgrades
           echo "Get::Assume-Yes \"true\";" | sudo tee -a /etc/apt/apt.conf.d/99-downgrades
           sudo ./resources/ubuntu-build-image/ppa-purge.sh ppa:ondrej/php -y true
-          if [ "${{ matrix.arch }}" != "i386" ] && [ "${{ matrix.arch }}" != "x86-64" ]; then
+          if [ "${{ matrix.arch }}" != "x86" ] && [ "${{ matrix.arch }}" != "x86-64" ]; then
             sudo cp -f resources/ubuntu-build-image/ports-sources.list /etc/apt/sources.list
           fi
           sudo ./resources/ubuntu-build-image/packages.sh ${{ matrix.arch }} ${{ env.RELEASE_JAVA_VERSION }}
