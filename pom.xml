@@ -45,7 +45,7 @@
   </licenses>
 
   <properties>
-    <bouncycastle.version>1.74</bouncycastle.version>
+    <bouncycastle.version>1.75</bouncycastle.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
 
@@ -99,7 +99,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-srtp</artifactId>
-      <version>1.1-10-gd9bbebf</version>
+      <version>1.1-13-g1d0db60</version>
     </dependency>
     <dependency>
       <groupId>org.opentelecoms.sdp</groupId>
