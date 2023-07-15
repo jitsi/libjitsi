@@ -69,7 +69,7 @@
     <dependency>
       <groupId>net.java.dev.jna</groupId>
       <artifactId>jna</artifactId>
-      <version>5.11.0</version>
+      <version>5.13.0</version>
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
@@ -94,7 +94,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-utils</artifactId>
-      <version>1.0-114-g43815ed</version>
+      <version>1.0-126-g02b0c86</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -109,7 +109,7 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-lgpl-dependencies</artifactId>
-      <version>1.2-21-gc4508d5</version>
+      <version> 1.2-23-g7b49874</version>
       <scope>provided</scope>
       <optional>true</optional>
     </dependency>
@@ -132,7 +132,7 @@
     <dependency>
       <groupId>org.jetbrains</groupId>
       <artifactId>annotations</artifactId>
-      <version>23.0.0</version>
+      <version>24.0.1</version>
       <scope>provided</scope>
     </dependency>
 
@@ -140,13 +140,13 @@
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-engine</artifactId>
-      <version>5.8.2</version>
+      <version>5.9.3</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
-      <version>4.5.1</version>
+      <version>5.4.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -160,9 +160,24 @@
   <build>
     <plugins>
       <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>versions-maven-plugin</artifactId>
+        <version>2.16.0</version>
+        <configuration>
+          <ruleSet>
+            <ignoreVersions>
+              <ignoreVersion>
+                <type>regex</type>
+                <version>.+-(alpha|beta|M|RC).*</version>
+              </ignoreVersion>
+            </ignoreVersions>
+          </ruleSet>
+        </configuration>
+      </plugin>
+      <plugin>
         <groupId>org.apache.felix</groupId>
         <artifactId>maven-bundle-plugin</artifactId>
-        <version>5.1.6</version>
+        <version>5.1.9</version>
         <extensions>true</extensions>
         <configuration>
           <excludeDependencies>jitsi-lgpl-dependencies</excludeDependencies>
@@ -198,7 +213,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.10.1</version>
+        <version>3.11.0</version>
         <configuration>
           <release>11</release>
           <compilerArgs>
@@ -210,12 +225,12 @@
       </plugin>
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.22.2</version>
+        <version>3.1.2</version>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
-        <version>3.4.0</version>
+        <version>3.5.0</version>
         <configuration>
           <doclint>-missing</doclint>
           <source>11</source>
@@ -224,7 +239,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-source-plugin</artifactId>
-        <version>3.2.1</version>
+        <version>3.3.0</version>
         <configuration>
           <excludeResources>true</excludeResources>
         </configuration>
@@ -232,17 +247,17 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-resources-plugin</artifactId>
-        <version>3.2.0</version>
+        <version>3.3.1</version>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-install-plugin</artifactId>
-        <version>3.0.0-M1</version>
+        <version>3.1.1</version>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-deploy-plugin</artifactId>
-        <version>3.0.0-M2</version>
+        <version>3.1.1</version>
       </plugin>
       <plugin>
         <groupId>org.sonatype.plugins</groupId>

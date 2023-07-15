@@ -275,7 +275,7 @@ jobs:
           git config --global user.name "Jitsi GitHub Action"
           cd $Env:GITHUB_WORKSPACE/src/native/
           $java_home = "${{ steps.install_java.outputs.path }}".Replace("\\", "/")
-          cmake -B cmake-build-${{ matrix.arch.actions }} -A ${{ matrix.arch.cmake }} -DJAVA_HOME=$java_home
+          cmake -B cmake-build-${{ matrix.arch.actions }} -DVCPKG_TARGET_TRIPLET=${{ matrix.arch.cmake }}-windows-static -A ${{ matrix.arch.cmake }} -DJAVA_HOME=$java_home
           cmake --build cmake-build-${{ matrix.arch.actions }} --config Release --target install --parallel
 
       - name: Gather logs on failure

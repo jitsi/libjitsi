@@ -177,13 +177,9 @@ public class LibJitsiImpl
                 if (!suppressClassNotFoundException)
                     exception = cnfe;
             }
-            catch (ExceptionInInitializerError eiie)
+            catch (LinkageError eiie)
             {
                 exception = eiie;
-            }
-            catch (LinkageError le)
-            {
-                exception = le;
             }
 
             T service = null;
@@ -193,21 +189,16 @@ public class LibJitsiImpl
                 try
                 {
                     @SuppressWarnings("unchecked")
-                    T t = (T) implClass.newInstance();
+                    T t = (T) implClass.getConstructor().newInstance();
 
                     service = t;
                 }
-                catch (Throwable t)
+                catch (Exception e)
                 {
-                    if (t instanceof ThreadDeath)
+                    exception = e;
+                    if (e instanceof InterruptedException)
                     {
-                        throw (ThreadDeath) t;
-                    }
-                    else
-                    {
-                        exception = t;
-                        if (t instanceof InterruptedException)
-                            Thread.currentThread().interrupt();
+                        Thread.currentThread().interrupt();
                     }
                 }
             }
