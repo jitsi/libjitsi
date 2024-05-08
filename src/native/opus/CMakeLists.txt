@@ -24,7 +24,7 @@ if (NOT ${USE_SYSTEM_OPUS})
     externalproject_add(ext_lib_opus
                         INSTALL_DIR ${OPUS_ROOT}
                         GIT_REPOSITORY https://github.com/xiph/opus
-                        GIT_TAG 82ac57d9f1aaf575800cf17373348e45b7ce6c0d
+                        GIT_TAG ddbe48383984d56acd9e1ab6a090c54ca6b735a6
                         GIT_SHALLOW false
                         CMAKE_ARGS
                         -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
