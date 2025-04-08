@@ -106,7 +106,7 @@ jobs:
 
   ubuntu:
     name: Linux Static Natives ${{ matrix.arch }}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: javatest
     strategy:
       fail-fast: false
