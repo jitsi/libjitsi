@@ -25,7 +25,7 @@ dpkg --add-architecture $DEBARCH
 if [[ "$GNUARCH" == "" ]]; then
     PACKAGES+=(g++-multilib gcc-multilib)
 else
-    PACKAGES+=("libgcc-7-dev:$DEBARCH" "g++-$GNUARCH-linux-gnu" "gcc-$GNUARCH-linux-gnu")
+    PACKAGES+=("libgcc-9-dev:$DEBARCH" "g++-$GNUARCH-linux-gnu" "gcc-$GNUARCH-linux-gnu")
 fi;
 
 PACKAGES+=(

@@ -1,4 +1,4 @@
-FROM ubuntu:focal
+FROM ubuntu:jammy
 
 ARG ARCH=x86-64
 ARG JAVA_VERSION=11
