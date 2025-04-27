@@ -133,14 +133,6 @@ jobs:
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
-          # Remove broken packages from pre-installed php in Actions image
-          # No longer needed in ubuntu-22.04
-          sudo apt-get remove -y libpcre2-dev libicu-dev icu-devtools
-          sudo apt-add-repository ppa:ondrej/php -y
-          sudo apt-get install -y aptitude
-          echo "Get::allow-downgrades \"true\";" | sudo tee /etc/apt/apt.conf.d/99-downgrades
-          echo "Get::Assume-Yes \"true\";" | sudo tee -a /etc/apt/apt.conf.d/99-downgrades
-          sudo ./resources/ubuntu-build-image/ppa-purge.sh ppa:ondrej/php -y true
           if [ "${{ matrix.arch }}" != "x86" ] && [ "${{ matrix.arch }}" != "x86-64" ]; then
             sudo cp -f resources/ubuntu-build-image/ports-sources.list /etc/apt/sources.list
           fi
@@ -228,7 +220,8 @@ jobs:
           resources/deb-build.sh \
             "${{ needs.version.outputs.version }}" \
             "${{ matrix.dist.dist }}" \
-            "${{ matrix.arch }}"
+            "${{ matrix.arch }}" \
+            "dev+maven@jitsi.org"
 
       - name: Upload package as artifact
         uses: actions/upload-artifact@v4
@@ -441,7 +434,8 @@ jobs:
 
       - name: Create release
         if: github.ref == 'refs/heads/master'
-        uses: ncipollo/release-action@37c87f6b53fb46d40450c3cac428aa83c8d0055f
+        # v1.16.0
+        uses: ncipollo/release-action@440c8c1cb0ed28b9f43e4d1d670870f059653174
         with:
           artifacts: "target/*.jar,debian-releases.tar"
           allowUpdates: true
