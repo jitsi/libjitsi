@@ -25,7 +25,7 @@ dpkg --add-architecture $DEBARCH
 if [[ "$GNUARCH" == "" ]]; then
     PACKAGES+=(g++-multilib gcc-multilib)
 else
-    PACKAGES+=("libgcc-9-dev:$DEBARCH" "g++-$GNUARCH-linux-gnu" "gcc-$GNUARCH-linux-gnu")
+    PACKAGES+=("crossbuild-essential-${DEBARCH}")
 fi;
 
 PACKAGES+=(
@@ -46,6 +46,10 @@ PACKAGES+=(
      "libxext-dev:$DEBARCH" \
      "libxt-dev:$DEBARCH" \
      "libxv-dev:$DEBARCH" \
+     "libopus-dev:$DEBARCH" \
+     "libspeex-dev:$DEBARCH" \
+     "libspeexdsp-dev:$DEBARCH" \
+     "libvpx-dev:$DEBARCH" \
      "openjdk-$JAVA_VERSION-jdk:$DEBARCH")
 
 DEBIAN_FRONTEND=noninteractive apt-get update && \
