@@ -26,12 +26,12 @@ jobs:
       tag_name: ${{ steps.version.outputs.tag_name }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Set up JDK
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: ${{ env.RELEASE_JAVA_VERSION }}
           distribution: temurin
@@ -39,7 +39,7 @@ jobs:
       # don't use the setup-java cache option as this only caches what is
       # necessary for the version, not the other jobs
       - name: Cache local Maven repository
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-version-${{ hashFiles('**/pom.xml') }}
@@ -83,12 +83,12 @@ jobs:
         java: [ 11, 17 ]
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: false
 
       - name: Install Java ${{ matrix.java }}
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: ${{ matrix.java }}
           distribution: temurin
@@ -99,14 +99,14 @@ jobs:
 
       - name: Upload JNI headers
         if: matrix.java == env.RELEASE_JAVA_VERSION
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: jni_headers
           path: target/native
 
   ubuntu:
     name: Linux Static Natives ${{ matrix.arch }}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: javatest
     strategy:
       fail-fast: false
@@ -118,13 +118,13 @@ jobs:
           - "ppc64el"
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           submodules: true
 
       - name: Get JNI headers
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: jni_headers
           path: target/native
@@ -150,7 +150,7 @@ jobs:
         run: ./resources/ubuntu-build-image/build-static.sh ${{ matrix.arch }} ${{ env.RELEASE_JAVA_VERSION }} "$(pwd)"
 
       - name: Upload Linux ${{ matrix.arch }} natives
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: linux-${{ matrix.arch }}
           path: src/main/resources/linux-*/*
@@ -188,13 +188,13 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           submodules: true
 
       - name: Get JNI headers
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: jni_headers
           path: target/native
@@ -202,7 +202,7 @@ jobs:
       # don't use the setup-java cache option as this only caches what is
       # necessary for the version, not the other jobs
       - name: Cache local Maven repository
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-version-${{ hashFiles('**/pom.xml') }}
@@ -232,7 +232,7 @@ jobs:
             "${{ matrix.arch }}"
 
       - name: Upload package as artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.dist.vendor }}-${{ matrix.dist.dist }}-${{ matrix.arch }}
           path: target/debian/${{ matrix.dist.dist }}/*
@@ -249,20 +249,20 @@ jobs:
           - { actions: x64, cmake: x64, java: "x86-64" }
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           submodules: true
 
       - name: Get JNI headers
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: jni_headers
           path: target/native
 
       - name: Install Java ${{ env.RELEASE_JAVA_VERSION }}
         id: install_java
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: ${{ env.RELEASE_JAVA_VERSION }}
@@ -285,13 +285,13 @@ jobs:
 
       - name: Upload Debug logs
         if: ${{ failure() }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: win32-debug-${{ matrix.arch.java }}
           path: target/debug*
 
       - name: Upload Windows ${{ matrix.arch.actions }} natives
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: win32-${{ matrix.arch.java }}
           path: src/main/resources/win32-*/*
@@ -308,20 +308,20 @@ jobs:
           - arm64
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           submodules: true
 
       - name: Get JNI headers
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: jni_headers
           path: target/native
 
       - name: Install Java
         id: install_java
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: zulu
           java-version: ${{ env.RELEASE_JAVA_VERSION }}
@@ -340,13 +340,13 @@ jobs:
 
       - name: Upload Debug logs
         if: ${{ failure() }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: darwin-debug-${{ matrix.arch }}
           path: target/debug*
 
       - name: Upload Mac natives
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: darwin-${{ matrix.arch }}
           path: src/main/resources/darwin-*/*
@@ -363,13 +363,13 @@ jobs:
       - deb
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           submodules: false
 
       - name: Install Java ${{ env.RELEASE_JAVA_VERSION }}
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: ${{ env.RELEASE_JAVA_VERSION }}
           distribution: temurin
@@ -379,7 +379,7 @@ jobs:
           server-password: SONATYPE_PW
 
       - name: Download binaries
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: target
 
@@ -430,7 +430,7 @@ jobs:
             package
 
       - name: Upload Multi-Platform Jar
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: jar
           path: target/*.jar
