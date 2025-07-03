@@ -398,8 +398,8 @@ jobs:
       - name: Release to Maven Central
         if: github.ref == 'refs/heads/master'
         env:
-          SONATYPE_USER: ${{ secrets.SONATYPE_USER }}
-          SONATYPE_PW: ${{ secrets.SONATYPE_PW }}
+          SONATYPE_USER: ${{ secrets.SONATYPE_USER_2 }}
+          SONATYPE_PW: ${{ secrets.SONATYPE_PW_2 }}
         run: |
           cat <(echo -e "${{ secrets.GPG_KEY }}") | gpg --batch --import
           gpg --list-secret-keys --keyid-format LONG
