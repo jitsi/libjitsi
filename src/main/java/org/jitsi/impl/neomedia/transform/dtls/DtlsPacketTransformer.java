@@ -91,7 +91,7 @@ public class DtlsPacketTransformer
      * The number of milliseconds a <tt>DtlsPacketTransform</tt> is to wait on
      * its {@link #dtlsTransport} in order to receive a packet.
      */
-    private static final int DTLS_TRANSPORT_RECEIVE_WAITMILLIS = -1;
+    private static final int DTLS_TRANSPORT_RECEIVE_WAITMILLIS = 1;
 
     /**
      * The <tt>Logger</tt> used by the <tt>DtlsPacketTransformer</tt> class and
@@ -1412,7 +1412,7 @@ public class DtlsPacketTransformer
         }
         else
         {
-            // SRTP 
+            // SRTP
             transformSrtp(inPkts, transform, outPkts);
         }
         return outPkts;
