@@ -29,6 +29,8 @@ sudo apt-get install -y \
   schroot \
   apt-utils \
   aptitude \
+  qemu-user-static \
+  binfmt-support \
   "$DEVTOOLS_PACKAGE" \
   "$UBUNTUTOOLS_PACKAGE" \
   debian-archive-keyring \

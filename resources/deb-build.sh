@@ -24,65 +24,18 @@ mkdir -p "${BUILD_DIR}"
 sudo tee -a /etc/fstab < "${PROJECT_DIR}/resources/sbuild-tmpfs"
 
 if [[ "${ARCH}" != "amd64" ]]; then
-  # Create cross-compilation chroot
-  mk-sbuild "${DIST}" --arch=amd64 --target "${ARCH}" --type=file --skip-proposed || sbuild-update -udc "${DIST}"-amd64-"${ARCH}"
+  # For non-amd64, set mirror for ports if needed
+  if [[ "${ARCH}" == "arm64" || "${ARCH}" == "ppc64el" ]]; then
+    if ubuntu-distro-info --all | grep -Fqxi "${DIST}"; then
+      export DEBOOTSTRAP_MIRROR=http://ports.ubuntu.com/ubuntu-ports
+    fi
+  fi
+
+  # Create native chroot for the target architecture (using QEMU for emulation)
+  mk-sbuild "${DIST}" --arch="${ARCH}" --type=file --skip-proposed || sbuild-update -udc "${DIST}"-"${ARCH}"
 
   # union-type= is not valid for type=file, remove to prevent warnings
-  sudo sed -i s/union-type=.*//g "/etc/schroot/chroot.d/sbuild-${DIST}-amd64-${ARCH}"
-
-  # Configure sources.list for multiarch in the chroot
-  CHROOT_PATH="/var/lib/schroot/chroots/${DIST}-amd64-${ARCH}"
-  if [ -d "${CHROOT_PATH}" ]; then
-    # Ensure target architecture is added
-    sudo chroot "${CHROOT_PATH}" dpkg --add-architecture "${ARCH}" || true
-
-    # Completely rewrite sources.list for proper multiarch support
-    if [[ "${ARCH}" == "arm64" || "${ARCH}" == "ppc64el" ]]; then
-      if ubuntu-distro-info --all | grep -Fqxi "${DIST}"; then
-        # For Ubuntu: amd64 from main archive, arm64/ppc64el from ports
-        sudo tee "${CHROOT_PATH}/etc/apt/sources.list" > /dev/null <<EOF
-deb [arch=amd64] http://archive.ubuntu.com/ubuntu ${DIST} main universe
-deb [arch=amd64] http://archive.ubuntu.com/ubuntu ${DIST}-updates main universe
-deb [arch=arm64,ppc64el] http://ports.ubuntu.com/ubuntu-ports ${DIST} main universe
-deb [arch=arm64,ppc64el] http://ports.ubuntu.com/ubuntu-ports ${DIST}-updates main universe
-EOF
-      elif debian-distro-info --all | grep -Fqxi "${DIST}"; then
-        # For Debian: all architectures from main repository
-        sudo tee "${CHROOT_PATH}/etc/apt/sources.list" > /dev/null <<EOF
-deb [arch=amd64] http://deb.debian.org/debian ${DIST} main
-deb [arch=amd64] http://deb.debian.org/debian ${DIST}-updates main
-deb [arch=arm64,ppc64el] http://deb.debian.org/debian ${DIST} main
-deb [arch=arm64,ppc64el] http://deb.debian.org/debian ${DIST}-updates main
-EOF
-      fi
-    fi
-
-    # Disable sbuild-cross-resolver by removing it from apt config
-    sudo rm -f "${CHROOT_PATH}/etc/apt/apt.conf.d/00sbuild-cross-resolver" || true
-
-    # Disable all external APT solvers
-    sudo mkdir -p "${CHROOT_PATH}/etc/apt/apt.conf.d"
-    echo 'APT::Solver "";' | sudo tee "${CHROOT_PATH}/etc/apt/apt.conf.d/99-no-external-solver" > /dev/null
-
-    # Update package lists
-    sudo chroot "${CHROOT_PATH}" apt-get update || true
-
-    # Install crossbuild-essential for the target architecture
-    sudo chroot "${CHROOT_PATH}" apt-get install -y --no-install-recommends crossbuild-essential-"${ARCH}" || true
-
-    # Pre-install the arm64/ppc64el dev libraries that sbuild will need
-    sudo chroot "${CHROOT_PATH}" apt-get install -y --no-install-recommends \
-      libasound2-dev:"${ARCH}" \
-      libpulse-dev:"${ARCH}" \
-      libx11-dev:"${ARCH}" \
-      libxext-dev:"${ARCH}" \
-      libxt-dev:"${ARCH}" \
-      libxv-dev:"${ARCH}" \
-      libopus-dev:"${ARCH}" \
-      libspeex-dev:"${ARCH}" \
-      libspeexdsp-dev:"${ARCH}" \
-      libvpx-dev:"${ARCH}" || true
-  fi
+  sudo sed -i s/union-type=.*//g "/etc/schroot/chroot.d/sbuild-${DIST}-${ARCH}"
 else
   if debian-distro-info --all | grep -Fqxi "${DIST}"; then
     export DEBOOTSTRAP_MIRROR=${DEBOOTSTRAP_MIRROR:-$UBUNTUTOOLS_DEBIAN_MIRROR}
@@ -98,14 +51,12 @@ fi
 mvn -B versions:set -DnewVersion="${VERSION}" -DgenerateBackupPoms=false
 "${PROJECT_DIR}/resources/deb-gen-source.sh" "${VERSION}" "${DIST}"
 export SBUILD_CONFIG="${PROJECT_DIR}/resources/sbuildrc"
-if [[ "${ARCH}" != "amd64" ]]; then
-  sbuild --dist "${DIST}" --no-arch-all --host "${ARCH}" --build=amd64 --no-apt-distupgrade \
-    --build-dep-resolver=apt --resolve-alternatives --no-run-lintian --bd-uninstallable-explainer=none \
-    --chroot-setup-commands="echo 'APT::Solver \"\";' > /etc/apt/apt.conf.d/99-no-external-solver" \
-    "${PROJECT_DIR}"/../libjitsi_*.dsc
-else
+if [[ "${ARCH}" == "amd64" ]]; then
   sbuild --dist "${DIST}" --arch-all "${PROJECT_DIR}"/../libjitsi_*.dsc
   cp "${PROJECT_DIR}"/../libjitsi_* "$BUILD_DIR"
+else
+  # Native build in QEMU-emulated chroot
+  sbuild --dist "${DIST}" --no-arch-all --arch="${ARCH}" "${PROJECT_DIR}"/../libjitsi_*.dsc
 fi
 
 debsign -S -e"${GPG_ID}" "${BUILD_DIR}"/*.changes --re-sign -p"${PROJECT_DIR}"/resources/gpg-wrap.sh
