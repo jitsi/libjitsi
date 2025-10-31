@@ -25,7 +25,6 @@ fi
 
 sudo apt-get install -y \
   debhelper \
-  aptitude \
   sbuild \
   schroot \
   "$DEVTOOLS_PACKAGE" \
