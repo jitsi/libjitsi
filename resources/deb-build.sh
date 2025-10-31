@@ -29,6 +29,15 @@ if [[ "${ARCH}" != "amd64" ]]; then
 
   # union-type= is not valid for type=file, remove to prevent warnings
   sudo sed -i s/union-type=.*//g "/etc/schroot/chroot.d/sbuild-${DIST}-amd64-${ARCH}"
+
+  # Configure sources.list for multiarch in the chroot
+  CHROOT_PATH="/var/lib/schroot/chroots/${DIST}-amd64-${ARCH}"
+  if [ -d "${CHROOT_PATH}" ]; then
+    # Ensure target architecture is added
+    sudo chroot "${CHROOT_PATH}" dpkg --add-architecture "${ARCH}" || true
+    # Update package lists
+    sudo chroot "${CHROOT_PATH}" apt-get update || true
+  fi
 else
   if debian-distro-info --all | grep -Fqxi "${DIST}"; then
     export DEBOOTSTRAP_MIRROR=${DEBOOTSTRAP_MIRROR:-$UBUNTUTOOLS_DEBIAN_MIRROR}
