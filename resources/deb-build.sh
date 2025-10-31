@@ -36,17 +36,28 @@ if [[ "${ARCH}" != "amd64" ]]; then
     # Ensure target architecture is added
     sudo chroot "${CHROOT_PATH}" dpkg --add-architecture "${ARCH}" || true
 
+    # Restrict main sources.list to amd64 only to avoid conflicts
+    sudo sed -i 's/^deb /deb [arch=amd64] /' "${CHROOT_PATH}/etc/apt/sources.list"
+    sudo sed -i 's/^deb-src /deb-src [arch=amd64] /' "${CHROOT_PATH}/etc/apt/sources.list"
+
     # For arm64/ppc64el, we need the ports repository
     if [[ "${ARCH}" == "arm64" || "${ARCH}" == "ppc64el" ]]; then
       # Add ports repository for non-x86 architectures
       if ubuntu-distro-info --all | grep -Fqxi "${DIST}"; then
         echo "deb [arch=arm64,ppc64el] http://ports.ubuntu.com/ubuntu-ports ${DIST} main universe" | sudo tee "${CHROOT_PATH}/etc/apt/sources.list.d/ports.list"
         echo "deb [arch=arm64,ppc64el] http://ports.ubuntu.com/ubuntu-ports ${DIST}-updates main universe" | sudo tee -a "${CHROOT_PATH}/etc/apt/sources.list.d/ports.list"
+      elif debian-distro-info --all | grep -Fqxi "${DIST}"; then
+        # For Debian, arm64 is in the main repository
+        echo "deb [arch=arm64,ppc64el] http://deb.debian.org/debian ${DIST} main" | sudo tee "${CHROOT_PATH}/etc/apt/sources.list.d/ports.list"
+        echo "deb [arch=arm64,ppc64el] http://deb.debian.org/debian ${DIST}-updates main" | sudo tee -a "${CHROOT_PATH}/etc/apt/sources.list.d/ports.list"
       fi
     fi
 
     # Update package lists
     sudo chroot "${CHROOT_PATH}" apt-get update || true
+
+    # Install crossbuild-essential for the target architecture
+    sudo chroot "${CHROOT_PATH}" apt-get install -y --no-install-recommends crossbuild-essential-"${ARCH}" || true
   fi
 else
   if debian-distro-info --all | grep -Fqxi "${DIST}"; then
