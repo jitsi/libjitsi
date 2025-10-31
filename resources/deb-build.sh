@@ -35,6 +35,16 @@ if [[ "${ARCH}" != "amd64" ]]; then
   if [ -d "${CHROOT_PATH}" ]; then
     # Ensure target architecture is added
     sudo chroot "${CHROOT_PATH}" dpkg --add-architecture "${ARCH}" || true
+
+    # For arm64/ppc64el, we need the ports repository
+    if [[ "${ARCH}" == "arm64" || "${ARCH}" == "ppc64el" ]]; then
+      # Add ports repository for non-x86 architectures
+      if ubuntu-distro-info --all | grep -Fqxi "${DIST}"; then
+        echo "deb [arch=arm64,ppc64el] http://ports.ubuntu.com/ubuntu-ports ${DIST} main universe" | sudo tee "${CHROOT_PATH}/etc/apt/sources.list.d/ports.list"
+        echo "deb [arch=arm64,ppc64el] http://ports.ubuntu.com/ubuntu-ports ${DIST}-updates main universe" | sudo tee -a "${CHROOT_PATH}/etc/apt/sources.list.d/ports.list"
+      fi
+    fi
+
     # Update package lists
     sudo chroot "${CHROOT_PATH}" apt-get update || true
   fi
