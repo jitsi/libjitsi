@@ -23,10 +23,15 @@ option(USE_SYSTEM_SPEEX "Use system-installed speex" ${DEFAULT_USE_SYSTEM_SPEEX}
 option(USE_SYSTEM_VPX "Use system-installed vpx" ${DEFAULT_USE_SYSTEM_VPX})
 
 find_package(Git REQUIRED)
+# Apply vcpkg patch, ignore if already applied
 execute_process(
         COMMAND "${GIT_EXECUTABLE}" apply --verbose --binary ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg-ppc64el.patch
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg"
+        RESULT_VARIABLE PATCH_RESULT
 )
+if(PATCH_RESULT AND NOT PATCH_RESULT EQUAL 0)
+    message(STATUS "vcpkg patch already applied or not needed")
+endif()
 if (NOT USE_SYSTEM_SPEEX OR NOT USE_SYSTEM_VPX)
     set(CMAKE_TOOLCHAIN_FILE ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake
         CACHE STRING "Vcpkg toolchain file")

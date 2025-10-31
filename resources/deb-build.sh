@@ -24,10 +24,18 @@ mkdir -p "${BUILD_DIR}"
 sudo tee -a /etc/fstab < "${PROJECT_DIR}/resources/sbuild-tmpfs"
 
 if [[ "${ARCH}" != "amd64" ]]; then
-  mk-sbuild "${DIST}" --target "${ARCH}" --type=file --debootstrap-include=ca-certificates || sbuild-update -udc "${DIST}"-amd64-"${ARCH}"
+  # For non-amd64, set mirror for ports if needed
+  if [[ "${ARCH}" == "arm64" || "${ARCH}" == "ppc64el" ]]; then
+    if ubuntu-distro-info --all | grep -Fqxi "${DIST}"; then
+      export DEBOOTSTRAP_MIRROR=http://ports.ubuntu.com/ubuntu-ports
+    fi
+  fi
+
+  # Create native chroot for the target architecture (using QEMU for emulation)
+  mk-sbuild "${DIST}" --arch="${ARCH}" --type=file --skip-proposed || sbuild-update -udc "${DIST}"-"${ARCH}"
 
   # union-type= is not valid for type=file, remove to prevent warnings
-  sudo sed -i s/union-type=.*//g "/etc/schroot/chroot.d/sbuild-${DIST}-amd64-${ARCH}"
+  sudo sed -i s/union-type=.*//g "/etc/schroot/chroot.d/sbuild-${DIST}-${ARCH}"
 else
   if debian-distro-info --all | grep -Fqxi "${DIST}"; then
     export DEBOOTSTRAP_MIRROR=${DEBOOTSTRAP_MIRROR:-$UBUNTUTOOLS_DEBIAN_MIRROR}
@@ -43,11 +51,12 @@ fi
 mvn -B versions:set -DnewVersion="${VERSION}" -DgenerateBackupPoms=false
 "${PROJECT_DIR}/resources/deb-gen-source.sh" "${VERSION}" "${DIST}"
 export SBUILD_CONFIG="${PROJECT_DIR}/resources/sbuildrc"
-if [[ "${ARCH}" != "amd64" ]]; then
-  sbuild --dist "${DIST}" --no-arch-all --host "${ARCH}" "${PROJECT_DIR}"/../libjitsi_*.dsc
-else
+if [[ "${ARCH}" == "amd64" ]]; then
   sbuild --dist "${DIST}" --arch-all "${PROJECT_DIR}"/../libjitsi_*.dsc
   cp "${PROJECT_DIR}"/../libjitsi_* "$BUILD_DIR"
+else
+  # Native build in QEMU-emulated chroot
+  sbuild --dist "${DIST}" --no-arch-all --arch="${ARCH}" "${PROJECT_DIR}"/../libjitsi_*.dsc
 fi
 
 debsign -S -e"${GPG_ID}" "${BUILD_DIR}"/*.changes --re-sign -p"${PROJECT_DIR}"/resources/gpg-wrap.sh
