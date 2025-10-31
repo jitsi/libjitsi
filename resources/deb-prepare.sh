@@ -27,6 +27,7 @@ sudo apt-get install -y \
   debhelper \
   sbuild \
   schroot \
+  aspcud \
   "$DEVTOOLS_PACKAGE" \
   "$UBUNTUTOOLS_PACKAGE" \
   debian-archive-keyring \

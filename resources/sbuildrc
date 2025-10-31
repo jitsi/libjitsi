@@ -4,7 +4,8 @@ $build_dir = $ENV{'BUILD_DIR'};
 $run_lintian = 0;
 $apt_update = 1;
 $apt_distupgrade = 1;
-$build_dep_resolver = 'apt';
+$build_dep_resolver = 'aspcud';
+$resolve_alternatives = 1;
 $mailto = '';
 $mailprog = '';
 

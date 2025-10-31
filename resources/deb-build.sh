@@ -44,7 +44,7 @@ mvn -B versions:set -DnewVersion="${VERSION}" -DgenerateBackupPoms=false
 "${PROJECT_DIR}/resources/deb-gen-source.sh" "${VERSION}" "${DIST}"
 export SBUILD_CONFIG="${PROJECT_DIR}/resources/sbuildrc"
 if [[ "${ARCH}" != "amd64" ]]; then
-  sbuild --dist "${DIST}" --no-arch-all --host "${ARCH}" "${PROJECT_DIR}"/../libjitsi_*.dsc
+  sbuild --dist "${DIST}" --no-arch-all --host "${ARCH}" --build=amd64 --resolve-alternatives "${PROJECT_DIR}"/../libjitsi_*.dsc
 else
   sbuild --dist "${DIST}" --arch-all "${PROJECT_DIR}"/../libjitsi_*.dsc
   cp "${PROJECT_DIR}"/../libjitsi_* "$BUILD_DIR"
