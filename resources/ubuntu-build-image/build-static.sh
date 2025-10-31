@@ -37,18 +37,10 @@ esac
 export JAVA_HOME=/usr/lib/jvm/java-$JAVA_VERSION-openjdk-$JAVA_ARCH
 
 cd "$LIBROOT/src/native" || exit 1
-
-# Use community triplets for arm64 and ppc64le
-if [ "$VCPKG_ARCH" = "arm64" ] || [ "$VCPKG_ARCH" = "ppc64le" ]; then
-  VCPKG_TRIPLET="community/$VCPKG_ARCH-linux"
-else
-  VCPKG_TRIPLET="$VCPKG_ARCH-linux"
-fi
-
 cmake -B cmake-build-$ARCH \
   -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=$TOOLCHAIN \
   -DVCPKG_VERBOSE=ON \
-  -DVCPKG_TARGET_TRIPLET=$VCPKG_TRIPLET \
+  -DVCPKG_TARGET_TRIPLET=$VCPKG_ARCH-linux \
   -DVCPKG_BUILD_TYPE=release \
   -DCMAKE_BUILD_TYPE=release \
   -DCMAKE_C_FLAGS="$CFLAGS" \
