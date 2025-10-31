@@ -61,6 +61,19 @@ if [[ "${ARCH}" != "amd64" ]]; then
 
     # Install crossbuild-essential for the target architecture
     sudo chroot "${CHROOT_PATH}" apt-get install -y --no-install-recommends crossbuild-essential-"${ARCH}" || true
+
+    # Pre-install the arm64/ppc64el dev libraries that sbuild will need
+    sudo chroot "${CHROOT_PATH}" apt-get install -y --no-install-recommends \
+      libasound2-dev:"${ARCH}" \
+      libpulse-dev:"${ARCH}" \
+      libx11-dev:"${ARCH}" \
+      libxext-dev:"${ARCH}" \
+      libxt-dev:"${ARCH}" \
+      libxv-dev:"${ARCH}" \
+      libopus-dev:"${ARCH}" \
+      libspeex-dev:"${ARCH}" \
+      libspeexdsp-dev:"${ARCH}" \
+      libvpx-dev:"${ARCH}" || true
   fi
 else
   if debian-distro-info --all | grep -Fqxi "${DIST}"; then
