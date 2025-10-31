@@ -37,17 +37,33 @@ esac
 export JAVA_HOME=/usr/lib/jvm/java-$JAVA_VERSION-openjdk-$JAVA_ARCH
 
 cd "$LIBROOT/src/native" || exit 1
-cmake -B cmake-build-$ARCH \
-  -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=$TOOLCHAIN \
-  -DVCPKG_VERBOSE=ON \
-  -DVCPKG_TARGET_TRIPLET=$VCPKG_ARCH-linux \
-  -DVCPKG_BUILD_TYPE=release \
-  -DCMAKE_BUILD_TYPE=release \
-  -DCMAKE_C_FLAGS="$CFLAGS" \
-  -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
-  -DUSE_SYSTEM_OPUS=OFF \
-  -DUSE_SYSTEM_SPEEX=OFF \
-  -DUSE_SYSTEM_USRSCTP=OFF \
-  -DUSE_SYSTEM_VPX=OFF
+
+# For ppc64el, vcpkg cross-compilation is broken, use system libraries
+if [ "$ARCH" = "ppc64el" ]; then
+  USE_SYSTEM_LIBS=ON
+  # When using system libs, we need to use the toolchain directly instead of vcpkg
+  cmake -B cmake-build-$ARCH \
+    -DCMAKE_TOOLCHAIN_FILE=$TOOLCHAIN \
+    -DCMAKE_BUILD_TYPE=release \
+    -DCMAKE_C_FLAGS="$CFLAGS" \
+    -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+    -DUSE_SYSTEM_OPUS=ON \
+    -DUSE_SYSTEM_SPEEX=ON \
+    -DUSE_SYSTEM_USRSCTP=OFF \
+    -DUSE_SYSTEM_VPX=ON
+else
+  cmake -B cmake-build-$ARCH \
+    -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=$TOOLCHAIN \
+    -DVCPKG_VERBOSE=ON \
+    -DVCPKG_TARGET_TRIPLET=$VCPKG_ARCH-linux \
+    -DVCPKG_BUILD_TYPE=release \
+    -DCMAKE_BUILD_TYPE=release \
+    -DCMAKE_C_FLAGS="$CFLAGS" \
+    -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+    -DUSE_SYSTEM_OPUS=OFF \
+    -DUSE_SYSTEM_SPEEX=OFF \
+    -DUSE_SYSTEM_USRSCTP=OFF \
+    -DUSE_SYSTEM_VPX=OFF
+fi
 
 cmake --build cmake-build-$ARCH --config Release --target install --parallel
