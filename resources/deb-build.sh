@@ -53,6 +53,9 @@ if [[ "${ARCH}" != "amd64" ]]; then
       fi
     fi
 
+    # Disable sbuild-cross-resolver by removing it from apt config
+    sudo rm -f "${CHROOT_PATH}/etc/apt/apt.conf.d/00sbuild-cross-resolver" || true
+
     # Update package lists
     sudo chroot "${CHROOT_PATH}" apt-get update || true
 
