@@ -36,20 +36,24 @@ if [[ "${ARCH}" != "amd64" ]]; then
     # Ensure target architecture is added
     sudo chroot "${CHROOT_PATH}" dpkg --add-architecture "${ARCH}" || true
 
-    # Restrict main sources.list to amd64 only to avoid conflicts
-    sudo sed -i 's/^deb /deb [arch=amd64] /' "${CHROOT_PATH}/etc/apt/sources.list"
-    sudo sed -i 's/^deb-src /deb-src [arch=amd64] /' "${CHROOT_PATH}/etc/apt/sources.list"
-
-    # For arm64/ppc64el, we need the ports repository
+    # Completely rewrite sources.list for proper multiarch support
     if [[ "${ARCH}" == "arm64" || "${ARCH}" == "ppc64el" ]]; then
-      # Add ports repository for non-x86 architectures
       if ubuntu-distro-info --all | grep -Fqxi "${DIST}"; then
-        echo "deb [arch=arm64,ppc64el] http://ports.ubuntu.com/ubuntu-ports ${DIST} main universe" | sudo tee "${CHROOT_PATH}/etc/apt/sources.list.d/ports.list"
-        echo "deb [arch=arm64,ppc64el] http://ports.ubuntu.com/ubuntu-ports ${DIST}-updates main universe" | sudo tee -a "${CHROOT_PATH}/etc/apt/sources.list.d/ports.list"
+        # For Ubuntu: amd64 from main archive, arm64/ppc64el from ports
+        sudo tee "${CHROOT_PATH}/etc/apt/sources.list" > /dev/null <<EOF
+deb [arch=amd64] http://archive.ubuntu.com/ubuntu ${DIST} main universe
+deb [arch=amd64] http://archive.ubuntu.com/ubuntu ${DIST}-updates main universe
+deb [arch=arm64,ppc64el] http://ports.ubuntu.com/ubuntu-ports ${DIST} main universe
+deb [arch=arm64,ppc64el] http://ports.ubuntu.com/ubuntu-ports ${DIST}-updates main universe
+EOF
       elif debian-distro-info --all | grep -Fqxi "${DIST}"; then
-        # For Debian, arm64 is in the main repository
-        echo "deb [arch=arm64,ppc64el] http://deb.debian.org/debian ${DIST} main" | sudo tee "${CHROOT_PATH}/etc/apt/sources.list.d/ports.list"
-        echo "deb [arch=arm64,ppc64el] http://deb.debian.org/debian ${DIST}-updates main" | sudo tee -a "${CHROOT_PATH}/etc/apt/sources.list.d/ports.list"
+        # For Debian: all architectures from main repository
+        sudo tee "${CHROOT_PATH}/etc/apt/sources.list" > /dev/null <<EOF
+deb [arch=amd64] http://deb.debian.org/debian ${DIST} main
+deb [arch=amd64] http://deb.debian.org/debian ${DIST}-updates main
+deb [arch=arm64,ppc64el] http://deb.debian.org/debian ${DIST} main
+deb [arch=arm64,ppc64el] http://deb.debian.org/debian ${DIST}-updates main
+EOF
       fi
     fi
 
@@ -91,30 +95,9 @@ mvn -B versions:set -DnewVersion="${VERSION}" -DgenerateBackupPoms=false
 "${PROJECT_DIR}/resources/deb-gen-source.sh" "${VERSION}" "${DIST}"
 export SBUILD_CONFIG="${PROJECT_DIR}/resources/sbuildrc"
 if [[ "${ARCH}" != "amd64" ]]; then
-  # Add ports repository for cross-compilation
-  if [[ "${ARCH}" == "arm64" || "${ARCH}" == "ppc64el" ]]; then
-    if ubuntu-distro-info --all | grep -Fqxi "${DIST}"; then
-      sbuild --dist "${DIST}" --no-arch-all --host "${ARCH}" --build=amd64 --no-apt-distupgrade \
-        --build-dep-resolver=apt --resolve-alternatives --no-run-lintian --bd-uninstallable-explainer=none \
-        --extra-repository='deb [arch=arm64,ppc64el] http://ports.ubuntu.com/ubuntu-ports '"${DIST}"' main universe' \
-        --extra-repository='deb [arch=arm64,ppc64el] http://ports.ubuntu.com/ubuntu-ports '"${DIST}"'-updates main universe' \
-        "${PROJECT_DIR}"/../libjitsi_*.dsc
-    elif debian-distro-info --all | grep -Fqxi "${DIST}"; then
-      sbuild --dist "${DIST}" --no-arch-all --host "${ARCH}" --build=amd64 --no-apt-distupgrade \
-        --build-dep-resolver=apt --resolve-alternatives --no-run-lintian --bd-uninstallable-explainer=none \
-        --extra-repository='deb [arch=arm64,ppc64el] http://deb.debian.org/debian '"${DIST}"' main' \
-        --extra-repository='deb [arch=arm64,ppc64el] http://deb.debian.org/debian '"${DIST}"'-updates main' \
-        "${PROJECT_DIR}"/../libjitsi_*.dsc
-    else
-      sbuild --dist "${DIST}" --no-arch-all --host "${ARCH}" --build=amd64 --no-apt-distupgrade \
-        --build-dep-resolver=apt --resolve-alternatives --no-run-lintian --bd-uninstallable-explainer=none \
-        "${PROJECT_DIR}"/../libjitsi_*.dsc
-    fi
-  else
-    sbuild --dist "${DIST}" --no-arch-all --host "${ARCH}" --build=amd64 --no-apt-distupgrade \
-      --build-dep-resolver=apt --resolve-alternatives --no-run-lintian --bd-uninstallable-explainer=none \
-      "${PROJECT_DIR}"/../libjitsi_*.dsc
-  fi
+  sbuild --dist "${DIST}" --no-arch-all --host "${ARCH}" --build=amd64 --no-apt-distupgrade \
+    --build-dep-resolver=apt --resolve-alternatives --no-run-lintian --bd-uninstallable-explainer=none \
+    "${PROJECT_DIR}"/../libjitsi_*.dsc
 else
   sbuild --dist "${DIST}" --arch-all "${PROJECT_DIR}"/../libjitsi_*.dsc
   cp "${PROJECT_DIR}"/../libjitsi_* "$BUILD_DIR"
