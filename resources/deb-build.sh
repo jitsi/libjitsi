@@ -24,10 +24,14 @@ mkdir -p "${BUILD_DIR}"
 sudo tee -a /etc/fstab < "${PROJECT_DIR}/resources/sbuild-tmpfs"
 
 if [[ "${ARCH}" != "amd64" ]]; then
-  mk-sbuild "${DIST}" --target "${ARCH}" --type=file --debootstrap-include=ca-certificates --skip-proposed || sbuild-update -udc "${DIST}"-amd64-"${ARCH}"
+  mk-sbuild "${DIST}" --target "${ARCH}" --type=file --debootstrap-include=ca-certificates,crossbuild-essential-"${ARCH}" --skip-proposed || sbuild-update -udc "${DIST}"-amd64-"${ARCH}"
 
   # union-type= is not valid for type=file, remove to prevent warnings
   sudo sed -i s/union-type=.*//g "/etc/schroot/chroot.d/sbuild-${DIST}-amd64-${ARCH}"
+
+  # Ensure the target architecture is added to the chroot
+  sudo schroot -c source:"${DIST}"-amd64-"${ARCH}" -u root -- dpkg --add-architecture "${ARCH}" || true
+  sudo sbuild-update -udc "${DIST}"-amd64-"${ARCH}"
 else
   if debian-distro-info --all | grep -Fqxi "${DIST}"; then
     export DEBOOTSTRAP_MIRROR=${DEBOOTSTRAP_MIRROR:-$UBUNTUTOOLS_DEBIAN_MIRROR}
