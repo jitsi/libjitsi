@@ -28,9 +28,6 @@ if [[ "${ARCH}" != "amd64" ]]; then
 
   # union-type= is not valid for type=file, remove to prevent warnings
   sudo sed -i s/union-type=.*//g "/etc/schroot/chroot.d/sbuild-${DIST}-amd64-${ARCH}"
-
-  # Configure the chroot to not use dose-distcheck
-  echo '$build_dep_resolver = "apt";' | sudo tee -a "/etc/schroot/chroot.d/sbuild-${DIST}-amd64-${ARCH}"
 else
   if debian-distro-info --all | grep -Fqxi "${DIST}"; then
     export DEBOOTSTRAP_MIRROR=${DEBOOTSTRAP_MIRROR:-$UBUNTUTOOLS_DEBIAN_MIRROR}
@@ -47,7 +44,7 @@ mvn -B versions:set -DnewVersion="${VERSION}" -DgenerateBackupPoms=false
 "${PROJECT_DIR}/resources/deb-gen-source.sh" "${VERSION}" "${DIST}"
 export SBUILD_CONFIG="${PROJECT_DIR}/resources/sbuildrc"
 if [[ "${ARCH}" != "amd64" ]]; then
-  sbuild --dist "${DIST}" --no-arch-all --host "${ARCH}" --build=amd64 --resolve-alternatives "${PROJECT_DIR}"/../libjitsi_*.dsc
+  sbuild --dist "${DIST}" --no-arch-all --host "${ARCH}" --build=amd64 --no-apt-distupgrade --bd-uninstallable-explainer=none "${PROJECT_DIR}"/../libjitsi_*.dsc
 else
   sbuild --dist "${DIST}" --arch-all "${PROJECT_DIR}"/../libjitsi_*.dsc
   cp "${PROJECT_DIR}"/../libjitsi_* "$BUILD_DIR"
