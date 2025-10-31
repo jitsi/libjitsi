@@ -8,7 +8,7 @@ Vcs-Git: https://github.com/jitsi/libjitsi.git
 Vcs-Browser: https://github.com/jitsi/libjitsi
 Standards-Version: 4.5.0
 Build-Depends:
- debhelper (>= 11),
+ debhelper (>= 11) <!nocheck> | debhelper:native <cross>,
  dpkg-dev (>= 1.16.1),
  libtool <!nocheck> | libtool:native <cross>,
  cmake <!nocheck> | cmake:native <cross>,

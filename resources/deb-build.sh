@@ -75,7 +75,16 @@ mvn -B versions:set -DnewVersion="${VERSION}" -DgenerateBackupPoms=false
 "${PROJECT_DIR}/resources/deb-gen-source.sh" "${VERSION}" "${DIST}"
 export SBUILD_CONFIG="${PROJECT_DIR}/resources/sbuildrc"
 if [[ "${ARCH}" != "amd64" ]]; then
-  sbuild --dist "${DIST}" --no-arch-all --host "${ARCH}" --build=amd64 --no-apt-distupgrade --bd-uninstallable-explainer=none "${PROJECT_DIR}"/../libjitsi_*.dsc
+  # Add ports repository for cross-compilation
+  EXTRA_REPOS=""
+  if [[ "${ARCH}" == "arm64" || "${ARCH}" == "ppc64el" ]]; then
+    if ubuntu-distro-info --all | grep -Fqxi "${DIST}"; then
+      EXTRA_REPOS="--extra-repository=deb [arch=arm64,ppc64el] http://ports.ubuntu.com/ubuntu-ports ${DIST} main universe --extra-repository=deb [arch=arm64,ppc64el] http://ports.ubuntu.com/ubuntu-ports ${DIST}-updates main universe"
+    elif debian-distro-info --all | grep -Fqxi "${DIST}"; then
+      EXTRA_REPOS="--extra-repository=deb [arch=arm64,ppc64el] http://deb.debian.org/debian ${DIST} main --extra-repository=deb [arch=arm64,ppc64el] http://deb.debian.org/debian ${DIST}-updates main"
+    fi
+  fi
+  sbuild --dist "${DIST}" --no-arch-all --host "${ARCH}" --build=amd64 --no-apt-distupgrade --bd-uninstallable-explainer=none ${EXTRA_REPOS} "${PROJECT_DIR}"/../libjitsi_*.dsc
 else
   sbuild --dist "${DIST}" --arch-all "${PROJECT_DIR}"/../libjitsi_*.dsc
   cp "${PROJECT_DIR}"/../libjitsi_* "$BUILD_DIR"
