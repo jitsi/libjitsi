@@ -121,7 +121,7 @@ include(GNUInstallDirs)
 
 add_subdirectory(jawtrenderer)
 add_subdirectory(opus)
-add_subdirectory(portaudio)
+# add_subdirectory(portaudio)
 add_subdirectory(screencapture)
 add_subdirectory(speex)
 if (NOT CMAKE_SYSTEM_PROCESSOR STREQUAL "ppc64le")
