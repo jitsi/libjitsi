@@ -60,6 +60,10 @@ EOF
     # Disable sbuild-cross-resolver by removing it from apt config
     sudo rm -f "${CHROOT_PATH}/etc/apt/apt.conf.d/00sbuild-cross-resolver" || true
 
+    # Disable all external APT solvers
+    sudo mkdir -p "${CHROOT_PATH}/etc/apt/apt.conf.d"
+    echo 'APT::Solver "";' | sudo tee "${CHROOT_PATH}/etc/apt/apt.conf.d/99-no-external-solver" > /dev/null
+
     # Update package lists
     sudo chroot "${CHROOT_PATH}" apt-get update || true
 
@@ -97,6 +101,7 @@ export SBUILD_CONFIG="${PROJECT_DIR}/resources/sbuildrc"
 if [[ "${ARCH}" != "amd64" ]]; then
   sbuild --dist "${DIST}" --no-arch-all --host "${ARCH}" --build=amd64 --no-apt-distupgrade \
     --build-dep-resolver=apt --resolve-alternatives --no-run-lintian --bd-uninstallable-explainer=none \
+    --chroot-setup-commands="echo 'APT::Solver \"\";' > /etc/apt/apt.conf.d/99-no-external-solver" \
     "${PROJECT_DIR}"/../libjitsi_*.dsc
 else
   sbuild --dist "${DIST}" --arch-all "${PROJECT_DIR}"/../libjitsi_*.dsc
