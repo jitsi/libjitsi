@@ -79,24 +79,24 @@ if [[ "${ARCH}" != "amd64" ]]; then
   if [[ "${ARCH}" == "arm64" || "${ARCH}" == "ppc64el" ]]; then
     if ubuntu-distro-info --all | grep -Fqxi "${DIST}"; then
       sbuild --dist "${DIST}" --no-arch-all --host "${ARCH}" --build=amd64 --no-apt-distupgrade \
-        --build-dep-resolver=aptitude --resolve-alternatives \
+        --build-dep-resolver=apt --resolve-alternatives \
         --extra-repository='deb [arch=arm64,ppc64el] http://ports.ubuntu.com/ubuntu-ports '"${DIST}"' main universe' \
         --extra-repository='deb [arch=arm64,ppc64el] http://ports.ubuntu.com/ubuntu-ports '"${DIST}"'-updates main universe' \
         "${PROJECT_DIR}"/../libjitsi_*.dsc
     elif debian-distro-info --all | grep -Fqxi "${DIST}"; then
       sbuild --dist "${DIST}" --no-arch-all --host "${ARCH}" --build=amd64 --no-apt-distupgrade \
-        --build-dep-resolver=aptitude --resolve-alternatives \
+        --build-dep-resolver=apt --resolve-alternatives \
         --extra-repository='deb [arch=arm64,ppc64el] http://deb.debian.org/debian '"${DIST}"' main' \
         --extra-repository='deb [arch=arm64,ppc64el] http://deb.debian.org/debian '"${DIST}"'-updates main' \
         "${PROJECT_DIR}"/../libjitsi_*.dsc
     else
       sbuild --dist "${DIST}" --no-arch-all --host "${ARCH}" --build=amd64 --no-apt-distupgrade \
-        --build-dep-resolver=aptitude --resolve-alternatives \
+        --build-dep-resolver=apt --resolve-alternatives \
         "${PROJECT_DIR}"/../libjitsi_*.dsc
     fi
   else
     sbuild --dist "${DIST}" --no-arch-all --host "${ARCH}" --build=amd64 --no-apt-distupgrade \
-      --build-dep-resolver=aptitude --resolve-alternatives \
+      --build-dep-resolver=apt --resolve-alternatives \
       "${PROJECT_DIR}"/../libjitsi_*.dsc
   fi
 else
