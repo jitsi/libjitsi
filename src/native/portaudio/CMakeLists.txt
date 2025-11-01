@@ -39,6 +39,7 @@ externalproject_add(ext_lib_portaudio
                     -DPA_DLL_LINK_WITH_STATIC_RUNTIME:BOOL=OFF
                     -DCMAKE_POSITION_INDEPENDENT_CODE:BOOL=ON
                     -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
+                    -DCMAKE_INSTALL_LIBDIR:PATH=lib
                     )
 
 add_library(${PROJECT_NAME} SHARED
