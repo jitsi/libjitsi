@@ -8,9 +8,9 @@ if (WIN32)
 elseif (APPLE)
     set(OS_LIBS "-framework ApplicationServices")
     # CGWindowListCreateImage is deprecated/unavailable in macOS 15.0+
-    # Allow using deprecated APIs until migration to ScreenCaptureKit
+    # Set deployment target to 14.0 to allow using this API
     # TODO: Migrate to ScreenCaptureKit for macOS 15+ support
-    set(MACOS_COMPILE_FLAGS "-Wno-deprecated-declarations -Wno-unguarded-availability")
+    set(MACOS_COMPILE_FLAGS "-mmacosx-version-min=14.0 -Wno-deprecated-declarations -Wno-unguarded-availability")
 elseif (UNIX AND NOT APPLE)
     find_package(X11 REQUIRED)
     if (NOT X11_FOUND)
