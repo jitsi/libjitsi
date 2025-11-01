@@ -37,6 +37,14 @@ esac
 export JAVA_HOME=/usr/lib/jvm/java-$JAVA_VERSION-openjdk-$JAVA_ARCH
 
 cd "$LIBROOT/src/native" || exit 1
+
+# For ppc64el, vcpkg cross-compilation is broken, use system libraries
+if [ "$ARCH" = "ppc64el" ]; then
+  USE_SYSTEM_LIBS=ON
+else
+  USE_SYSTEM_LIBS=OFF
+fi
+
 cmake -B cmake-build-$ARCH \
   -DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=$TOOLCHAIN \
   -DVCPKG_VERBOSE=ON \
@@ -45,9 +53,9 @@ cmake -B cmake-build-$ARCH \
   -DCMAKE_BUILD_TYPE=release \
   -DCMAKE_C_FLAGS="$CFLAGS" \
   -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
-  -DUSE_SYSTEM_OPUS=OFF \
-  -DUSE_SYSTEM_SPEEX=OFF \
+  -DUSE_SYSTEM_OPUS=$USE_SYSTEM_LIBS \
+  -DUSE_SYSTEM_SPEEX=$USE_SYSTEM_LIBS \
   -DUSE_SYSTEM_USRSCTP=OFF \
-  -DUSE_SYSTEM_VPX=OFF
+  -DUSE_SYSTEM_VPX=$USE_SYSTEM_LIBS
 
 cmake --build cmake-build-$ARCH --config Release --target install --parallel
