@@ -8,12 +8,12 @@ Vcs-Git: https://github.com/jitsi/libjitsi.git
 Vcs-Browser: https://github.com/jitsi/libjitsi
 Standards-Version: 4.5.0
 Build-Depends:
- debhelper (>= 11),
+ debhelper (>= 11) <!nocheck> | debhelper:native <cross>,
  dpkg-dev (>= 1.16.1),
- libtool,
- cmake,
- git,
- default-jdk,
+ libtool <!nocheck> | libtool:native <cross>,
+ cmake <!nocheck> | cmake:native <cross>,
+ git <!nocheck> | git:native <cross>,
+ default-jdk <!nocheck> | default-jdk:native <cross>,
  libasound2-dev,
  libpulse-dev,
  libx11-dev,

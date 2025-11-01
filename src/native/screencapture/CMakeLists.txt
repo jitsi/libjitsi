@@ -2,10 +2,15 @@ project(jnscreencapture C)
 
 set(OS_SOURCES "")
 set(OS_LIBS "")
+set(MACOS_COMPILE_FLAGS "")
 if (WIN32)
     set(OS_SOURCES screencapture.rc)
 elseif (APPLE)
     set(OS_LIBS "-framework ApplicationServices")
+    # CGWindowListCreateImage is deprecated/unavailable in macOS 15.0+
+    # Set deployment target to 14.0 to allow using this API
+    # TODO: Migrate to ScreenCaptureKit for macOS 15+ support
+    set(MACOS_COMPILE_FLAGS "-mmacosx-version-min=14.0" "-Wno-deprecated-declarations" "-Wno-unguarded-availability")
 elseif (UNIX AND NOT APPLE)
     find_package(X11 REQUIRED)
     if (NOT X11_FOUND)
@@ -34,6 +39,10 @@ target_include_directories(${PROJECT_NAME} PUBLIC
                            ${JNI_INCLUDE_DIRS}
                            ${CMAKE_BINARY_DIR}/include/
                            )
+
+if (APPLE)
+    target_compile_options(${PROJECT_NAME} PRIVATE ${MACOS_COMPILE_FLAGS})
+endif ()
 
 if (JITSI_BUILD_DEBIAN)
     install(TARGETS ${PROJECT_NAME}

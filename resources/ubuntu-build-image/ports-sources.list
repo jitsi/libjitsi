@@ -1,9 +1,9 @@
-deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu/ focal main restricted universe multiverse
-deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu/ focal-updates main restricted universe multiverse
-deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu/ focal-backports main restricted universe multiverse
-deb [arch=amd64,i386] http://security.ubuntu.com/ubuntu focal-security main restricted universe multiverse
+deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu/ jammy main restricted universe multiverse
+deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu/ jammy-updates main restricted universe multiverse
+deb [arch=amd64,i386] http://archive.ubuntu.com/ubuntu/ jammy-backports main restricted universe multiverse
+deb [arch=amd64,i386] http://security.ubuntu.com/ubuntu jammy-security main restricted universe multiverse
 
-deb [arch=arm64,ppc64el] http://ports.ubuntu.com/ubuntu-ports/ focal main restricted universe multiverse
-deb [arch=arm64,ppc64el] http://ports.ubuntu.com/ubuntu-ports/ focal-updates main restricted universe multiverse
-deb [arch=arm64,ppc64el] http://ports.ubuntu.com/ubuntu-ports/ focal-backports main restricted universe multiverse
-deb [arch=arm64,ppc64el] http://ports.ubuntu.com/ubuntu-ports/ focal-security main restricted universe multiverse
+deb [arch=arm64,ppc64el] http://ports.ubuntu.com/ubuntu-ports/ jammy main restricted universe multiverse
+deb [arch=arm64,ppc64el] http://ports.ubuntu.com/ubuntu-ports/ jammy-updates main restricted universe multiverse
+deb [arch=arm64,ppc64el] http://ports.ubuntu.com/ubuntu-ports/ jammy-backports main restricted universe multiverse
+deb [arch=arm64,ppc64el] http://ports.ubuntu.com/ubuntu-ports/ jammy-security main restricted universe multiverse
