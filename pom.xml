@@ -45,7 +45,7 @@
   </licenses>
 
   <properties>
-    <bouncycastle.version>1.80</bouncycastle.version>
+    <bouncycastle.version>1.78.1</bouncycastle.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
 
@@ -94,12 +94,12 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-utils</artifactId>
-      <version>1.0-135-g56f462d</version>
+      <version>1.0-147-g12d0b20</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>jitsi-srtp</artifactId>
-      <version>1.1-20-g3cd87a0</version>
+      <version>1.1-21-g66f32c3</version>
     </dependency>
     <dependency>
       <groupId>org.opentelecoms.sdp</groupId>
@@ -127,12 +127,12 @@
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-lang3</artifactId>
-      <version>3.17.0</version>
+      <version>3.19.0</version>
     </dependency>
     <dependency>
       <groupId>org.jetbrains</groupId>
       <artifactId>annotations</artifactId>
-      <version>26.0.2</version>
+      <version>26.0.2-1</version>
       <scope>provided</scope>
     </dependency>
 
@@ -140,7 +140,7 @@
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-engine</artifactId>
-      <version>5.12.2</version>
+      <version>5.14.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -186,7 +186,7 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>versions-maven-plugin</artifactId>
-        <version>2.18.0</version>
+        <version>2.19.1</version>
         <configuration>
           <ruleSet>
             <ignoreVersions>
@@ -265,7 +265,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
-        <version>3.11.2</version>
+        <version>3.12.0</version>
         <configuration>
           <doclint>-missing</doclint>
           <source>11</source>
