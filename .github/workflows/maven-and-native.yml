@@ -201,7 +201,7 @@ jobs:
       - name: Install tools
         run: |
           # No need for updated man pages on GitHub
-          sudo rm /var/lib/man-db/auto-update
+          sudo rm -f /var/lib/man-db/auto-update
           resources/deb-prepare.sh
 
       - name: Import GPG key
