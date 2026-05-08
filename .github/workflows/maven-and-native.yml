@@ -205,6 +205,7 @@ jobs:
           resources/deb-prepare.sh
 
       - name: Import GPG key
+        if: github.ref == 'refs/heads/master'
         env:
           GPG_PASSPHRASE: "${{ secrets.GPG_PW }}"
         run: |
@@ -221,7 +222,7 @@ jobs:
             "${{ needs.version.outputs.version }}" \
             "${{ matrix.dist.dist }}" \
             "${{ matrix.arch }}" \
-            "dev+maven@jitsi.org"
+            "${{ github.ref == 'refs/heads/master' && 'dev+maven@jitsi.org' || '' }}"
 
       - name: Upload package as artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
