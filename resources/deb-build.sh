@@ -59,7 +59,9 @@ else
   sbuild --dist "${DIST}" --no-arch-all --arch="${ARCH}" "${PROJECT_DIR}"/../libjitsi_*.dsc
 fi
 
-debsign -S -e"${GPG_ID}" "${BUILD_DIR}"/*.changes --re-sign -p"${PROJECT_DIR}"/resources/gpg-wrap.sh
+if [[ -n "${GPG_ID}" ]]; then
+  debsign -S -e"${GPG_ID}" "${BUILD_DIR}"/*.changes --re-sign -p"${PROJECT_DIR}"/resources/gpg-wrap.sh
+fi
 
 #make build files readable for Windows and archivable for GitHub Actions
 rename 's|:|-|g' "$BUILD_DIR"/*.build
