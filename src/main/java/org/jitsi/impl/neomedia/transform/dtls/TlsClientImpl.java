@@ -20,8 +20,6 @@ import static org.jitsi.impl.neomedia.transform.dtls.DtlsUtils.BC_TLS_CRYPTO;
 import java.io.*;
 import java.util.*;
 
-import org.bouncycastle.asn1.*;
-import org.bouncycastle.operator.*;
 import org.bouncycastle.tls.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.utils.logging.*;
@@ -269,70 +267,10 @@ public class TlsClientImpl
         {
             if (clientCredentials == null)
             {
-                CertificateInfo certificateInfo
-                    = packetTransformer.getDtlsControl().getCertificateInfo();
-
-                // FIXME ed448/ed25519? multiple certificates?
-                String algName = new DefaultAlgorithmNameFinder()
-                    .getAlgorithmName(new ASN1ObjectIdentifier(certificateInfo
-                        .getCertificate()
-                        .getCertificateAt(0)
-                        .getSigAlgOID()));
-                SignatureAndHashAlgorithm sigAndHashAlg = null;
-                switch (algName)
-                {
-                case "SHA1WITHRSA":
-                    sigAndHashAlg = SignatureAndHashAlgorithm
-                        .getInstance(HashAlgorithm.sha1, SignatureAlgorithm.rsa);
-                    break;
-                case "SHA224WITHRSA":
-                    sigAndHashAlg = SignatureAndHashAlgorithm
-                        .getInstance(HashAlgorithm.sha224, SignatureAlgorithm.rsa);
-                    break;
-                case "SHA256WITHRSA":
-                    sigAndHashAlg = SignatureAndHashAlgorithm
-                        .getInstance(HashAlgorithm.sha256, SignatureAlgorithm.rsa);
-                    break;
-                case "SHA384WITHRSA":
-                    sigAndHashAlg = SignatureAndHashAlgorithm
-                        .getInstance(HashAlgorithm.sha384, SignatureAlgorithm.rsa);
-                    break;
-                case "SHA512WITHRSA":
-                    sigAndHashAlg = SignatureAndHashAlgorithm
-                        .getInstance(HashAlgorithm.sha512, SignatureAlgorithm.rsa);
-                    break;
-                case "SHA1WITHECDSA":
-                    sigAndHashAlg = SignatureAndHashAlgorithm
-                        .getInstance(HashAlgorithm.sha1, SignatureAlgorithm.ecdsa);
-                    break;
-                case "SHA224WITHECDSA":
-                    sigAndHashAlg = SignatureAndHashAlgorithm
-                        .getInstance(HashAlgorithm.sha224, SignatureAlgorithm.ecdsa);
-                    break;
-                case "SHA256WITHECDSA":
-                    sigAndHashAlg = SignatureAndHashAlgorithm
-                        .getInstance(HashAlgorithm.sha256, SignatureAlgorithm.ecdsa);
-                    break;
-                case "SHA384WITHECDSA":
-                    sigAndHashAlg = SignatureAndHashAlgorithm
-                        .getInstance(HashAlgorithm.sha384, SignatureAlgorithm.ecdsa);
-                    break;
-                case "SHA512WITHECDSA":
-                    sigAndHashAlg = SignatureAndHashAlgorithm
-                        .getInstance(HashAlgorithm.sha512, SignatureAlgorithm.ecdsa);
-                    break;
-                default:
-                    logger.warn("Unknown algOid in certificate: " + algName);
-                    return null;
-                }
-
                 clientCredentials
-                    = new BcDefaultTlsCredentialedSigner(
-                            new TlsCryptoParameters(context),
-                            (BcTlsCrypto) context.getCrypto(),
-                            certificateInfo.getKeyPair().getPrivate(),
-                            certificateInfo.getCertificate(),
-                            sigAndHashAlg);
+                    = DtlsUtils.createCredentialedSigner(
+                        context,
+                        packetTransformer.getDtlsControl().getCertificateInfo());
             }
             return clientCredentials;
         }

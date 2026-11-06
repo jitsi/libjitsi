@@ -20,6 +20,7 @@ import static org.jitsi.impl.neomedia.transform.dtls.DtlsUtils.BC_TLS_CRYPTO;
 import java.io.*;
 import java.util.*;
 
+import org.bouncycastle.crypto.params.*;
 import org.bouncycastle.tls.*;
 import org.jitsi.impl.neomedia.transform.*;
 import org.jitsi.utils.logging.*;
@@ -37,16 +38,6 @@ public class TlsServerImpl
      * instances to print debug information.
      */
     private static final Logger logger = Logger.getLogger(TlsServerImpl.class);
-
-    /**
-     *
-     * @see TlsServer#getCertificateRequest()
-     */
-    private final CertificateRequest certificateRequest
-        = new CertificateRequest(
-                new short[] { ClientCertificateType.rsa_sign },
-                /* supportedSignatureAlgorithms */ null,
-                /* certificateAuthorities */ null);
 
     /**
      * The <tt>SRTPProtectionProfile</tt> negotiated between this DTLS-SRTP
@@ -73,23 +64,59 @@ public class TlsServerImpl
 
     /**
      * {@inheritDoc}
+     *
+     * Requests an ECDSA or RSA client certificate. DTLS 1.2 requires the
+     * request to list the supported signature algorithms.
      */
     @Override
     public CertificateRequest getCertificateRequest()
     {
-        return certificateRequest;
+        return new CertificateRequest(
+                new short[]
+                {
+                    ClientCertificateType.ecdsa_sign,
+                    ClientCertificateType.rsa_sign
+                },
+                TlsUtils.getDefaultSupportedSignatureAlgorithms(context),
+                /* certificateAuthorities */ null);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * Always returns {@link ProtocolVersion#DTLSv12}.
+     */
+    @Override
+    protected ProtocolVersion[] getSupportedVersions()
+    {
+        return ProtocolVersion.DTLSv12.only();
     }
 
     /**
      * {@inheritDoc}
      *
      * Overrides the super implementation to explicitly specify cipher suites
-     * which we know to be supported by Bouncy Castle and provide Perfect
-     * Forward Secrecy.
+     * which we know to be supported by Bouncy Castle, provide Perfect
+     * Forward Secrecy and match the key type of our certificate.
      */
     @Override
     public int[] getCipherSuites()
     {
+        if (getDtlsControl().getCertificateInfo().getKeyPair().getPrivate()
+                instanceof ECPrivateKeyParameters)
+        {
+            return TlsUtils.getSupportedCipherSuites(getCrypto(), new int[]
+            {
+                CipherSuite.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+                CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+                CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+                CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384,
+                CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
+                CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+                CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
+            });
+        }
+
         int[] suites = new int[]
         {
 /* core/src/main/java/org/bouncycastle/crypto/tls/DefaultTlsServer.java */
@@ -126,6 +153,39 @@ public class TlsServerImpl
     private Properties getProperties()
     {
         return packetTransformer.getProperties();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected TlsCredentialedSigner getECDSASignerCredentials()
+    {
+        return getSignerCredentials();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected TlsCredentialedSigner getRSASignerCredentials()
+    {
+        return getSignerCredentials();
+    }
+
+    /**
+     * Gets the credentials with which this server signs its part of the
+     * handshake, created from the certificate of the associated
+     * <tt>DtlsControl</tt>.
+     *
+     * @return the credentials with which this server signs its part of the
+     * handshake
+     */
+    private TlsCredentialedSigner getSignerCredentials()
+    {
+        return DtlsUtils.createCredentialedSigner(
+            context,
+            getDtlsControl().getCertificateInfo());
     }
 
     /**
