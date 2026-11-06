@@ -164,6 +164,25 @@ public abstract class Devices
     public CaptureDeviceInfo2 getSelectedDevice(
             List<CaptureDeviceInfo2> activeDevices)
     {
+        // Loading, updating and reading the preferences must happen as one
+        // step. Otherwise concurrent callers (e.g. several calls starting at
+        // once) can interleave and persist a wrong preference order.
+        synchronized(devicePreferences)
+        {
+            return doGetSelectedDevice(activeDevices);
+        }
+    }
+
+    /**
+     * Gets the selected active device. The caller must hold the lock on
+     * {@link #devicePreferences}.
+     *
+     * @param activeDevices the list of the active devices
+     * @return the selected active device
+     */
+    private CaptureDeviceInfo2 doGetSelectedDevice(
+            List<CaptureDeviceInfo2> activeDevices)
+    {
         if (activeDevices != null)
         {
             String property = getPropDevice();
@@ -323,13 +342,16 @@ public abstract class Devices
             return;
         }
 
-        // Sorts the user preferences to put the selected device on top.
-        addToDevicePreferences(
-                selectedDeviceIdentifier,
-                isSelected);
+        synchronized(devicePreferences)
+        {
+            // Sorts the user preferences to put the selected device on top.
+            addToDevicePreferences(
+                    selectedDeviceIdentifier,
+                    isSelected);
 
-        // Saves the user preferences.
-        writeDevicePreferences(property);
+            // Saves the user preferences.
+            writeDevicePreferences(property);
+        }
     }
 
     /**
