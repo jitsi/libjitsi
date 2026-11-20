@@ -53,6 +53,42 @@ public class DtlsHandshakeTest
         clientControl.setRemoteFingerprints(fingerprintsOf(serverControl));
         serverControl.setRemoteFingerprints(fingerprintsOf(clientControl));
 
+        handshake(clientControl, serverControl);
+    }
+
+    @Test
+    public void mismatchedFingerprintFailsTheHandshake()
+        throws Exception
+    {
+        DtlsControlImpl clientControl = new DtlsControlImpl();
+        DtlsControlImpl serverControl = new DtlsControlImpl();
+        Map<String, String> wrong = new HashMap<>();
+
+        for (Map.Entry<String, String> e
+                : fingerprintsOf(serverControl).entrySet())
+        {
+            String fp = e.getValue();
+            wrong.put(
+                e.getKey(),
+                (fp.charAt(0) == '0' ? '1' : '0') + fp.substring(1));
+        }
+        clientControl.setRemoteFingerprints(wrong);
+        serverControl.setRemoteFingerprints(fingerprintsOf(clientControl));
+
+        assertThrows(
+            ExecutionException.class,
+            () -> handshake(clientControl, serverControl));
+    }
+
+    /**
+     * Runs a DTLS handshake between the two controls, the client ACTIVE and
+     * the server PASSIVE, and fails if either side does not complete it.
+     */
+    private static void handshake(
+            DtlsControlImpl clientControl,
+            DtlsControlImpl serverControl)
+        throws Exception
+    {
         DtlsPacketTransformer clientTransformer = new DtlsPacketTransformer(
             new DtlsTransformEngine(clientControl), 1);
         DtlsPacketTransformer serverTransformer = new DtlsPacketTransformer(
@@ -73,8 +109,8 @@ public class DtlsHandshakeTest
                     new TlsClientImpl(clientTransformer),
                     new Pipe(toClient, toServer)));
 
-            assertNotNull(server.get(30, TimeUnit.SECONDS));
             assertNotNull(client.get(30, TimeUnit.SECONDS));
+            assertNotNull(server.get(30, TimeUnit.SECONDS));
         }
         finally
         {

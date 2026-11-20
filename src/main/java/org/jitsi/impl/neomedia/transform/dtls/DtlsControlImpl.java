@@ -55,15 +55,6 @@ public class DtlsControlImpl
     implements DtlsControl
 {
     /**
-     * The map which specifies which hash functions are to be considered
-     * &quot;upgrades&quot; of which other hash functions. The keys are the hash
-     * functions which have &quot;upgrades&quot; defined and are written in
-     * lower case.
-     */
-    private static final Map<String,String[]> HASH_FUNCTION_UPGRADES
-        = new HashMap<>();
-
-    /**
      * The table which maps half-<tt>byte</tt>s to their hex characters.
      */
     private static final char[] HEX_ENCODE_TABLE
@@ -87,7 +78,8 @@ public class DtlsControlImpl
     /**
      * The name of the property which specifies the signature algorithm used
      * during certificate creation. When a certificate is created and this
-     * property is not set, a default value of "SHA1withRSA" will be used.
+     * property is not set, a default value of "SHA256withECDSA" will be
+     * used.
      */
     public static final String PROP_SIGNATURE_ALGORITHM =
         "org.jitsi.impl.neomedia.transform.dtls.SIGNATURE_ALGORITHM";
@@ -189,6 +181,64 @@ public class DtlsControlImpl
         = DtlsControlImpl.class.getName() + ".verifyAndValidateCertificate";
 
     /**
+     * The name of the {@code ConfigurationService} and/or {@code System}
+     * property which specifies the hash function used to compute the
+     * fingerprint of the local certificate, as it is signaled to the remote
+     * endpoint (RFC 8122). The default value is
+     * {@link #DEFAULT_LOCAL_FINGERPRINT_HASH_FUNCTION}.
+     */
+    public static final String LOCAL_FINGERPRINT_HASH_FUNCTION_PNAME
+        = DtlsControlImpl.class.getName() + ".localFingerprintHashFunction";
+
+    /**
+     * The default hash function used to compute the fingerprint of the local
+     * certificate.
+     */
+    public static final String DEFAULT_LOCAL_FINGERPRINT_HASH_FUNCTION
+        = "sha-256";
+
+    /**
+     * The hash function used to compute the fingerprint of the local
+     * certificate, written in lower case.
+     */
+    private static final String LOCAL_FINGERPRINT_HASH_FUNCTION;
+
+    /**
+     * The name of the {@code ConfigurationService} and/or {@code System}
+     * property which specifies the hash functions accepted for the
+     * fingerprints of remote certificates, as a comma-separated list in
+     * decreasing order of preference (RFC 8122). The default value is
+     * {@link #DEFAULT_ACCEPTED_FINGERPRINT_HASH_FUNCTIONS}; it keeps sha-1,
+     * at the lowest preference, for SIP peers which signal nothing stronger.
+     */
+    public static final String ACCEPTED_FINGERPRINT_HASH_FUNCTIONS_PNAME
+        = DtlsControlImpl.class.getName()
+            + ".acceptedFingerprintHashFunctions";
+
+    /**
+     * The default hash functions accepted for the fingerprints of remote
+     * certificates, in decreasing order of preference.
+     */
+    public static final String DEFAULT_ACCEPTED_FINGERPRINT_HASH_FUNCTIONS
+        = "sha-512,sha-384,sha-256,sha-1";
+
+    /**
+     * The hash function names of the "Hash Function Textual Names" IANA
+     * registry which RFC 8122 allows for fingerprints. MD2 and MD5 are in the
+     * registry but RFC 8122 section 5 forbids them.
+     */
+    private static final List<String> KNOWN_FINGERPRINT_HASH_FUNCTIONS
+        = Collections.unmodifiableList(
+                Arrays.asList(
+                        "sha-1", "sha-224", "sha-256", "sha-384", "sha-512"));
+
+    /**
+     * The hash functions accepted for the fingerprints of remote
+     * certificates, written in lower case, in decreasing order of preference.
+     */
+    private static final List<String> ACCEPTED_FINGERPRINT_HASH_FUNCTIONS;
+
+    /**
      * The cache of {@link #certificateInfo} so that we do not invoke CPU
      * intensive methods for each new {@code DtlsControlImpl} instance.
      */
@@ -222,10 +272,93 @@ public class DtlsControlImpl
                     CERT_CACHE_EXPIRE_TIME_PNAME,
                     DEFAULT_CERT_CACHE_EXPIRE_TIME);
 
-        // HASH_FUNCTION_UPGRADES
-        HASH_FUNCTION_UPGRADES.put(
-                "sha-1",
-                new String[] { "sha-224", "sha-256", "sha-384", "sha-512" });
+        LOCAL_FINGERPRINT_HASH_FUNCTION
+            = parseHashFunctions(
+                    ConfigUtils.getString(
+                            LibJitsi.getConfigurationService(),
+                            LOCAL_FINGERPRINT_HASH_FUNCTION_PNAME,
+                            DEFAULT_LOCAL_FINGERPRINT_HASH_FUNCTION),
+                    DEFAULT_LOCAL_FINGERPRINT_HASH_FUNCTION)
+                .get(0);
+
+        ACCEPTED_FINGERPRINT_HASH_FUNCTIONS
+            = parseHashFunctions(
+                    ConfigUtils.getString(
+                            LibJitsi.getConfigurationService(),
+                            ACCEPTED_FINGERPRINT_HASH_FUNCTIONS_PNAME,
+                            DEFAULT_ACCEPTED_FINGERPRINT_HASH_FUNCTIONS),
+                    DEFAULT_ACCEPTED_FINGERPRINT_HASH_FUNCTIONS);
+    }
+
+    /**
+     * Parses a comma-separated list of hash function names, dropping the
+     * names which are not in the "Hash Function Textual Names" IANA registry
+     * (the names RFC 8122 allows in a fingerprint attribute) and the
+     * registered names which RFC 8122 forbids (MD2 and MD5).
+     *
+     * @param list the comma-separated list of hash function names to parse
+     * @param defaultList the list to fall back to if {@code list} contains
+     * no usable hash function; it must itself contain usable names
+     * @return the usable hash function names of {@code list} written in lower
+     * case and in the order in which they appear in {@code list}
+     */
+    static List<String> parseHashFunctions(String list, String defaultList)
+    {
+        List<String> hashFunctions = parseHashFunctions(list);
+
+        if (hashFunctions.isEmpty())
+        {
+            logger.warn(
+                    "No usable fingerprint hash function in '" + list
+                        + "', using " + defaultList);
+            hashFunctions = parseHashFunctions(defaultList);
+            if (hashFunctions.isEmpty())
+            {
+                throw new IllegalArgumentException(
+                        "No usable fingerprint hash function in the default "
+                            + defaultList);
+            }
+        }
+        return Collections.unmodifiableList(hashFunctions);
+    }
+
+    /**
+     * Parses a comma-separated list of hash function names, dropping the
+     * names which are unknown or forbidden for fingerprints.
+     *
+     * @param list the comma-separated list of hash function names to parse
+     * @return the usable hash function names of {@code list} written in lower
+     * case and in the order in which they appear in {@code list}
+     */
+    private static List<String> parseHashFunctions(String list)
+    {
+        List<String> hashFunctions = new ArrayList<>();
+
+        for (String hashFunction : list.split(","))
+        {
+            hashFunction = hashFunction.trim().toLowerCase(Locale.ROOT);
+            if (hashFunction.isEmpty())
+                continue;
+
+            if (hashFunction.equals("md2") || hashFunction.equals("md5"))
+            {
+                logger.warn(
+                        "Ignoring forbidden fingerprint hash function "
+                            + hashFunction);
+            }
+            else if (!KNOWN_FINGERPRINT_HASH_FUNCTIONS.contains(hashFunction))
+            {
+                logger.warn(
+                        "Ignoring unknown fingerprint hash function "
+                            + hashFunction + ", not one of "
+                            + KNOWN_FINGERPRINT_HASH_FUNCTIONS);
+            }
+            else if (!hashFunctions.contains(hashFunction))
+            {
+                hashFunctions.add(hashFunction);
+            }
+        }
+        return hashFunctions;
     }
 
     /**
@@ -301,89 +434,11 @@ public class DtlsControlImpl
     }
 
     /**
-     * Determines the hash function i.e. the digest algorithm of the signature
-     * algorithm of a specific certificate.
-     *
-     * @param certificate the certificate the hash function of which is to be
-     * determined
-     * @return the hash function of the specified <tt>certificate</tt> written
-     * in lower case
-     */
-    private static String findHashFunction(
-            org.bouncycastle.asn1.x509.Certificate certificate)
-    {
-        try
-        {
-            AlgorithmIdentifier sigAlgId = certificate.getSignatureAlgorithm();
-            AlgorithmIdentifier digAlgId
-                = new DefaultDigestAlgorithmIdentifierFinder().find(sigAlgId);
-
-            return
-                BcDefaultDigestProvider.INSTANCE
-                    .get(digAlgId)
-                        .getAlgorithmName()
-                            .toLowerCase();
-        }
-        catch (Throwable t)
-        {
-            if (t instanceof ThreadDeath)
-            {
-                throw (ThreadDeath) t;
-            }
-            else
-            {
-                logger.warn(
-                        "Failed to find the hash function of the signature"
-                            + " algorithm of a certificate!",
-                        t);
-                if (t instanceof RuntimeException)
-                    throw (RuntimeException) t;
-                else
-                    throw new RuntimeException(t);
-            }
-        }
-    }
-
-    /**
-     * Finds a hash function which is an &quot;upgrade&quot; of a specific hash
-     * function and has a fingerprint associated with it.
-     *
-     * @param hashFunction the hash function which is not associated with a
-     * fingerprint and for which an &quot;upgrade&quot; associated with a
-     * fingerprint is to be found
-     * @param fingerprints the set of available hash function-fingerprint
-     * associations
-     * @return a hash function written in lower case which is an
-     * &quot;upgrade&quot; of the specified {@code hashFunction} and has a
-     * fingerprint associated with it in {@code fingerprints} if there is such
-     * a hash function; otherwise, {@code null}
-     */
-    private static String findHashFunctionUpgrade(
-            String hashFunction,
-            Map<String,String> fingerprints)
-    {
-        String[] hashFunctionUpgrades
-            = HASH_FUNCTION_UPGRADES.get(hashFunction);
-
-        if (hashFunctionUpgrades != null)
-        {
-            for (String hashFunctionUpgrade : hashFunctionUpgrades)
-            {
-                String fingerprint = fingerprints.get(hashFunctionUpgrade);
-
-                if (fingerprint != null)
-                    return hashFunctionUpgrade.toLowerCase();
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Generates a new certificate from a new key pair, determines the hash
-     * function, and computes the fingerprint.
+     * Generates a new certificate from a new key pair and computes its
+     * fingerprint with the configured hash function.
      *
      * @return CertificateInfo a new certificate generated from a new key pair,
-     * its hash function, and fingerprint
+     * the hash function of its fingerprint, and the fingerprint
      */
     private static CertificateInfo generateCertificateInfo()
     {
@@ -396,7 +451,7 @@ public class DtlsControlImpl
             = new org.bouncycastle.tls.Certificate(new BcTlsCertificate[]{
                 new BcTlsCertificate(BC_TLS_CRYPTO, x509Certificate) } );
         String localFingerprintHashFunction
-            = findHashFunction(x509Certificate);
+            = LOCAL_FINGERPRINT_HASH_FUNCTION;
         String localFingerprint
             = computeFingerprint(
                     x509Certificate,
@@ -494,8 +549,8 @@ public class DtlsControlImpl
                 AsymmetricCipherKeyPair keyPair)
     {
         // The signature algorithm of the generated certificate defaults to
-        // SHA1. However, allow the overriding of the default via the
-        // ConfigurationService.
+        // SHA256withECDSA. However, allow the overriding of the default via
+        // the ConfigurationService.
         String signatureAlgorithm
             = ConfigUtils.getString(
                     LibJitsi.getConfigurationService(),
@@ -561,12 +616,12 @@ public class DtlsControlImpl
 
     /**
      * Gets the <tt>String</tt> representation of a fingerprint specified in the
-     * form of an array of <tt>byte</tt>s in accord with RFC 4572.
+     * form of an array of <tt>byte</tt>s in accord with RFC 8122.
      *
      * @param fingerprint an array of <tt>bytes</tt> which represents a
-     * fingerprint the <tt>String</tt> representation in accord with RFC 4572
+     * fingerprint the <tt>String</tt> representation in accord with RFC 8122
      * of which is to be returned
-     * @return the <tt>String</tt> representation in accord with RFC 4572 of the
+     * @return the <tt>String</tt> representation in accord with RFC 8122 of the
      * specified <tt>fingerprint</tt>
      */
     private static String toHex(byte[] fingerprint)
@@ -636,11 +691,11 @@ public class DtlsControlImpl
 
         CertificateInfo certificateInfo;
 
-        // The methods generateKeyPair(), generateX509Certificate(),
-        // findHashFunction(), and/or computeFingerprint() may be too CPU
-        // intensive to invoke for each new DtlsControlImpl instance. That's
-        // why we've decided to reuse their return values within a certain time
-        // frame. Attempt to retrieve from the cache.
+        // The methods generateKeyPair(), generateX509Certificate() and/or
+        // computeFingerprint() may be too CPU intensive to invoke for each new
+        // DtlsControlImpl instance. That's why we've decided to reuse their
+        // return values within a certain time frame. Attempt to retrieve from
+        // the cache.
         synchronized (DtlsControlImpl.class)
         {
             certificateInfo = certificateInfoCache;
@@ -864,19 +919,18 @@ public class DtlsControlImpl
             org.bouncycastle.asn1.x509.Certificate certificate)
         throws Exception
     {
-        // RFC 4572 "Connection-Oriented Media Transport over the Transport
+        // RFC 8122 "Connection-Oriented Media Transport over the Transport
         // Layer Security (TLS) Protocol in the Session Description Protocol
-        // (SDP)" defines that "[a] certificate fingerprint MUST be computed
-        // using the same one-way hash function as is used in the certificate's
-        // signature algorithm."
-        String hashFunction = findHashFunction(certificate);
-
-        // As RFC 5763 "Framework for Establishing a Secure Real-time Transport
-        // Protocol (SRTP) Security Context Using Datagram Transport Layer
-        // Security (DTLS)" states, "the certificate presented during the DTLS
-        // handshake MUST match the fingerprint exchanged via the signaling path
-        // in the SDP."
-        String remoteFingerprint;
+        // (SDP)" section 5.1: "An endpoint MUST select the set of
+        // fingerprints that use its most preferred hash function (out of
+        // those offered by the peer) and verify that each certificate used
+        // matches one fingerprint out of that set." The hash function is
+        // chosen from the signaled fingerprints only; unlike RFC 4572, which
+        // RFC 8122 obsoletes, it is no longer tied to the signature algorithm
+        // of the certificate. The certificate may even be unsigned (RFC 9925).
+        // The DtlsControl interface carries one fingerprint per hash
+        // function, so the "set" has at most one member here.
+        Map<String,String> remoteFingerprints;
 
         synchronized (this)
         {
@@ -885,63 +939,43 @@ public class DtlsControlImpl
                 throw new IllegalStateException("disposed");
             }
 
-            Map<String,String> remoteFingerprints = this.remoteFingerprints;
-
-            if (remoteFingerprints == null)
-            {
-                throw new IOException(
-                        "No fingerprints declared over the signaling path!");
-            }
-
-            remoteFingerprint = remoteFingerprints.get(hashFunction);
-
-            // Unfortunately, Firefox does not comply with RFC 5763 at the time
-            // of this writing. Its certificate uses SHA-1 and it sends a
-            // fingerprint computed with SHA-256. We could, of course, wait for
-            // Mozilla to make Firefox compliant. However, we would like to
-            // support Firefox in the meantime. That is why we will allow the
-            // fingerprint to "upgrade" the hash function of the certificate
-            // much like SHA-256 is an "upgrade" of SHA-1.
-            if (remoteFingerprint == null)
-            {
-                String hashFunctionUpgrade
-                    = findHashFunctionUpgrade(hashFunction, remoteFingerprints);
-
-                if (hashFunctionUpgrade != null
-                        && !hashFunctionUpgrade.equalsIgnoreCase(hashFunction))
-                {
-                    remoteFingerprint
-                        = remoteFingerprints.get(hashFunctionUpgrade);
-                    if (remoteFingerprint != null)
-                        hashFunction = hashFunctionUpgrade;
-                }
-            }
+            remoteFingerprints = this.remoteFingerprints;
         }
-        if (remoteFingerprint == null)
+        if (remoteFingerprints == null)
         {
             throw new IOException(
-                    "No fingerprint declared over the signaling path with hash"
-                        + " function: " + hashFunction + "!");
+                    "No fingerprints declared over the signaling path!");
         }
 
-        String fingerprint = computeFingerprint(certificate, hashFunction);
-
-        if (remoteFingerprint.equals(fingerprint))
+        for (String hashFunction : ACCEPTED_FINGERPRINT_HASH_FUNCTIONS)
         {
-            if (logger.isTraceEnabled())
+            String remoteFingerprint = remoteFingerprints.get(hashFunction);
+
+            if (remoteFingerprint == null)
+                continue;
+
+            String fingerprint = computeFingerprint(certificate, hashFunction);
+
+            if (remoteFingerprint.equalsIgnoreCase(fingerprint))
             {
-                logger.trace(
-                        "Fingerprint " + remoteFingerprint + " matches the "
-                            + hashFunction + "-hashed certificate.");
+                if (logger.isTraceEnabled())
+                {
+                    logger.trace(
+                            "Fingerprint " + remoteFingerprint + " matches the "
+                                + hashFunction + "-hashed certificate.");
+                }
+                return;
             }
-        }
-        else
-        {
             throw new IOException(
                     "Fingerprint " + remoteFingerprint + " does not match the "
                         + hashFunction + "-hashed certificate " + fingerprint
                         + "!");
         }
+        throw new IOException(
+                "No fingerprint declared over the signaling path with any of"
+                    + " the accepted hash functions "
+                    + ACCEPTED_FINGERPRINT_HASH_FUNCTIONS + ", only with "
+                    + remoteFingerprints.keySet() + "!");
     }
 
     /**

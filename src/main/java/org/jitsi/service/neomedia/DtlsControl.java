@@ -50,9 +50,10 @@ public interface DtlsControl
 
     /**
      * Gets the hash function with which the fingerprint of the local
-     * certificate is computed i.e. the digest algorithm of the signature
-     * algorithm of the local certificate.
-     * 
+     * certificate is computed, as it is signaled to the remote endpoint
+     * (RFC 8122). It is configured independently of the signature algorithm
+     * of the certificate.
+     *
      * @return the hash function with which the fingerprint of the local
      * certificate is computed
      */
