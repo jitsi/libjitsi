@@ -149,7 +149,9 @@ jobs:
 
   deb:
     name: ${{ matrix.dist.dist }} ${{ matrix.arch }}
-    runs-on: ubuntu-latest
+    # Pinned: the sbuild/QEMU chroot toolchain below is set up for 24.04. ubuntu-latest moved to 26.04, where
+    # qemu-user-static is no longer a real package (qemu-user-binfmt provides it), so "Install tools" fails.
+    runs-on: ubuntu-24.04
     needs:
       - version
       - javatest
