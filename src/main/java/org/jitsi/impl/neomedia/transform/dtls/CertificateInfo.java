@@ -44,9 +44,9 @@ class CertificateInfo
     public final String localFingerprint;
 
     /**
-     * The hash function of {@link #localFingerprint} (which is the same as the
-     * digest algorithm of the signature algorithm of {@link #certificate} in
-     * accord with RFC 4572).
+     * The hash function with which {@link #localFingerprint} was computed
+     * (RFC 8122). It is configured independently of the signature algorithm
+     * of {@link #certificate}.
      */
     public final String localFingerprintHashFunction;
 
