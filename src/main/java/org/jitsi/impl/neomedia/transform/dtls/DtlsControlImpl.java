@@ -208,8 +208,8 @@ public class DtlsControlImpl
      * property which specifies the hash functions accepted for the
      * fingerprints of remote certificates, as a comma-separated list in
      * decreasing order of preference (RFC 8122). The default value is
-     * {@link #DEFAULT_ACCEPTED_FINGERPRINT_HASH_FUNCTIONS}; it keeps sha-1,
-     * at the lowest preference, for SIP peers which signal nothing stronger.
+     * {@link #DEFAULT_ACCEPTED_FINGERPRINT_HASH_FUNCTIONS}; sha-1 and
+     * sha-224 are valid names but not accepted by default.
      */
     public static final String ACCEPTED_FINGERPRINT_HASH_FUNCTIONS_PNAME
         = DtlsControlImpl.class.getName()
@@ -220,7 +220,7 @@ public class DtlsControlImpl
      * certificates, in decreasing order of preference.
      */
     public static final String DEFAULT_ACCEPTED_FINGERPRINT_HASH_FUNCTIONS
-        = "sha-512,sha-384,sha-256,sha-1";
+        = "sha-512,sha-384,sha-256";
 
     /**
      * The hash function names of the "Hash Function Textual Names" IANA

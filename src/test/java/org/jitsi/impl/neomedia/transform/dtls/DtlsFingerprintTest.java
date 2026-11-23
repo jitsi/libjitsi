@@ -124,17 +124,21 @@ public class DtlsFingerprintTest
     }
 
     @Test
-    public void acceptsSha1FingerprintWhenNothingStrongerIsOffered()
+    public void rejectsSha1FingerprintByDefault()
         throws Exception
     {
+        // sha-1 is a valid fingerprint hash function but not in the default
+        // accepted list; a peer signaling only sha-1 is rejected unless the
+        // list is configured to include it.
         DtlsControlImpl control = new DtlsControlImpl();
         org.bouncycastle.asn1.x509.Certificate x509 = localX509(control);
 
         control.setRemoteFingerprints(
             Collections.singletonMap("sha-1", fingerprint(x509, "SHA-1")));
 
-        assertTrue(control.verifyAndValidateCertificate(
-            control.getCertificateInfo().getCertificate()));
+        assertThrows(IOException.class, () ->
+            control.verifyAndValidateCertificate(
+                control.getCertificateInfo().getCertificate()));
     }
 
     @Test
@@ -157,7 +161,7 @@ public class DtlsFingerprintTest
     public void parsesHashFunctionLists()
     {
         assertEquals(
-            Arrays.asList("sha-512", "sha-384", "sha-256", "sha-1"),
+            Arrays.asList("sha-512", "sha-384", "sha-256"),
             DtlsControlImpl.parseHashFunctions(
                 DtlsControlImpl.DEFAULT_ACCEPTED_FINGERPRINT_HASH_FUNCTIONS));
         assertEquals(
