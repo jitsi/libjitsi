@@ -15,26 +15,12 @@
  */
 package org.jitsi.impl.neomedia.transform.dtls;
 
-import static org.jitsi.impl.neomedia.transform.dtls.DtlsUtils.BC_TLS_CRYPTO;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.*;
-import java.math.*;
-import java.security.*;
 import java.util.*;
 
-import org.bouncycastle.asn1.*;
-import org.bouncycastle.asn1.x500.*;
 import org.bouncycastle.asn1.x509.*;
-import org.bouncycastle.cert.*;
-import org.bouncycastle.crypto.*;
-import org.bouncycastle.crypto.generators.*;
-import org.bouncycastle.crypto.params.*;
-import org.bouncycastle.crypto.util.*;
-import org.bouncycastle.jce.*;
-import org.bouncycastle.jce.spec.*;
-import org.bouncycastle.operator.*;
-import org.bouncycastle.tls.crypto.impl.bc.*;
 import org.jitsi.service.libjitsi.*;
 import org.junit.jupiter.api.*;
 
@@ -170,56 +156,37 @@ public class DtlsFingerprintTest
     @Test
     public void parsesHashFunctionLists()
     {
-        String defaults
-            = DtlsControlImpl.DEFAULT_ACCEPTED_FINGERPRINT_HASH_FUNCTIONS;
-
         assertEquals(
             Arrays.asList("sha-512", "sha-384", "sha-256", "sha-1"),
-            DtlsControlImpl.parseHashFunctions(defaults, defaults));
+            DtlsControlImpl.parseHashFunctions(
+                DtlsControlImpl.DEFAULT_ACCEPTED_FINGERPRINT_HASH_FUNCTIONS));
+        assertEquals(
+            Collections.singletonList("sha-256"),
+            DtlsControlImpl.parseHashFunctions(
+                DtlsControlImpl.DEFAULT_LOCAL_FINGERPRINT_HASH_FUNCTION));
         // Order kept, names lowercased and trimmed, duplicates dropped.
         assertEquals(
             Arrays.asList("sha-256", "sha-512"),
-            DtlsControlImpl.parseHashFunctions(
-                " SHA-256 ,sha-512, sha-256", defaults));
+            DtlsControlImpl.parseHashFunctions(" SHA-256 ,sha-512, sha-256"));
         // Forbidden and unknown names are dropped; "sha256" is not the
         // RFC 8122 name and would never match a signaled fingerprint.
         assertEquals(
             Collections.singletonList("sha-384"),
             DtlsControlImpl.parseHashFunctions(
-                "md5, MD2, sha256, sha3-256, 1.2.840.113549.2.5, sha-384",
-                defaults));
-        // Nothing usable falls back to the default list, in its order.
-        assertEquals(
-            Arrays.asList("sha-512", "sha-384", "sha-256", "sha-1"),
-            DtlsControlImpl.parseHashFunctions("md5,,foo", defaults));
-        assertEquals(
-            Collections.singletonList("sha-256"),
-            DtlsControlImpl.parseHashFunctions(
-                "", DtlsControlImpl.DEFAULT_LOCAL_FINGERPRINT_HASH_FUNCTION));
+                "md5, MD2, sha256, sha3-256, 1.2.840.113549.2.5, sha-384"));
     }
 
     @Test
-    public void acceptsUnsignedCertificate()
-        throws Exception
+    public void rejectsHashFunctionListWithNothingUsable()
     {
-        // RFC 9925: a certificate with the id-alg-unsigned algorithm and an
-        // empty signature. Its signature algorithm has no digest, so only
-        // the signaled fingerprint can select the hash function.
-        org.bouncycastle.asn1.x509.Certificate x509 = unsignedX509();
-
-        assertEquals(
-            X509ObjectIdentifiers.id_alg_unsigned,
-            x509.getSignatureAlgorithm().getAlgorithm());
-
-        DtlsControlImpl control = new DtlsControlImpl();
-
-        control.setRemoteFingerprints(
-            Collections.singletonMap("sha-256", fingerprint(x509, "SHA-256")));
-
-        assertTrue(control.verifyAndValidateCertificate(
-            new org.bouncycastle.tls.Certificate(
-                new BcTlsCertificate[] {
-                    new BcTlsCertificate(BC_TLS_CRYPTO, x509) })));
+        // No fallback to the default list: a typo in every name must not
+        // silently widen (or narrow) what is accepted.
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> DtlsControlImpl.parseHashFunctions("md5,,foo"));
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> DtlsControlImpl.parseHashFunctions(""));
     }
 
     private static org.bouncycastle.asn1.x509.Certificate localX509(
@@ -231,53 +198,12 @@ public class DtlsFingerprintTest
                 .getCertificateAt(0).getEncoded());
     }
 
-    private static org.bouncycastle.asn1.x509.Certificate unsignedX509()
-        throws Exception
-    {
-        ECKeyPairGenerator generator = new ECKeyPairGenerator();
-        ECNamedCurveParameterSpec curve
-            = ECNamedCurveTable.getParameterSpec("secp256r1");
-
-        generator.init(
-            new ECKeyGenerationParameters(
-                new ECDomainParameters(
-                    curve.getCurve(), curve.getG(), curve.getN(),
-                    curve.getH(), curve.getSeed()),
-                new SecureRandom()));
-
-        AsymmetricCipherKeyPair keyPair = generator.generateKeyPair();
-        X500Name name = new X500Name("CN=unsigned");
-        long now = System.currentTimeMillis();
-
-        return new X509v3CertificateBuilder(
-                name,
-                BigInteger.valueOf(now),
-                new Date(now - 86_400_000L),
-                new Date(now + 86_400_000L),
-                name,
-                SubjectPublicKeyInfoFactory.createSubjectPublicKeyInfo(
-                    keyPair.getPublic()))
-            .build(new NoSignatureContentSigner())
-            .toASN1Structure();
-    }
-
     private static String fingerprint(
             org.bouncycastle.asn1.x509.Certificate x509,
             String algorithm)
         throws Exception
     {
-        byte[] digest
-            = MessageDigest.getInstance(algorithm)
-                .digest(x509.getEncoded(ASN1Encoding.DER));
-        StringBuilder sb = new StringBuilder();
-
-        for (byte b : digest)
-        {
-            if (sb.length() > 0)
-                sb.append(':');
-            sb.append(String.format("%02X", b));
-        }
-        return sb.toString();
+        return TestCertificates.fingerprint(x509, algorithm);
     }
 
     private static String corrupt(String fingerprint)

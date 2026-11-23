@@ -272,13 +272,15 @@ public class DtlsControlImpl
                     CERT_CACHE_EXPIRE_TIME_PNAME,
                     DEFAULT_CERT_CACHE_EXPIRE_TIME);
 
+        // A list without a usable name throws, so that a misconfiguration
+        // (a typo in every name, say) refuses to start rather than silently
+        // widening or narrowing what is accepted.
         LOCAL_FINGERPRINT_HASH_FUNCTION
             = parseHashFunctions(
                     ConfigUtils.getString(
                             LibJitsi.getConfigurationService(),
                             LOCAL_FINGERPRINT_HASH_FUNCTION_PNAME,
-                            DEFAULT_LOCAL_FINGERPRINT_HASH_FUNCTION),
-                    DEFAULT_LOCAL_FINGERPRINT_HASH_FUNCTION)
+                            DEFAULT_LOCAL_FINGERPRINT_HASH_FUNCTION))
                 .get(0);
 
         ACCEPTED_FINGERPRINT_HASH_FUNCTIONS
@@ -286,8 +288,7 @@ public class DtlsControlImpl
                     ConfigUtils.getString(
                             LibJitsi.getConfigurationService(),
                             ACCEPTED_FINGERPRINT_HASH_FUNCTIONS_PNAME,
-                            DEFAULT_ACCEPTED_FINGERPRINT_HASH_FUNCTIONS),
-                    DEFAULT_ACCEPTED_FINGERPRINT_HASH_FUNCTIONS);
+                            DEFAULT_ACCEPTED_FINGERPRINT_HASH_FUNCTIONS));
     }
 
     /**
@@ -297,40 +298,12 @@ public class DtlsControlImpl
      * registered names which RFC 8122 forbids (MD2 and MD5).
      *
      * @param list the comma-separated list of hash function names to parse
-     * @param defaultList the list to fall back to if {@code list} contains
-     * no usable hash function; it must itself contain usable names
      * @return the usable hash function names of {@code list} written in lower
      * case and in the order in which they appear in {@code list}
+     * @throws IllegalArgumentException if {@code list} contains no usable
+     * hash function name
      */
-    static List<String> parseHashFunctions(String list, String defaultList)
-    {
-        List<String> hashFunctions = parseHashFunctions(list);
-
-        if (hashFunctions.isEmpty())
-        {
-            logger.warn(
-                    "No usable fingerprint hash function in '" + list
-                        + "', using " + defaultList);
-            hashFunctions = parseHashFunctions(defaultList);
-            if (hashFunctions.isEmpty())
-            {
-                throw new IllegalArgumentException(
-                        "No usable fingerprint hash function in the default "
-                            + defaultList);
-            }
-        }
-        return Collections.unmodifiableList(hashFunctions);
-    }
-
-    /**
-     * Parses a comma-separated list of hash function names, dropping the
-     * names which are unknown or forbidden for fingerprints.
-     *
-     * @param list the comma-separated list of hash function names to parse
-     * @return the usable hash function names of {@code list} written in lower
-     * case and in the order in which they appear in {@code list}
-     */
-    private static List<String> parseHashFunctions(String list)
+    static List<String> parseHashFunctions(String list)
     {
         List<String> hashFunctions = new ArrayList<>();
 
@@ -358,7 +331,18 @@ public class DtlsControlImpl
                 hashFunctions.add(hashFunction);
             }
         }
-        return hashFunctions;
+
+        if (hashFunctions.isEmpty())
+        {
+            String message
+                = "No usable fingerprint hash function in '" + list
+                    + "', expected a list of "
+                    + KNOWN_FINGERPRINT_HASH_FUNCTIONS;
+
+            logger.error(message);
+            throw new IllegalArgumentException(message);
+        }
+        return Collections.unmodifiableList(hashFunctions);
     }
 
     /**

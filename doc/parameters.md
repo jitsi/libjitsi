@@ -58,7 +58,7 @@ The hash function used to compute the fingerprint of the local certificate that 
 
 ##### org.jitsi.impl.neomedia.transform.dtls.DtlsControlImpl.acceptedFingerprintHashFunctions=*string*
 
-A comma-separated list of the hash functions accepted for the fingerprints of remote certificates, in decreasing order of preference (RFC 8122), out of `sha-1`, `sha-224`, `sha-256`, `sha-384` and `sha-512`. The fingerprint with the most preferred hash function that the remote endpoint signaled is the one verified. MD2 and MD5 are never accepted. The default value is `sha-512,sha-384,sha-256,sha-1`; it keeps `sha-1`, at the lowest preference, for SIP peers that signal nothing stronger.
+A comma-separated list of the hash functions accepted for the fingerprints of remote certificates, in decreasing order of preference (RFC 8122), out of `sha-1`, `sha-224`, `sha-256`, `sha-384` and `sha-512`. The fingerprint with the most preferred hash function that the remote endpoint signaled is the one verified. MD2 and MD5 are never accepted. The default value is `sha-512,sha-384,sha-256,sha-1`; it keeps `sha-1`, at the lowest preference, for SIP peers that signal nothing stronger. Names that are not in that list are ignored with a warning; if no usable name is left (or `localFingerprintHashFunction` has none), `DtlsControlImpl` fails to initialize instead of falling back to the default.
 
 # DtlsPacketTransformer
 
